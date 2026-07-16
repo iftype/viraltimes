@@ -3,8 +3,10 @@ import Fastify from "fastify";
 
 import { AdminAuth } from "./admin-auth.js";
 import { AdminInboxStore } from "./admin-store.js";
+import { CategoryStore } from "./category-store.js";
 import { MemeStore } from "./meme-store.js";
 import { registerAdminRoutes } from "./routes/admin.js";
+import { registerCategoryRoutes } from "./routes/categories.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerIntakeRoutes } from "./routes/intake.js";
 import { registerMemeRoutes } from "./routes/memes.js";
@@ -25,6 +27,9 @@ const inboxStore = new AdminInboxStore(
 const memeStore = new MemeStore(
   process.env.MEME_DATA_FILE ?? "/opt/origin/shared/memes.json",
 );
+const categoryStore = new CategoryStore(
+  process.env.CATEGORY_DATA_FILE ?? "/opt/origin/shared/categories.json",
+);
 
 await app.register(cors, {
   origin:
@@ -34,9 +39,10 @@ await app.register(cors, {
 });
 
 registerHealthRoutes(app);
-registerMemeRoutes(app, memeStore);
+registerCategoryRoutes(app, categoryStore);
+registerMemeRoutes(app, memeStore, categoryStore);
 registerIntakeRoutes(app, inboxStore);
-registerAdminRoutes(app, { adminAuth, adminOrigin, inboxStore, memeStore });
+registerAdminRoutes(app, { adminAuth, adminOrigin, categoryStore, inboxStore, memeStore });
 
 const stop = async (signal: string) => {
   app.log.info({ signal }, "shutting down");

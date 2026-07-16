@@ -2,6 +2,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 import type { Meme, MemeDocument, PublicationStatus, StoredMeme } from "./meme-types.js";
+import { legacyCategoryIds } from "./category-defaults.js";
 
 export class MemeStore {
   private writeQueue = Promise.resolve();
@@ -11,19 +12,19 @@ export class MemeStore {
   async list(includeUnpublished = false) {
     const document = await this.read();
     return document.items
+      .map((item) => ({ ...item, categoryIds: legacyCategoryIds(item) }))
       .filter((item) => includeUnpublished || item.publicationStatus === "published")
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
 
   async getBySlug(slug: string, includeUnpublished = false) {
     const document = await this.read();
-    return (
-      document.items.find(
-        (item) =>
-          item.slug === slug &&
-          (includeUnpublished || item.publicationStatus === "published"),
-      ) ?? null
+    const item = document.items.find(
+      (candidate) =>
+        candidate.slug === slug &&
+        (includeUnpublished || candidate.publicationStatus === "published"),
     );
+    return item ? { ...item, categoryIds: legacyCategoryIds(item) } : null;
   }
 
   async save(

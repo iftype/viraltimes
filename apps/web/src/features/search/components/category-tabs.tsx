@@ -1,18 +1,16 @@
 import { Badge, cn } from "@origin/ui";
-
-import {
-  memeCategories,
-  type MemeCategoryId,
-} from "../lib/categories";
+import type { MemeCategory } from "@/types/meme";
 
 export function CategoryTabs({
   active,
+  categories,
   counts,
   onChange,
 }: {
-  active: MemeCategoryId;
-  counts: Record<MemeCategoryId, number>;
-  onChange: (category: MemeCategoryId) => void;
+  active: string;
+  categories: MemeCategory[];
+  counts: Record<string, number>;
+  onChange: (category: string) => void;
 }) {
   return (
     <div
@@ -20,7 +18,7 @@ export function CategoryTabs({
       className="hide-scrollbar flex gap-2 overflow-x-auto pb-2"
       role="tablist"
     >
-      {memeCategories.map((category) => {
+      {[{ id: "all", label: "전체" }, ...categories].map((category) => {
         const selected = category.id === active;
         return (
           <button

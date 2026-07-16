@@ -7,38 +7,42 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Badge, EmptyState, buttonClassName } from "@origin/ui";
 import { sampleMemes } from "@/data/sample-memes";
-import type { Meme } from "@/types/meme";
+import type { Meme, MemeCategory } from "@/types/meme";
 
 import { CategoryTabs } from "./category-tabs";
 import { MemeCard } from "./meme-card";
-import {
-  filterMemes,
-  memeCategories,
-  type MemeCategoryId,
-} from "../lib/categories";
+import { fallbackCategories, filterMemes } from "../lib/categories";
 
 export function SearchExperience() {
   const query = useSearchParams().get("q")?.trim() ?? "";
   const [memes, setMemes] = useState<Meme[]>([]);
-  const [activeCategory, setActiveCategory] = useState<MemeCategoryId>("all");
+  const [categories, setCategories] = useState<MemeCategory[]>([]);
+  const [activeCategory, setActiveCategory] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [isFallback, setIsFallback] = useState(false);
 
   useEffect(() => {
     let active = true;
-    void fetch("/api/v1/memes?page=1&pageSize=48", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("dictionary unavailable");
-        return (await response.json()) as { items: Meme[] };
+    void Promise.all([
+      fetch("/api/v1/memes?page=1&pageSize=48", { cache: "no-store" }),
+      fetch("/api/v1/categories", { cache: "no-store" }),
+    ])
+      .then(async ([memeResponse, categoryResponse]) => {
+        if (!memeResponse.ok || !categoryResponse.ok) throw new Error("dictionary unavailable");
+        const memeData = (await memeResponse.json()) as { items: Meme[] };
+        const categoryData = (await categoryResponse.json()) as { items: MemeCategory[] };
+        return { categories: categoryData.items, memes: memeData.items };
       })
       .then((data) => {
         if (!active) return;
-        setMemes(data.items);
+        setMemes(data.memes);
+        setCategories(data.categories);
         setIsFallback(false);
       })
       .catch(() => {
         if (!active) return;
         setMemes(sampleMemes);
+        setCategories(fallbackCategories);
         setIsFallback(true);
       })
       .finally(() => {
@@ -52,12 +56,12 @@ export function SearchExperience() {
   const counts = useMemo(
     () =>
       Object.fromEntries(
-        memeCategories.map((category) => [
+        [["all", memes.length], ...categories.map((category) => [
           category.id,
-          memes.filter(category.matches).length,
-        ]),
-      ) as Record<MemeCategoryId, number>,
-    [memes],
+          memes.filter((meme) => meme.categoryIds.includes(category.id)).length,
+        ])],
+      ) as Record<string, number>,
+    [categories, memes],
   );
 
   const visibleMemes = useMemo(
@@ -73,7 +77,7 @@ export function SearchExperience() {
             <Sparkles className="size-3.5" aria-hidden="true" /> ORIGIN FEED
           </Badge>
           <h1 className="mt-3 text-3xl font-black tracking-[-0.055em] sm:text-4xl">
-            {query ? `“${query}” 검색 결과` : "영상부터 바로 보기"}
+            {query ? `“${query}” 검색 결과` : "밈, 챌린지의 원본을 살펴보세요"}
           </h1>
           <p className="mt-2 text-sm text-black/45">
             원본과 확산 맥락이 확인된 항목을 골라보세요.
@@ -88,6 +92,7 @@ export function SearchExperience() {
       <div className="mt-6">
         <CategoryTabs
           active={activeCategory}
+          categories={categories}
           counts={counts}
           onChange={setActiveCategory}
         />
@@ -103,7 +108,15 @@ export function SearchExperience() {
         ) : visibleMemes.length ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {visibleMemes.map((meme, index) => (
-              <MemeCard key={meme.id} meme={meme} priority={index === 0} />
+              <MemeCard
+                categoryLabel={
+                  meme.categories?.[0]?.label ??
+                  categories.find((category) => meme.categoryIds.includes(category.id))?.label
+                }
+                key={meme.id}
+                meme={meme}
+                priority={index === 0}
+              />
             ))}
           </div>
         ) : (

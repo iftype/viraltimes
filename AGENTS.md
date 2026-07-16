@@ -24,6 +24,7 @@
 ## Data rules
 
 - 새 사전 항목은 코드에 하드코딩하지 않고 관리자 API로 등록한다.
+- 카테고리는 서버의 category ID 관계로 저장하고, 태그는 작은 검색 키워드로만 사용한다.
 - 공개 사전은 `published`만 반환한다.
 - URL은 `http/https`만 허용하고 사용자 본문은 React 기본 escaping을 유지한다.
 - 이미지 바이너리를 Oracle 로컬 디스크나 Git에 추가하지 않는다. 현재는 외부 HTTPS URL을 브라우저가 직접 읽는다.

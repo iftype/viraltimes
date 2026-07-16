@@ -49,6 +49,7 @@ export type Meme = {
   }>;
   trendingVideos: Video[];
   relatedVideos: Video[];
+  categoryIds: string[];
   tags: string[];
   accent: string;
 };

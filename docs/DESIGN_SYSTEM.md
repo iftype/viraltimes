@@ -34,6 +34,7 @@
 ## Layout
 
 - 헤더: 브랜드 → 검색 → 문의/제보 행동
+- 데스크톱 검색은 헤더 오른쪽에 두고, 모바일 입력은 iOS 확대 방지를 위해 실제 글자 크기 16px을 유지한 채 padding과 높이로 시각 크기를 조절한다.
 - 홈: 짧은 feed title → category tabs → thumbnail cards
 - 상세: 설명 → 현재 원본과 세로 근거 → 트렌딩 → 관련 → 타임라인 → 참여 → 다른 항목
 - 관리자: 전역 상태 → tabs → 한 가지 작업 surface
@@ -43,6 +44,7 @@
 - 썸네일은 실제 게시물 캡처나 영상 제공 thumbnail URL을 우선한다.
 - 카드 overlay에는 status, kind, title, summary까지만 둔다.
 - 태그는 최대 3개만 미리 보이고 상세에서 전체를 표시한다.
+- 카테고리는 큰 탐색 영역이므로 강조 badge로, 태그는 작은 검색 키워드이므로 보조 텍스트로 구분한다.
 - 커뮤니티 밈도 가능하면 원문 캡처·공식 기사·대표 게시물 thumbnail을 사용한다.
 
 ## Forms
@@ -56,6 +58,7 @@
 
 - text contrast, keyboard focus, label, alt, icon accessible name을 확인한다.
 - horizontal tab list는 keyboard와 touch scroll을 모두 허용한다.
+- button, tab, select처럼 클릭 가능한 요소는 pointer cursor를 제공한다.
 - reduced motion 환경에서도 의미가 유지되어야 한다.
 - breakpoint 기준 QA: 360px, 768px, 1280px.
 

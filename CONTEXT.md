@@ -12,7 +12,7 @@
 - `apps/api`: Fastify, TypeScript, Node.js 22
 - `packages/ui`: web/admin 공용 디자인 토큰과 도메인 비의존 UI primitive
 - `infra`: Nginx reverse proxy와 systemd API 서비스 예시
-- 공개 사전과 운영자 큐는 Oracle API의 파일 저장소를 사용하고, 브라우저 로컬 참여 저장소는 토론 프로토타입에만 남긴다.
+- 공개 사전·카테고리와 운영자 큐는 Oracle API의 파일 저장소를 사용하고, 브라우저 로컬 참여 저장소는 토론 프로토타입에만 남긴다.
 
 ## Network boundary
 
@@ -33,4 +33,4 @@
 
 ## Next milestone
 
-`PLAN.md`의 P0 순서대로 SQLite migration, canonical category, 외부 object storage thumbnail 경계를 구현한다.
+`PLAN.md`의 P0 순서대로 JSON을 SQLite로 이전하고 외부 object storage thumbnail 경계를 구현한다. canonical category API와 관리자 UI는 JSON 저장소 기준으로 먼저 적용했다.

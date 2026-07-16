@@ -8,6 +8,15 @@ export type Platform =
 export type OriginStatus = "verified" | "likely" | "needs-review";
 export type MemeKind = "challenge" | "video-meme" | "community-meme";
 
+export type MemeCategory = {
+  id: string;
+  slug: string;
+  label: string;
+  description?: string;
+  sortOrder: number;
+  isActive: boolean;
+};
+
 export type Video = {
   id: string;
   platform: Platform;
@@ -64,6 +73,8 @@ export type Meme = {
   timeline: TimelineEvent[];
   trendingVideos: Video[];
   relatedVideos: Video[];
+  categoryIds: string[];
+  categories?: MemeCategory[];
   tags: string[];
   accent: string;
 };

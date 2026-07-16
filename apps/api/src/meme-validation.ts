@@ -176,6 +176,7 @@ export function parseMemeInput(value: unknown): ParseResult {
       timeline,
       trendingVideos: parseVideos(raw.trendingVideos, "trending"),
       relatedVideos: parseVideos(raw.relatedVideos, "related"),
+      categoryIds: stringList(raw.categoryIds, 20),
       tags: stringList(raw.tags, 30),
     },
   };

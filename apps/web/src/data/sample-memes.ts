@@ -7,7 +7,7 @@ export const sampleMemes: Meme[] = [
     title: "꿍싯꿍싯",
     kind: "challenge",
     thumbnailUrl: "/thumbnails/kkungsit.jpg",
-    aliases: ["다이죠부이데쇼", "료 행진곡", "Otsukare Summer challenge"],
+    aliases: ["다이죠부이데쇼", "다이죠부 챌린지", "료 행진곡", "Otsukare Summer challenge"],
     summary:
       "NCT WISH 료의 안무에 HALCALI의 Otsukare SUMMER를 붙인 팬 편집 영상에서 시작된 귀여운 숏폼 챌린지.",
     accent: "#fe2c55",
@@ -112,6 +112,7 @@ export const sampleMemes: Meme[] = [
         viewCountLabel: "460만 조회",
       },
     ],
+    categoryIds: ["category-challenge", "category-music-dance"],
     tags: ["댄스", "역챌린지", "NCT WISH", "2026"],
   },
   {
@@ -198,6 +199,7 @@ export const sampleMemes: Meme[] = [
         creator: "DizastaMusic",
       },
     ],
+    categoryIds: ["category-challenge", "category-music-dance"],
     tags: ["댄스", "챌린지", "2010s", "유튜브"],
   },
   {
@@ -284,6 +286,7 @@ export const sampleMemes: Meme[] = [
         creator: "nyan.cat",
       },
     ],
+    categoryIds: ["category-video-meme"],
     tags: ["고양이", "픽셀아트", "2010s", "리믹스"],
   },
   {
@@ -369,6 +372,7 @@ export const sampleMemes: Meme[] = [
         creator: "Rick Astley",
       },
     ],
+    categoryIds: ["category-community-meme", "category-video-meme"],
     tags: ["링크", "장난", "2000s", "뮤직비디오"],
   },
   {
@@ -433,6 +437,7 @@ export const sampleMemes: Meme[] = [
     ],
     trendingVideos: [],
     relatedVideos: [],
+    categoryIds: ["category-community-meme"],
     tags: ["유행어", "커뮤니티", "2020s", "텍스트밈"],
   },
   {
@@ -508,6 +513,7 @@ export const sampleMemes: Meme[] = [
     ],
     trendingVideos: [],
     relatedVideos: [],
+    categoryIds: ["category-community-meme", "category-league-of-legends", "category-game"],
     tags: ["커뮤니티", "문구", "e스포츠", "2020s"],
   },
 ];

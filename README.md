@@ -69,7 +69,8 @@ pnpm build
 | Method | Path | 설명 |
 | --- | --- | --- |
 | `GET` | `/api/v1/health` | 서비스 상태·버전 |
-| `GET` | `/api/v1/memes?page=1&pageSize=24&kind=&tag=&query=` | 공개 사전 목록, 최대 48개 |
+| `GET` | `/api/v1/categories` | 서버에서 관리하는 활성 카테고리 목록 |
+| `GET` | `/api/v1/memes?page=1&pageSize=24&category=&tag=&query=` | 공개 사전 목록, 최대 48개 |
 | `GET` | `/api/v1/memes/:slug` | 공개된 사전 상세 |
 | `POST` | `/api/v1/intake` | 밈 요청·원본 제보·피드백·신고 접수 |
 
@@ -78,9 +79,10 @@ pnpm build
 ## Adding dictionary entries
 
 1. `https://iftype.store/viral/`에서 로그인합니다.
-2. `사전 관리` 탭에서 항목을 `작성 중`으로 저장합니다.
-3. 원본·근거·타임라인을 검토합니다.
-4. `공개`로 바꾸면 운영·개발 클라이언트가 API에서 즉시 읽습니다.
+2. `카테고리` 탭에서 큰 탐색 영역의 이름·순서·노출 여부를 관리합니다.
+3. `사전 관리` 탭에서 카테고리를 선택하고 작은 검색 키워드는 태그로 입력합니다.
+4. 원본·근거·타임라인을 검토합니다.
+5. `공개`로 바꾸면 운영·개발 클라이언트가 API에서 즉시 읽습니다.
 
 항목 추가만으로 web을 커밋하거나 Vercel을 재배포하지 않습니다. 코드 변경이 아닌 콘텐츠 변경은 관리자 API가 정답입니다.
 

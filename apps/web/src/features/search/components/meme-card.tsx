@@ -17,7 +17,15 @@ const statusMeta: Record<OriginStatus, { label: string; icon: typeof Check }> = 
   "needs-review": { label: "검토 중", icon: CircleHelp },
 };
 
-export function MemeCard({ meme, priority = false }: { meme: Meme; priority?: boolean }) {
+export function MemeCard({
+  categoryLabel,
+  meme,
+  priority = false,
+}: {
+  categoryLabel?: string;
+  meme: Meme;
+  priority?: boolean;
+}) {
   const status = statusMeta[meme.origin.status];
   const StatusIcon = status.icon;
   const MediaIcon = meme.kind === "community-meme" ? BookOpenText : Play;
@@ -53,7 +61,7 @@ export function MemeCard({ meme, priority = false }: { meme: Meme; priority?: bo
         </div>
         <div className="absolute inset-x-0 bottom-0 p-4 text-white">
           <Badge className="bg-white/15 text-white backdrop-blur-sm">
-            {kindLabels[meme.kind]}
+            {categoryLabel ?? kindLabels[meme.kind]}
           </Badge>
           <h3 className="mt-3 text-2xl font-black leading-none tracking-[-0.045em]">
             {meme.title}

@@ -14,7 +14,7 @@ export function SiteFooter() {
           <p className="mt-4 text-[0.68rem] text-black/30">© 2026 ViralOrigin. 사전 편집·서비스 구성에 대한 권리만 보유합니다.</p>
         </div>
         <nav className="grid content-start gap-2 text-xs font-bold text-black/55 sm:grid-cols-2">
-          <Link className="inline-flex items-center gap-2 hover:text-black" href="/feedback"><MessageCircleMore className="size-3.5" />문의·피드백</Link>
+          <Link className="inline-flex items-center gap-2 hover:text-black" href="/feedback"><MessageCircleMore className="size-3.5" />사이트 피드백</Link>
           <Link className="inline-flex items-center gap-2 hover:text-black" href="/privacy">개인정보처리방침</Link>
           <a className="inline-flex items-center gap-2 hover:text-black" href="mailto:iftype@naver.com"><Mail className="size-3.5" />이메일</a>
           <a

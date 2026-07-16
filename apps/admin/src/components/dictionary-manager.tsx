@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Field } from "@origin/ui";
+import type { AdminCategory } from "@/components/category-manager";
 
 type Video = {
   id: string;
@@ -51,6 +52,7 @@ export type AdminMeme = {
   }>;
   trendingVideos: Video[];
   relatedVideos: Video[];
+  categoryIds: string[];
   tags: string[];
   accent: string;
   publicationStatus: "draft" | "published" | "archived";
@@ -82,9 +84,11 @@ const csv = (value: FormDataEntryValue | null) =>
 
 export function DictionaryManager({
   items,
+  categories,
   onChange,
 }: {
   items: AdminMeme[];
+  categories: AdminCategory[];
   onChange: (items: AdminMeme[]) => void;
 }) {
   const [editing, setEditing] = useState<AdminMeme | null>(null);
@@ -144,6 +148,7 @@ export function DictionaryManager({
       aliases: csv(form.get("aliases")),
       summary: String(form.get("summary") ?? "").trim(),
       accent: String(form.get("accent") ?? "#fe2c55"),
+      categoryIds: form.getAll("categoryIds").map(String),
       tags: csv(form.get("tags")),
       publicationStatus: String(form.get("publicationStatus")) as AdminMeme["publicationStatus"],
       origin: {
@@ -224,7 +229,17 @@ export function DictionaryManager({
             <Field label="종류"><select name="kind" defaultValue={editing?.kind ?? "community-meme"}><option value="community-meme">커뮤니티 밈</option><option value="video-meme">영상 밈</option><option value="challenge">챌린지</option></select></Field>
             <Field label="공개 상태"><select name="publicationStatus" defaultValue={editing?.publicationStatus ?? "draft"}><option value="draft">작성 중</option><option value="published">바로 공개</option><option value="archived">보관</option></select></Field>
             <Field label="별칭 · 쉼표 구분"><input name="aliases" defaultValue={editing?.aliases.join(", ")} /></Field>
-            <Field label="카테고리 · 쉼표 구분"><input name="tags" required placeholder="인터넷 방송, 리그 오브 레전드" defaultValue={editing?.tags.join(", ")} /></Field>
+            <Field label="카테고리" wide>
+              <div className="grid gap-2 rounded-2xl bg-[#f7f7f8] p-3 sm:grid-cols-2">
+                {categories.filter((category) => category.isActive || editing?.categoryIds.includes(category.id)).map((category) => (
+                  <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm font-bold" key={category.id}>
+                    <input className="size-4 accent-black" defaultChecked={editing?.categoryIds.includes(category.id)} name="categoryIds" type="checkbox" value={category.id} />
+                    {category.label}
+                  </label>
+                ))}
+              </div>
+            </Field>
+            <Field label="태그 · 작은 검색 키워드"><input name="tags" placeholder="저라뎃, 유행어, 2026" defaultValue={editing?.tags.join(", ")} /></Field>
             <Field label="한 줄 설명" wide><textarea name="summary" required defaultValue={editing?.summary} /></Field>
             <Field label="썸네일 URL" wide><input name="thumbnailUrl" type="url" required defaultValue={editing?.thumbnailUrl} /></Field>
             <Field label="포인트 색상"><input name="accent" type="color" defaultValue={editing?.accent ?? "#fe2c55"} /></Field>
@@ -250,7 +265,7 @@ export function DictionaryManager({
         {items.map((item) => {
           const meta = statusMeta[item.publicationStatus];
           return <article className="rounded-2xl border border-black/5 bg-white p-5" key={item.id}>
-            <div className="flex items-start justify-between gap-3"><div><span className={`rounded-full px-2.5 py-1 text-[0.68rem] font-black ${meta.className}`}>{meta.label}</span><h3 className="mt-3 text-xl font-black">{item.title}</h3><p className="mt-1 text-xs font-bold text-black/30">/{item.slug} · {item.tags.join(" · ")}</p></div>{item.publicationStatus === "published" && <a className="rounded-full bg-black/5 p-2 text-black/40" href={`https://viralorigin.vercel.app/meme?slug=${encodeURIComponent(item.slug)}`} target="_blank" rel="noreferrer" aria-label="공개 페이지 열기"><ExternalLink className="size-4" /></a>}</div>
+            <div className="flex items-start justify-between gap-3"><div><span className={`rounded-full px-2.5 py-1 text-[0.68rem] font-black ${meta.className}`}>{meta.label}</span><h3 className="mt-3 text-xl font-black">{item.title}</h3><p className="mt-1 text-xs font-bold text-black/30">/{item.slug} · {item.categoryIds.map((id) => categories.find((category) => category.id === id)?.label).filter(Boolean).join(" · ")}</p><p className="mt-1 text-[0.68rem] font-bold text-black/25">{item.tags.map((tag) => `#${tag}`).join(" ")}</p></div>{item.publicationStatus === "published" && <a className="rounded-full bg-black/5 p-2 text-black/40" href={`https://viralorigin.vercel.app/meme?slug=${encodeURIComponent(item.slug)}`} target="_blank" rel="noreferrer" aria-label="공개 페이지 열기"><ExternalLink className="size-4" /></a>}</div>
             <p className="mt-3 line-clamp-2 text-sm leading-6 text-black/50">{item.summary}</p>
             <div className="mt-4 flex flex-wrap gap-2 border-t border-black/5 pt-4"><button className="flex items-center gap-1.5 rounded-full bg-black px-3 py-2 text-xs font-black text-white" onClick={() => { setEditing(item); setCreating(false); setError(""); }} type="button"><FilePenLine className="size-3.5" />수정</button>{item.publicationStatus !== "published" && <button className="flex items-center gap-1.5 rounded-full bg-[#e8fffe] px-3 py-2 text-xs font-black text-[#087b77]" disabled={saving} onClick={() => void changeStatus(item, "published")} type="button"><Check className="size-3.5" />공개</button>}{item.publicationStatus !== "archived" && <button className="ml-auto flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-2 text-xs font-black text-black/40" disabled={saving} onClick={() => void changeStatus(item, "archived")} type="button"><Archive className="size-3.5" />보관</button>}</div>
           </article>;
