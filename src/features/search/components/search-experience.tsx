@@ -153,7 +153,11 @@ export function SearchExperience() {
                 >
                   <div className="relative aspect-[4/5] overflow-hidden bg-black">
                     <Image
-                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      className={`${
+                        meme.thumbnailFit === "contain"
+                          ? "object-contain"
+                          : "object-cover"
+                      } transition-transform duration-300 group-hover:scale-[1.03]`}
                       src={thumbnailUrl}
                       alt={`${meme.title} 썸네일`}
                       fill

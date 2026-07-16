@@ -6,7 +6,7 @@ export const sampleMemes: Meme[] = [
     slug: "kkungsit-kkungsit",
     title: "꿍싯꿍싯",
     kind: "challenge",
-    thumbnailUrl: "/thumbnails/kkungsit.svg",
+    thumbnailUrl: "/thumbnails/kkungsit.jpg",
     aliases: ["다이죠부이데쇼", "료 행진곡", "Otsukare Summer challenge"],
     summary:
       "NCT WISH 료의 안무에 HALCALI의 Otsukare SUMMER를 붙인 팬 편집 영상에서 시작된 귀여운 숏폼 챌린지.",
@@ -119,7 +119,7 @@ export const sampleMemes: Meme[] = [
     slug: "harlem-shake",
     title: "Harlem Shake",
     kind: "challenge",
-    thumbnailUrl: "https://i.ytimg.com/vi/ygr5AHufBN4/hqdefault.jpg",
+    thumbnailUrl: "/thumbnails/harlem-shake.jpg",
     aliases: ["할렘 쉐이크", "Harlem Shake meme"],
     summary:
       "한 사람이 춤추던 조용한 장면이 비트 드롭과 함께 집단 난장판으로 바뀌는 짧은 영상 포맷.",
@@ -205,7 +205,8 @@ export const sampleMemes: Meme[] = [
     slug: "nyan-cat",
     title: "Nyan Cat",
     kind: "video-meme",
-    thumbnailUrl: "https://i.ytimg.com/vi/QH2-TGUlwu4/hqdefault.jpg",
+    thumbnailUrl: "/thumbnails/nyan-cat.gif",
+    thumbnailFit: "contain",
     aliases: ["냥캣", "Pop Tart Cat"],
     summary:
       "팝타르트 몸을 가진 고양이가 무지개를 남기며 우주를 날아가는 루프 애니메이션과 음악.",
@@ -290,7 +291,7 @@ export const sampleMemes: Meme[] = [
     slug: "rickroll",
     title: "Rickroll",
     kind: "community-meme",
-    thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+    thumbnailUrl: "/thumbnails/rickroll.jpg",
     aliases: ["릭롤", "Never Gonna Give You Up"],
     summary:
       "궁금한 링크인 척 유도한 뒤 Rick Astley의 뮤직비디오로 보내는 인터넷식 장난.",
@@ -375,7 +376,7 @@ export const sampleMemes: Meme[] = [
     slug: "eojjeol-tv",
     title: "어쩔티비",
     kind: "community-meme",
-    thumbnailUrl: "/thumbnails/eojjeol-tv.svg",
+    thumbnailUrl: "/thumbnails/eojjeol-tv.png",
     aliases: ["저쩔티비", "어쩔냉장고", "어쩔TV"],
     summary:
       "상대의 말에 장난스럽게 응수할 때 쓰이는 말장난형 커뮤니티 유행어. 변형 표현과 초기 사용례를 함께 수집 중입니다.",
@@ -389,7 +390,7 @@ export const sampleMemes: Meme[] = [
         title: "어쩔티비 커뮤니티 유행어",
         creator: "커뮤니티 사용례",
         uploadedAt: "2021 무렵",
-        thumbnailUrl: "/thumbnails/eojjeol-tv.svg",
+        thumbnailUrl: "/thumbnails/eojjeol-tv.png",
       },
       summary:
         "특정 단일 영상보다 온라인 대화와 말장난을 통해 퍼진 표현으로, 가장 이른 공개 사용례는 아직 토론이 필요합니다.",
@@ -439,7 +440,7 @@ export const sampleMemes: Meme[] = [
     slug: "jung-kkeok-ma",
     title: "중꺾마",
     kind: "community-meme",
-    thumbnailUrl: "/thumbnails/jung-kkeok-ma.svg",
+    thumbnailUrl: "/thumbnails/jung-kkeok-ma.jpg",
     aliases: ["중요한 건 꺾이지 않는 마음", "중요한 것은 꺾이지 않는 마음"],
     summary:
       "불리한 상황에서도 포기하지 않는 태도를 뜻하는 문구형 밈. e스포츠에서 시작해 스포츠와 일상 표현으로 확산됐습니다.",
@@ -453,7 +454,7 @@ export const sampleMemes: Meme[] = [
         title: "중요한 건 꺾이지 않는 마음",
         creator: "인터뷰 기사 제목",
         uploadedAt: "2022-10",
-        thumbnailUrl: "/thumbnails/jung-kkeok-ma.svg",
+        thumbnailUrl: "/thumbnails/jung-kkeok-ma.jpg",
       },
       summary:
         "DRX 데프트의 인터뷰 답변을 요약한 기사·영상 제목에서 문구가 만들어졌다는 기록이 유력하며, 직접 발언과 제목을 구분해 기록합니다.",

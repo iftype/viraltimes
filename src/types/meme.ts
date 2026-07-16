@@ -57,6 +57,7 @@ export type Meme = {
   title: string;
   kind: MemeKind;
   thumbnailUrl: string;
+  thumbnailFit?: "cover" | "contain";
   aliases: string[];
   summary: string;
   origin: OriginClaim;
