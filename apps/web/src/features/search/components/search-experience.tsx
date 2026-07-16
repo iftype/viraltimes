@@ -15,10 +15,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { sampleMemes } from "@/data/sample-memes";
-import type { OriginStatus } from "@/types/meme";
+import type { Meme, OriginStatus } from "@/types/meme";
 
 const kindLabels = {
   challenge: "챌린지",
@@ -37,18 +37,46 @@ const statusMeta: Record<
 
 export function SearchExperience() {
   const [query, setQuery] = useState("");
+  const [memes, setMemes] = useState<Meme[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFallback, setIsFallback] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void fetch("/api/v1/memes", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("dictionary unavailable");
+        return (await response.json()) as { items: Meme[] };
+      })
+      .then((data) => {
+        if (!active) return;
+        setMemes(data.items);
+        setIsFallback(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setMemes(sampleMemes);
+        setIsFallback(true);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredMemes = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("ko");
-    if (!normalizedQuery) return sampleMemes;
+    if (!normalizedQuery) return memes;
 
-    return sampleMemes.filter((meme) =>
+    return memes.filter((meme) =>
       [meme.title, ...meme.aliases, ...meme.tags]
         .join(" ")
         .toLocaleLowerCase("ko")
         .includes(normalizedQuery),
     );
-  }, [query]);
+  }, [memes, query]);
 
   return (
     <>
@@ -117,7 +145,9 @@ export function SearchExperience() {
       <div className="page-shell">
         <div className="flex items-center gap-2 rounded-xl bg-[#eefcff] px-4 py-3 text-xs font-medium text-black/55">
           <span className="size-2 shrink-0 rounded-full bg-[#25c4bd]" />
-          지금은 프로토타입 샘플이에요. 공개 전 출처를 한 번 더 확인합니다.
+          {isFallback
+            ? "서버 연결이 불안정해 기본 사전을 보여드리고 있어요."
+            : "운영자 검토를 통과한 사전 항목만 공개됩니다."}
         </div>
       </div>
 
@@ -134,7 +164,16 @@ export function SearchExperience() {
           </span>
         </div>
 
-        {filteredMemes.length ? (
+        {isLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                className="h-96 animate-pulse rounded-[1.75rem] bg-white"
+                key={index}
+              />
+            ))}
+          </div>
+        ) : filteredMemes.length ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {filteredMemes.map((meme, index) => {
               const status = statusMeta[meme.origin.status];
@@ -148,7 +187,7 @@ export function SearchExperience() {
               return (
                 <Link
                   className="group overflow-hidden rounded-[1.75rem] border border-black/5 bg-white shadow-[0_10px_26px_rgba(0,0,0,0.08)] transition-transform hover:-translate-y-1"
-                  href={`/memes/${meme.slug}`}
+                  href={`/meme?slug=${encodeURIComponent(meme.slug)}`}
                   key={meme.id}
                 >
                   <div className="relative aspect-[4/5] overflow-hidden bg-black">

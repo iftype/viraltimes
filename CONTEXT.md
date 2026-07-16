@@ -11,7 +11,7 @@
 - `apps/admin`: `/viral` basePath의 정적 Next.js 관리자 화면
 - `apps/api`: Fastify, TypeScript, Node.js 22
 - `infra`: Nginx reverse proxy와 systemd API 서비스 예시
-- 정적 샘플 데이터와 브라우저 로컬 참여 저장소는 API 연결 전 프로토타입 경계로 유지
+- 공개 사전과 운영자 큐는 Oracle API의 파일 저장소를 사용하고, 브라우저 로컬 참여 저장소는 토론 프로토타입에만 남긴다.
 
 ## Network boundary
 
@@ -23,12 +23,13 @@
 
 ## Delivery model
 
-- `develop`: 통합 개발 및 CI
+- `develop`: 통합 개발, CI, Vercel 고정 브랜치 Preview 배포
 - `main`: 보호된 릴리스 브랜치
+- Vercel은 `develop`과 `main`만 빌드하고 그 외 브랜치 배포는 건너뛴다.
 - `main` 업데이트: semantic-release 버전 태그와 GitHub Release 생성
 - GitHub Pages: 전환기 웹 프리뷰
 - Oracle VM: 저장소 변수로 명시적으로 활성화하는 조건부 자동배포
 
 ## Next milestone
 
-공용 저장소를 선택해 수정 제안, 투표, 댓글, 신규 항목 등록을 API로 이전하고 운영자 확정 상태를 추가한다.
+공용 데이터베이스를 선택해 현재 JSON 사전·운영자 큐와 브라우저의 투표·댓글을 함께 이전한다.

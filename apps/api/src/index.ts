@@ -4,6 +4,8 @@ import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import { AdminAuth } from "./admin-auth.js";
 import { AdminInboxStore } from "./admin-store.js";
 import { inboxCategories, inboxStatuses } from "./admin-types.js";
+import { MemeStore } from "./meme-store.js";
+import { parseMemeInput } from "./meme-validation.js";
 
 const app = Fastify({ logger: true });
 
@@ -18,6 +20,9 @@ const adminAuth = new AdminAuth(
 );
 const inboxStore = new AdminInboxStore(
   process.env.ADMIN_DATA_FILE ?? "/opt/origin/shared/admin-inbox.json",
+);
+const memeStore = new MemeStore(
+  process.env.MEME_DATA_FILE ?? "/opt/origin/shared/memes.json",
 );
 
 await app.register(cors, {
@@ -38,6 +43,19 @@ app.get("/api/v1/health", async () => ({
   status: "ok",
   version: process.env.APP_VERSION ?? "development",
 }));
+
+app.get("/api/v1/memes", async (_request, reply) => {
+  reply.header("Cache-Control", "no-store");
+  return { items: await memeStore.list() };
+});
+
+app.get("/api/v1/memes/:slug", async (request, reply) => {
+  const params = request.params as { slug: string };
+  const item = await memeStore.getBySlug(params.slug.toLowerCase());
+  if (!item) return reply.code(404).send({ error: "사전 항목을 찾을 수 없습니다." });
+  reply.header("Cache-Control", "no-store");
+  return { item };
+});
 
 const requireAdmin = async (request: FastifyRequest, reply: FastifyReply) => {
   if (!adminAuth.isConfigured() || !adminAuth.verifyCookieHeader(request.headers.cookie)) {
@@ -150,6 +168,51 @@ app.patch(
     );
     if (!item) return reply.code(404).send({ error: "요청을 찾을 수 없습니다." });
     return { item };
+  },
+);
+
+app.get(
+  "/api/v1/admin/memes",
+  { preHandler: requireAdmin },
+  async () => ({ items: await memeStore.list(true) }),
+);
+
+app.post(
+  "/api/v1/admin/memes",
+  { preHandler: requireAdmin },
+  async (request, reply) => {
+    if (!hasTrustedOrigin(request.headers.origin)) {
+      return reply.code(403).send({ error: "허용되지 않은 요청입니다." });
+    }
+    const parsed = parseMemeInput(request.body);
+    if (!parsed.ok) return reply.code(400).send({ error: parsed.error });
+
+    const result = await memeStore.save(parsed.meme, parsed.publicationStatus);
+    if (result.conflict) return reply.code(409).send({ error: result.conflict });
+    return reply.code(201).send({ item: result.item });
+  },
+);
+
+app.put(
+  "/api/v1/admin/memes/:id",
+  { preHandler: requireAdmin },
+  async (request, reply) => {
+    if (!hasTrustedOrigin(request.headers.origin)) {
+      return reply.code(403).send({ error: "허용되지 않은 요청입니다." });
+    }
+    const params = request.params as { id: string };
+    const existing = (await memeStore.list(true)).find((item) => item.id === params.id);
+    if (!existing) return reply.code(404).send({ error: "사전 항목을 찾을 수 없습니다." });
+
+    const parsed = parseMemeInput(request.body);
+    if (!parsed.ok) return reply.code(400).send({ error: parsed.error });
+    const result = await memeStore.save(
+      parsed.meme,
+      parsed.publicationStatus,
+      params.id,
+    );
+    if (result.conflict) return reply.code(409).send({ error: result.conflict });
+    return { item: result.item };
   },
 );
 

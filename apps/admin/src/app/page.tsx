@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   Bell,
+  BookOpenText,
   Check,
   ChevronRight,
   CircleHelp,
@@ -21,9 +22,14 @@ import {
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
+import {
+  DictionaryManager,
+  type AdminMeme,
+} from "@/components/dictionary-manager";
+
 type Category = "meme_request" | "origin_tip" | "feedback" | "report";
 type Status = "new" | "review" | "resolved" | "rejected";
-type Tab = "all" | Category | "final_review";
+type Tab = "all" | Category | "final_review" | "dictionary";
 
 type InboxItem = {
   id: string;
@@ -49,6 +55,7 @@ const categoryMeta: Record<Category, { label: string; className: string }> = {
 
 const tabs: { id: Tab; label: string; icon: typeof Bell }[] = [
   { id: "all", label: "전체 알림", icon: Bell },
+  { id: "dictionary", label: "사전 관리", icon: BookOpenText },
   { id: "meme_request", label: "밈 추가 요청", icon: CircleHelp },
   { id: "origin_tip", label: "원본 영상", icon: Video },
   { id: "feedback", label: "피드백", icon: MessageSquareText },
@@ -140,6 +147,7 @@ function Login({ onAuthenticated }: { onAuthenticated: () => void }) {
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [items, setItems] = useState<InboxItem[]>([]);
+  const [memes, setMemes] = useState<AdminMeme[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>("all");
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -149,14 +157,20 @@ export default function AdminPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${apiBase}/admin/inbox`, { cache: "no-store" });
-      if (response.status === 401) {
+      const [inboxResponse, memeResponse] = await Promise.all([
+        fetch(`${apiBase}/admin/inbox`, { cache: "no-store" }),
+        fetch(`${apiBase}/admin/memes`, { cache: "no-store" }),
+      ]);
+      if (inboxResponse.status === 401 || memeResponse.status === 401) {
         setAuthenticated(false);
         return;
       }
-      if (!response.ok) throw new Error(await readError(response));
-      const data = (await response.json()) as { items: InboxItem[] };
-      setItems(data.items);
+      if (!inboxResponse.ok) throw new Error(await readError(inboxResponse));
+      if (!memeResponse.ok) throw new Error(await readError(memeResponse));
+      const inboxData = (await inboxResponse.json()) as { items: InboxItem[] };
+      const memeData = (await memeResponse.json()) as { items: AdminMeme[] };
+      setItems(inboxData.items);
+      setMemes(memeData.items);
       setAuthenticated(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "알림을 불러오지 못했습니다.");
@@ -174,12 +188,14 @@ export default function AdminPage() {
   const openItems = useMemo(() => items.filter((item) => item.status === "new" || item.status === "review"), [items]);
   const visibleItems = useMemo(() => {
     if (activeTab === "all") return openItems;
+    if (activeTab === "dictionary") return [];
     if (activeTab === "final_review") return items.filter((item) => item.status === "review");
     return items.filter((item) => item.category === activeTab && (item.status === "new" || item.status === "review"));
   }, [activeTab, items, openItems]);
 
   const countFor = (tab: Tab) => {
     if (tab === "all") return openItems.length;
+    if (tab === "dictionary") return memes.filter((meme) => meme.publicationStatus === "published").length;
     if (tab === "final_review") return items.filter((item) => item.status === "review").length;
     return openItems.filter((item) => item.category === tab).length;
   };
@@ -206,6 +222,7 @@ export default function AdminPage() {
   async function logout() {
     await fetch(`${apiBase}/admin/logout`, { method: "POST" });
     setItems([]);
+    setMemes([]);
     setAuthenticated(false);
   }
 
@@ -248,7 +265,9 @@ export default function AdminPage() {
 
         {error && <p className="mt-4 flex items-center gap-2 rounded-xl bg-[#fff0f3] px-4 py-3 text-xs font-bold text-[#d91d46]"><AlertTriangle className="size-4" />{error}</p>}
 
-        <section className="mt-4 space-y-3" aria-live="polite">
+        {activeTab === "dictionary" ? (
+          <DictionaryManager items={memes} onChange={setMemes} />
+        ) : <section className="mt-4 space-y-3" aria-live="polite">
           {loading ? <div className="flex min-h-56 items-center justify-center rounded-3xl border border-black/5 bg-white"><LoaderCircle className="size-6 animate-spin text-black/25" /></div> : visibleItems.length === 0 ? <div className="flex min-h-64 flex-col items-center justify-center rounded-3xl border border-dashed border-black/10 bg-white px-6 text-center"><span className="flex size-12 items-center justify-center rounded-2xl bg-[#e8fffe] text-[#087b77]"><Check className="size-6" /></span><h2 className="mt-4 text-lg font-black">여기는 다 확인했어요</h2><p className="mt-1 text-sm leading-6 text-black/40">새로운 알림이 들어오면 이 탭에 바로 표시됩니다.</p></div> : visibleItems.map((item) => {
             const meta = categoryMeta[item.category];
             const updating = updatingId === item.id;
@@ -262,7 +281,7 @@ export default function AdminPage() {
               </div>
             </article>;
           })}
-        </section>
+        </section>}
 
         <footer className="mt-8 flex items-center justify-center gap-2 text-[0.68rem] font-bold text-black/25"><Lightbulb className="size-3.5" />상태는 저장되며, 정적 관리자 화면은 서버 메모리를 사용하지 않습니다.</footer>
       </div>
