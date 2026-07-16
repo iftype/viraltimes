@@ -1,4 +1,4 @@
-import { ArrowUpRight, GitPullRequestArrow } from "lucide-react";
+import { ArrowUpRight, Plus } from "lucide-react";
 
 export function SubmissionCta({ memeTitle }: { memeTitle: string }) {
   const issueTitle = encodeURIComponent(`[제보] ${memeTitle} 출처 수정`);
@@ -8,35 +8,27 @@ export function SubmissionCta({ memeTitle }: { memeTitle: string }) {
   const issueUrl = `https://github.com/iftype/meme-origin-timeline/issues/new?title=${issueTitle}&body=${issueBody}`;
 
   return (
-    <section className="relative overflow-hidden bg-[#f05a28] px-7 py-12 text-white sm:px-12 sm:py-16">
-      <div className="absolute -right-14 -top-24 select-none text-[15rem] font-black leading-none text-black/10">
-        ?
-      </div>
-      <div className="relative max-w-2xl">
-        <GitPullRequestArrow className="mb-8 size-8" aria-hidden="true" />
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/65">
-          Help verify the record
-        </p>
-        <h2 className="display-serif mt-4 text-4xl leading-[0.98] tracking-[-0.05em] sm:text-6xl">
-          더 오래된 원본을
-          <br />
-          알고 있나요?
+    <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#fe2c55] via-[#ff4d7d] to-[#8b5cf6] p-7 text-white sm:p-10">
+      <div className="max-w-xl">
+        <span className="flex size-10 items-center justify-center rounded-full bg-white/20">
+          <Plus className="size-5" aria-hidden="true" />
+        </span>
+        <h2 className="mt-5 text-2xl font-black tracking-[-0.04em] sm:text-3xl">
+          더 오래된 원본을 알고 있나요?
         </h2>
-        <p className="mt-6 max-w-lg leading-7 text-white/75">
-          링크와 발견 경로를 알려주세요. 제보는 검토 후 이 기록의 근거와
-          타임라인에 반영됩니다.
+        <p className="mt-3 text-sm leading-6 text-white/75">
+          링크만 남겨도 좋아요. 확인한 뒤 기록에 반영할게요.
         </p>
         <a
-          className="mt-9 inline-flex items-center gap-3 rounded-full bg-[#1b1b18] px-6 py-3.5 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
+          className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-black transition-transform hover:scale-[1.02]"
           href={issueUrl}
           target="_blank"
           rel="noreferrer"
         >
-          GitHub Issue로 제보
+          원본 제보하기
           <ArrowUpRight className="size-4" aria-hidden="true" />
         </a>
       </div>
     </section>
   );
 }
-

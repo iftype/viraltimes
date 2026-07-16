@@ -1,57 +1,40 @@
-import {
-  AudioLines,
-  CircleDot,
-  GitBranch,
-  Radio,
-  Sparkles,
-} from "lucide-react";
+import type { TimelineEvent } from "@/types/meme";
 
-import type { TimelineEvent, TimelineEventKind } from "@/types/meme";
-
-const kindMeta: Record<
-  TimelineEventKind,
-  { label: string; icon: typeof CircleDot }
-> = {
-  origin: { label: "시작", icon: CircleDot },
-  spread: { label: "확산", icon: Radio },
-  variation: { label: "변형", icon: GitBranch },
-  mainstream: { label: "대중화", icon: Sparkles },
-  remix: { label: "리믹스", icon: AudioLines },
+const kindLabels = {
+  origin: "시작",
+  spread: "확산",
+  variation: "변형",
+  mainstream: "대중화",
+  remix: "리믹스",
 };
 
 export function OriginTimeline({ events }: { events: TimelineEvent[] }) {
   return (
-    <ol className="border-t border-black/15">
-      {events.map((event, index) => {
-        const meta = kindMeta[event.kind];
-        const Icon = meta.icon;
+    <ol className="relative ml-1 before:absolute before:bottom-4 before:left-[11px] before:top-4 before:w-0.5 before:bg-gradient-to-b before:from-[#fe2c55] before:via-[#8b5cf6] before:to-[#25c4bd]">
+      {events.map((event, index) => (
+        <li className="relative pb-10 pl-12 last:pb-0" key={event.id}>
+          <span className="absolute left-0 top-1 z-10 flex size-6 items-center justify-center rounded-full border-4 border-white bg-black text-[0.55rem] font-bold text-white shadow-sm">
+            {index + 1}
+          </span>
 
-        return (
-          <li
-            className="grid gap-5 border-b border-black/15 py-8 sm:grid-cols-[6rem_10rem_1fr] sm:gap-8 sm:py-10"
-            key={event.id}
-          >
-            <span className="text-xs font-bold tabular-nums text-black/35">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <div>
-              <p className="text-sm font-bold">{event.dateLabel}</p>
-              <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-black/15 px-2.5 py-1 text-[0.65rem] font-bold text-black/50">
-                <Icon className="size-3" aria-hidden="true" />
-                {meta.label}
+          <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-[0_6px_20px_rgba(0,0,0,0.04)] sm:p-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <time className="text-xs font-black text-[#fe2c55]">
+                {event.dateLabel}
+              </time>
+              <span className="rounded-full bg-black/5 px-2.5 py-1 text-[0.65rem] font-bold text-black/45">
+                {kindLabels[event.kind]}
               </span>
             </div>
-            <div>
-              <h3 className="display-serif text-2xl tracking-[-0.035em] sm:text-3xl">
-                {event.title}
-              </h3>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-black/55 sm:text-base sm:leading-7">
-                {event.description}
-              </p>
-            </div>
-          </li>
-        );
-      })}
+            <h3 className="mt-3 text-lg font-black tracking-[-0.025em] sm:text-xl">
+              {event.title}
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-black/50">
+              {event.description}
+            </p>
+          </div>
+        </li>
+      ))}
     </ol>
   );
 }

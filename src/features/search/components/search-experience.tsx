@@ -1,11 +1,13 @@
 "use client";
 
 import {
-  ArrowRight,
+  ArrowUpRight,
   Check,
   CircleHelp,
   Clock3,
+  Play,
   Search,
+  Sparkles,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -16,23 +18,11 @@ import type { OriginStatus } from "@/types/meme";
 
 const statusMeta: Record<
   OriginStatus,
-  { label: string; icon: typeof Check; className: string }
+  { label: string; icon: typeof Check }
 > = {
-  verified: {
-    label: "출처 확인",
-    icon: Check,
-    className: "bg-[#d9ead8] text-[#245b2d]",
-  },
-  likely: {
-    label: "유력",
-    icon: Clock3,
-    className: "bg-[#f5dfb5] text-[#7d5017]",
-  },
-  "needs-review": {
-    label: "검토 필요",
-    icon: CircleHelp,
-    className: "bg-[#e6dfef] text-[#60477b]",
-  },
+  verified: { label: "출처 확인", icon: Check },
+  likely: { label: "유력", icon: Clock3 },
+  "needs-review": { label: "검토 중", icon: CircleHelp },
 };
 
 export function SearchExperience() {
@@ -52,152 +42,130 @@ export function SearchExperience() {
 
   return (
     <>
-      <section className="page-shell grid min-h-[680px] grid-cols-1 items-center gap-12 py-20 lg:grid-cols-[1.15fr_0.85fr] lg:py-28">
-        <div>
-          <p className="mb-8 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] text-black/45">
-            <span className="h-px w-10 bg-black/35" />
-            The meme origin index
-          </p>
-          <h1 className="display-serif max-w-4xl text-[clamp(4rem,10vw,8.5rem)] leading-[0.83] tracking-[-0.075em]">
-            그 밈,
-            <br />
-            <span className="italic text-[#f05a28]">어디서</span>
-            <br />
-            시작됐을까?
-          </h1>
-        </div>
+      <section className="page-shell pb-12 pt-14 text-center sm:pb-16 sm:pt-20">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fff0f3] px-3 py-1.5 text-xs font-bold text-[#e11d48]">
+          <Sparkles className="size-3.5" aria-hidden="true" />
+          밈 원본 찾기
+        </span>
+        <h1 className="mx-auto mt-5 max-w-2xl text-4xl font-black leading-[1.08] tracking-[-0.055em] sm:text-6xl">
+          이 밈, 대체 어디서
+          <br />
+          시작된 거야? 👀
+        </h1>
+        <p className="mx-auto mt-5 max-w-lg text-sm leading-6 text-black/50 sm:text-base">
+          원본 영상부터 유행 과정까지 짧고 쉽게 확인해 보세요.
+        </p>
 
-        <div className="lg:pt-32">
-          <p className="max-w-md text-lg leading-8 text-black/60">
-            밈과 챌린지의 현재까지 확인된 원본, 판단 근거, 퍼져나간
-            순간을 한곳에서 확인하세요.
-          </p>
-
-          <label className="mt-9 block" htmlFor="meme-search">
-            <span className="sr-only">밈 검색</span>
-            <span className="flex items-center gap-4 border-b-2 border-black py-4">
-              <Search className="size-6 shrink-0" aria-hidden="true" />
-              <input
-                id="meme-search"
-                className="min-w-0 flex-1 bg-transparent text-xl font-semibold outline-none placeholder:text-black/35"
-                type="search"
-                placeholder="밈 이름을 입력하세요"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-              {query && (
-                <button
-                  className="rounded-full p-1 hover:bg-black/10"
-                  type="button"
-                  onClick={() => setQuery("")}
-                  aria-label="검색어 지우기"
-                >
-                  <X className="size-5" aria-hidden="true" />
-                </button>
-              )}
-            </span>
-          </label>
-
-          <div className="mt-6 flex gap-8 text-xs font-bold uppercase tracking-[0.14em] text-black/45">
-            <span>{sampleMemes.length} records</span>
-            <span>community sourced</span>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-black/15 bg-[#1b1b18] py-4 text-[#f3f0e8]">
-        <div className="page-shell flex items-center gap-5 overflow-hidden whitespace-nowrap text-xs font-bold uppercase tracking-[0.18em]">
-          <span className="text-[#ff7849]">Prototype data</span>
-          <span className="text-white/25">◆</span>
-          <span className="text-white/65">
-            현재 콘텐츠는 화면 검증용 샘플이며 공개 전 출처 재검토가 필요합니다
-          </span>
-        </div>
-      </section>
-
-      <section className="page-shell py-20" id="explore">
-        <div className="mb-10 flex items-end justify-between border-b border-black/15 pb-6">
-          <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-black/40">
-              Explore / {String(filteredMemes.length).padStart(2, "0")}
-            </p>
-            <h2 className="display-serif text-4xl tracking-[-0.045em] sm:text-5xl">
-              {query ? `“${query}” 검색 결과` : "지금 확인해 볼 기록"}
-            </h2>
-          </div>
-          {query && (
+        <label
+          className="mx-auto mt-8 flex max-w-xl items-center gap-3 rounded-2xl border border-black/5 bg-white p-2 pl-4 shadow-[0_8px_30px_rgba(0,0,0,0.08)]"
+          htmlFor="meme-search"
+        >
+          <Search className="size-5 shrink-0 text-black/35" aria-hidden="true" />
+          <span className="sr-only">밈 검색</span>
+          <input
+            id="meme-search"
+            className="min-w-0 flex-1 bg-transparent py-2.5 text-base font-semibold outline-none placeholder:text-black/30"
+            type="search"
+            placeholder="밈 이름을 검색해 보세요"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          {query ? (
             <button
-              className="hidden text-sm font-semibold underline underline-offset-4 sm:block"
+              className="rounded-xl p-2 text-black/40 hover:bg-black/5"
               type="button"
               onClick={() => setQuery("")}
+              aria-label="검색어 지우기"
             >
-              전체 보기
+              <X className="size-5" aria-hidden="true" />
             </button>
+          ) : (
+            <span className="hidden rounded-xl bg-black px-4 py-2.5 text-sm font-bold text-white sm:block">
+              검색
+            </span>
           )}
+        </label>
+      </section>
+
+      <div className="page-shell">
+        <div className="flex items-center gap-2 rounded-xl bg-[#eefcff] px-4 py-3 text-xs font-medium text-black/55">
+          <span className="size-2 shrink-0 rounded-full bg-[#25c4bd]" />
+          지금은 프로토타입 샘플이에요. 공개 전 출처를 한 번 더 확인합니다.
+        </div>
+      </div>
+
+      <section className="page-shell py-12 sm:py-16" id="explore">
+        <div className="mb-6 flex items-end justify-between">
+          <div>
+            <p className="text-xs font-bold text-[#fe2c55]">ORIGIN FEED</p>
+            <h2 className="mt-1 text-2xl font-black tracking-[-0.04em] sm:text-3xl">
+              {query ? `“${query}” 검색 결과` : "지금 많이 찾는 밈"}
+            </h2>
+          </div>
+          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-black/45">
+            {filteredMemes.length}개
+          </span>
         </div>
 
         {filteredMemes.length ? (
-          <div className="grid gap-px overflow-hidden border border-black/15 bg-black/15 md:grid-cols-2 xl:grid-cols-3">
-            {filteredMemes.map((meme, index) => {
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredMemes.map((meme) => {
               const status = statusMeta[meme.origin.status];
               const StatusIcon = status.icon;
 
               return (
                 <Link
-                  className="group flex min-h-[390px] flex-col bg-[#f3f0e8] p-7 transition-colors hover:bg-white sm:p-9"
+                  className="group relative flex min-h-[380px] overflow-hidden rounded-[1.75rem] p-5 text-white shadow-[0_12px_30px_rgba(0,0,0,0.12)] transition-transform hover:-translate-y-1"
                   href={`/memes/${meme.slug}`}
                   key={meme.id}
+                  style={{
+                    background: `linear-gradient(155deg, ${meme.accent} 0%, #1f1f24 78%)`,
+                  }}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold tabular-nums text-black/35">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.68rem] font-bold ${status.className}`}
-                    >
-                      <StatusIcon className="size-3" aria-hidden="true" />
-                      {status.label}
-                    </span>
-                  </div>
+                  <span className="absolute -right-10 top-14 size-40 rounded-full border-[24px] border-white/10" />
+                  <span className="absolute -bottom-12 -left-8 size-44 rounded-full bg-white/10 blur-2xl" />
 
-                  <div className="my-auto py-10">
-                    <div
-                      className="mb-6 h-1 w-14 transition-all duration-300 group-hover:w-24"
-                      style={{ backgroundColor: meme.accent }}
-                    />
-                    <h3 className="display-serif text-4xl leading-none tracking-[-0.055em] sm:text-5xl">
-                      {meme.title}
-                    </h3>
-                    <p className="mt-5 line-clamp-3 max-w-sm text-sm leading-6 text-black/55">
-                      {meme.summary}
-                    </p>
-                  </div>
-
-                  <div className="flex items-end justify-between gap-5 border-t border-black/10 pt-5">
-                    <div className="flex flex-wrap gap-1.5">
-                      {meme.tags.slice(0, 3).map((tag) => (
-                        <span
-                          className="rounded-full border border-black/10 px-2.5 py-1 text-[0.65rem] font-semibold text-black/50"
-                          key={tag}
-                        >
-                          #{tag}
-                        </span>
-                      ))}
+                  <div className="relative z-10 flex w-full flex-col">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold text-black">
+                        <StatusIcon className="size-3" aria-hidden="true" />
+                        {status.label}
+                      </span>
+                      <span className="flex size-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                        <Play className="ml-0.5 size-4 fill-current" aria-hidden="true" />
+                      </span>
                     </div>
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-black/15 transition-colors group-hover:bg-black group-hover:text-white">
-                      <ArrowRight className="size-4" aria-hidden="true" />
-                    </span>
+
+                    <div className="mt-auto">
+                      <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-white/60">
+                        Origin story
+                      </p>
+                      <h3 className="text-4xl font-black leading-none tracking-[-0.055em]">
+                        {meme.title}
+                      </h3>
+                      <p className="mt-4 line-clamp-2 text-sm leading-6 text-white/70">
+                        {meme.summary}
+                      </p>
+                      <div className="mt-5 flex items-end justify-between gap-3">
+                        <p className="text-xs font-bold text-white/70">
+                          {meme.tags.slice(0, 3).map((tag) => `#${tag}`).join(" ")}
+                        </p>
+                        <ArrowUpRight
+                          className="size-5 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </Link>
               );
             })}
           </div>
         ) : (
-          <div className="flex min-h-72 flex-col items-center justify-center border border-dashed border-black/25 px-6 text-center">
-            <p className="display-serif text-3xl">아직 기록이 없어요.</p>
-            <p className="mt-3 text-sm text-black/50">
-              다른 이름이나 태그로 검색해 보세요.
-            </p>
+          <div className="flex min-h-60 flex-col items-center justify-center rounded-3xl border border-dashed border-black/10 bg-white px-6 text-center">
+            <p className="text-4xl">🫥</p>
+            <p className="mt-3 text-lg font-bold">아직 기록이 없어요.</p>
+            <p className="mt-1 text-sm text-black/45">다른 이름으로 찾아보세요.</p>
           </div>
         )}
       </section>
