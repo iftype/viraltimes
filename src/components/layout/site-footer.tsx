@@ -1,4 +1,4 @@
-import { Github } from "lucide-react";
+import { GitFork } from "lucide-react";
 
 export function SiteFooter() {
   return (
@@ -11,11 +11,10 @@ export function SiteFooter() {
           target="_blank"
           rel="noreferrer"
         >
-          <Github className="size-4" aria-hidden="true" />
+          <GitFork className="size-4" aria-hidden="true" />
           GitHub에서 보기
         </a>
       </div>
     </footer>
   );
 }
-
