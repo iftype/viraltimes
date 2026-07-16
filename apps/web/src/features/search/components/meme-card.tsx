@@ -65,7 +65,7 @@ export function MemeCard({
         </div>
         <div className="absolute inset-x-0 bottom-0 p-4 text-white">
           <Badge className="bg-white/15 text-white backdrop-blur-sm">
-            {categoryLabel ?? kindLabels[meme.kind]}
+            {meme.lifecycle?.originYear ? `${meme.lifecycle.originYear} · ` : ""}{categoryLabel ?? kindLabels[meme.kind]}
           </Badge>
           <h3 className="mt-3 text-2xl font-black leading-none tracking-[-0.045em]">
             {meme.title}

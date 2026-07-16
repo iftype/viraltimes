@@ -21,6 +21,12 @@ export type Video = {
   viewCountLabel?: string;
 };
 
+export type MemeLifecycle = {
+  originYear?: number;
+  firstSeenAt?: string;
+  lastObservedAt?: string;
+};
+
 export type Meme = {
   id: string;
   slug: string;
@@ -49,6 +55,7 @@ export type Meme = {
   }>;
   trendingVideos: Video[];
   relatedVideos: Video[];
+  lifecycle?: MemeLifecycle;
   categoryIds: string[];
   tags: string[];
   accent: string;

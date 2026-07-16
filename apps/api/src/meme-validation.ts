@@ -153,6 +153,14 @@ export function parseMemeInput(value: unknown): ParseResult {
           .slice(0, 20)
       : [];
 
+  const lifecycleRaw = raw.lifecycle as Record<string, unknown> | undefined;
+  const originYearValue = Number(lifecycleRaw?.originYear);
+  const originYear = Number.isInteger(originYearValue) && originYearValue >= 1900 && originYearValue <= new Date().getFullYear() + 1
+    ? originYearValue
+    : undefined;
+  const firstSeenAt = optionalText(lifecycleRaw?.firstSeenAt, 40);
+  const lastObservedAt = optionalText(lifecycleRaw?.lastObservedAt, 40);
+
   return {
     ok: true,
     publicationStatus,
@@ -176,6 +184,11 @@ export function parseMemeInput(value: unknown): ParseResult {
       timeline,
       trendingVideos: parseVideos(raw.trendingVideos, "trending"),
       relatedVideos: parseVideos(raw.relatedVideos, "related"),
+      lifecycle: {
+        originYear,
+        firstSeenAt,
+        lastObservedAt,
+      },
       categoryIds: stringList(raw.categoryIds, 20),
       tags: stringList(raw.tags, 30),
     },

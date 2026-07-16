@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 import type { CategoryStore } from "../category-store.js";
 import type { MemeStore } from "../meme-store.js";
 import type { ParticipationStore } from "../participation-store.js";
+import { enrichLifecycle } from "../meme-lifecycle.js";
 
 export function registerMemeRoutes(
   app: FastifyInstance,
@@ -18,6 +19,10 @@ export function registerMemeRoutes(
       tag?: string;
       category?: string;
       query?: string;
+      year?: string;
+      fromYear?: string;
+      toYear?: string;
+      sort?: "latest" | "oldest" | "updated";
     };
     const page = Math.max(1, Number.parseInt(query.page ?? "1", 10) || 1);
     const pageSize = Math.min(
@@ -33,7 +38,11 @@ export function registerMemeRoutes(
       ? await categoryStore.resolveId(query.category)
       : null;
     const categoryById = new Map(categories.map((category) => [category.id, category]));
-    const filteredItems = allItems.filter((item) => {
+    const itemsWithLifecycle = allItems.map((item) => ({
+      ...item,
+      lifecycle: enrichLifecycle(item),
+    }));
+    const baseFilteredItems = itemsWithLifecycle.filter((item) => {
       if (query.kind && item.kind !== query.kind) return false;
       if (query.tag && !item.tags.includes(query.tag)) return false;
       if (query.category && (!requestedCategoryId || !item.categoryIds.includes(requestedCategoryId))) {
@@ -50,6 +59,27 @@ export function registerMemeRoutes(
       }
       return true;
     });
+    const year = Number.parseInt(query.year ?? "", 10);
+    const fromYear = Number.parseInt(query.fromYear ?? "", 10);
+    const toYear = Number.parseInt(query.toYear ?? "", 10);
+    const filteredItems = baseFilteredItems
+      .filter((item) => {
+        const originYear = item.lifecycle.originYear;
+        if (Number.isInteger(year) && originYear !== year) return false;
+        if (Number.isInteger(fromYear) && (originYear === undefined || originYear < fromYear)) return false;
+        if (Number.isInteger(toYear) && (originYear === undefined || originYear > toYear)) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (query.sort === "latest") return (b.lifecycle.originYear ?? 0) - (a.lifecycle.originYear ?? 0);
+        if (query.sort === "oldest") return (a.lifecycle.originYear ?? 9999) - (b.lifecycle.originYear ?? 9999);
+        return b.updatedAt.localeCompare(a.updatedAt);
+      });
+    const yearCounts = new Map<number, number>();
+    for (const item of baseFilteredItems) {
+      const originYear = item.lifecycle.originYear;
+      if (originYear !== undefined) yearCounts.set(originYear, (yearCounts.get(originYear) ?? 0) + 1);
+    }
     const total = filteredItems.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const start = (page - 1) * pageSize;
@@ -74,6 +104,11 @@ export function registerMemeRoutes(
         hasNext: page < totalPages,
         hasPrevious: page > 1,
       },
+      facets: {
+        years: [...yearCounts.entries()]
+          .sort(([a], [b]) => b - a)
+          .map(([value, count]) => ({ value, count })),
+      },
     };
   });
 
@@ -94,6 +129,7 @@ export function registerMemeRoutes(
     return {
       item: {
         ...item,
+        lifecycle: enrichLifecycle(item),
         categories: item.categoryIds
           .map((id) => categoryById.get(id))
           .filter(Boolean),

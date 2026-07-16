@@ -73,6 +73,13 @@ export type Meme = {
   timeline: TimelineEvent[];
   trendingVideos: Video[];
   relatedVideos: Video[];
+  lifecycle?: {
+    originYear?: number;
+    firstSeenAt?: string;
+    lastObservedAt?: string;
+    ageYears?: number;
+    daysSinceLastObserved?: number;
+  };
   categoryIds: string[];
   categories?: MemeCategory[];
   tags: string[];

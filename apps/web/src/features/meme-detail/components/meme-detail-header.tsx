@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, CircleHelp, Clock3 } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, CircleHelp, Clock3 } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@origin/ui";
@@ -30,6 +30,12 @@ export function MemeDetailHeader({ meme }: { meme: Meme }) {
         </div>
         <div className="mt-7 flex flex-wrap items-center gap-2">
           <Badge className={status.className}><StatusIcon className="size-3.5" />{status.label}</Badge>
+          {meme.lifecycle?.originYear && (
+            <Badge className="bg-black/5 text-black/55">
+              <CalendarDays className="size-3.5" /> {meme.lifecycle.originYear}년 시작
+              {meme.lifecycle.ageYears !== undefined && ` · ${meme.lifecycle.ageYears === 0 ? "올해" : `${meme.lifecycle.ageYears}년 전`}`}
+            </Badge>
+          )}
           <a className="text-xs font-black text-[#7047a5]" href="#proposals">수정 제안 {meme.participation?.proposalCount ?? 0}</a>
           <span className="text-xs font-medium text-black/35">{meme.origin.lastReviewedAt} 업데이트</span>
         </div>

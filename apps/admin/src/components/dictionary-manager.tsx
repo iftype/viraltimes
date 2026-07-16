@@ -52,6 +52,11 @@ export type AdminMeme = {
   }>;
   trendingVideos: Video[];
   relatedVideos: Video[];
+  lifecycle?: {
+    originYear?: number;
+    firstSeenAt?: string;
+    lastObservedAt?: string;
+  };
   categoryIds: string[];
   tags: string[];
   accent: string;
@@ -161,6 +166,11 @@ export function DictionaryManager({
       timeline,
       trendingVideos: base?.trendingVideos ?? [],
       relatedVideos: base?.relatedVideos ?? [],
+      lifecycle: {
+        originYear: Number(form.get("originYear")) || undefined,
+        firstSeenAt: String(form.get("firstSeenAt") ?? "").trim() || undefined,
+        lastObservedAt: String(form.get("lastObservedAt") ?? "").trim() || undefined,
+      },
     };
 
     try {
@@ -244,6 +254,9 @@ export function DictionaryManager({
             <Field label="썸네일 URL" wide><input name="thumbnailUrl" type="url" required defaultValue={editing?.thumbnailUrl} /></Field>
             <Field label="포인트 색상"><input name="accent" type="color" defaultValue={editing?.accent ?? "#fe2c55"} /></Field>
             <Field label="원본 판단"><select name="originStatus" defaultValue={editing?.origin.status ?? "needs-review"}><option value="verified">출처 확인</option><option value="likely">유력</option><option value="needs-review">검토 필요</option></select></Field>
+            <Field label="유행 시작 연도"><input name="originYear" type="number" min="1900" max={new Date().getFullYear() + 1} placeholder="2026" defaultValue={editing?.lifecycle?.originYear} /></Field>
+            <Field label="최초 확인일"><input name="firstSeenAt" type="date" defaultValue={editing?.lifecycle?.firstSeenAt} /></Field>
+            <Field label="최근 사용 확인일"><input name="lastObservedAt" type="date" defaultValue={editing?.lifecycle?.lastObservedAt} /></Field>
             <Field label="원본 플랫폼"><select name="originPlatform" defaultValue={editing?.origin.video.platform ?? "youtube"}><option value="youtube">YouTube</option><option value="tiktok">TikTok</option><option value="instagram">Instagram</option><option value="x">X</option><option value="unknown">기타</option></select></Field>
             <Field label="원본/대표 영상 URL"><input name="originUrl" type="url" required defaultValue={editing?.origin.video.url} /></Field>
             <Field label="영상 제목"><input name="originTitle" required defaultValue={editing?.origin.video.title} /></Field>
@@ -265,7 +278,7 @@ export function DictionaryManager({
         {items.map((item) => {
           const meta = statusMeta[item.publicationStatus];
           return <article className="rounded-2xl border border-black/5 bg-white p-5" key={item.id}>
-            <div className="flex items-start justify-between gap-3"><div><span className={`rounded-full px-2.5 py-1 text-[0.68rem] font-black ${meta.className}`}>{meta.label}</span><h3 className="mt-3 text-xl font-black">{item.title}</h3><p className="mt-1 text-xs font-bold text-black/30">/{item.slug} · {item.categoryIds.map((id) => categories.find((category) => category.id === id)?.label).filter(Boolean).join(" · ")}</p><p className="mt-1 text-[0.68rem] font-bold text-black/25">{item.tags.map((tag) => `#${tag}`).join(" ")}</p></div>{item.publicationStatus === "published" && <a className="rounded-full bg-black/5 p-2 text-black/40" href={`https://viralorigin.vercel.app/meme?slug=${encodeURIComponent(item.slug)}`} target="_blank" rel="noreferrer" aria-label="공개 페이지 열기"><ExternalLink className="size-4" /></a>}</div>
+            <div className="flex items-start justify-between gap-3"><div><span className={`rounded-full px-2.5 py-1 text-[0.68rem] font-black ${meta.className}`}>{meta.label}</span><h3 className="mt-3 text-xl font-black">{item.title}</h3><p className="mt-1 text-xs font-bold text-black/30">/{item.slug} · {item.lifecycle?.originYear ? `${item.lifecycle.originYear}년 · ` : ""}{item.categoryIds.map((id) => categories.find((category) => category.id === id)?.label).filter(Boolean).join(" · ")}</p><p className="mt-1 text-[0.68rem] font-bold text-black/25">{item.tags.map((tag) => `#${tag}`).join(" ")}</p></div>{item.publicationStatus === "published" && <a className="rounded-full bg-black/5 p-2 text-black/40" href={`https://viralorigin.vercel.app/memes/${encodeURIComponent(item.slug)}`} target="_blank" rel="noreferrer" aria-label="공개 페이지 열기"><ExternalLink className="size-4" /></a>}</div>
             <p className="mt-3 line-clamp-2 text-sm leading-6 text-black/50">{item.summary}</p>
             <div className="mt-4 flex flex-wrap gap-2 border-t border-black/5 pt-4"><button className="flex items-center gap-1.5 rounded-full bg-black px-3 py-2 text-xs font-black text-white" onClick={() => { setEditing(item); setCreating(false); setError(""); }} type="button"><FilePenLine className="size-3.5" />수정</button>{item.publicationStatus !== "published" && <button className="flex items-center gap-1.5 rounded-full bg-[#e8fffe] px-3 py-2 text-xs font-black text-[#087b77]" disabled={saving} onClick={() => void changeStatus(item, "published")} type="button"><Check className="size-3.5" />공개</button>}{item.publicationStatus !== "archived" && <button className="ml-auto flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-2 text-xs font-black text-black/40" disabled={saving} onClick={() => void changeStatus(item, "archived")} type="button"><Archive className="size-3.5" />보관</button>}</div>
           </article>;

@@ -12,6 +12,7 @@ import type { Meme, MemeCategory } from "@/types/meme";
 import { CategoryTabs } from "./category-tabs";
 import { MemeCard } from "./meme-card";
 import { VerificationTabs, type VerificationFilter } from "./verification-tabs";
+import { YearTabs, type YearFilter } from "./year-tabs";
 import { fallbackCategories, filterMemes } from "../lib/categories";
 
 export function SearchExperience() {
@@ -20,13 +21,14 @@ export function SearchExperience() {
   const [categories, setCategories] = useState<MemeCategory[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
   const [verificationFilter, setVerificationFilter] = useState<VerificationFilter>("all");
+  const [yearFilter, setYearFilter] = useState<YearFilter>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [isFallback, setIsFallback] = useState(false);
 
   useEffect(() => {
     let active = true;
     void Promise.all([
-      fetch("/api/v1/memes?page=1&pageSize=48", { cache: "no-store" }),
+      fetch("/api/v1/memes?page=1&pageSize=48&sort=latest", { cache: "no-store" }),
       fetch("/api/v1/categories", { cache: "no-store" }),
     ])
       .then(async ([memeResponse, categoryResponse]) => {
@@ -73,20 +75,44 @@ export function SearchExperience() {
     [memes, verificationFilter],
   );
 
+  const years = useMemo(
+    () => [...new Set(memes.map((meme) => meme.lifecycle?.originYear).filter((year): year is number => year !== undefined))].sort((a, b) => b - a),
+    [memes],
+  );
+  const newestYear = years[0] ?? new Date().getFullYear();
+  const yearCounts = useMemo(() => {
+    const result: Record<string, number> = { all: statusFilteredMemes.length, recent: 0 };
+    for (const meme of statusFilteredMemes) {
+      const year = meme.lifecycle?.originYear;
+      if (year === undefined) continue;
+      result[String(year)] = (result[String(year)] ?? 0) + 1;
+      if (year >= newestYear - 1) result.recent += 1;
+    }
+    return result;
+  }, [newestYear, statusFilteredMemes]);
+  const yearFilteredMemes = useMemo(
+    () => statusFilteredMemes.filter((meme) => {
+      if (yearFilter === "recent") return (meme.lifecycle?.originYear ?? 0) >= newestYear - 1;
+      if (typeof yearFilter === "number") return meme.lifecycle?.originYear === yearFilter;
+      return true;
+    }),
+    [newestYear, statusFilteredMemes, yearFilter],
+  );
+
   const counts = useMemo(
     () =>
       Object.fromEntries(
-        [["all", statusFilteredMemes.length], ...categories.map((category) => [
+        [["all", yearFilteredMemes.length], ...categories.map((category) => [
           category.id,
-          statusFilteredMemes.filter((meme) => meme.categoryIds.includes(category.id)).length,
+          yearFilteredMemes.filter((meme) => meme.categoryIds.includes(category.id)).length,
         ])],
       ) as Record<string, number>,
-    [categories, statusFilteredMemes],
+    [categories, yearFilteredMemes],
   );
 
   const visibleMemes = useMemo(
-    () => filterMemes(statusFilteredMemes, activeCategory, query),
-    [activeCategory, query, statusFilteredMemes],
+    () => filterMemes(yearFilteredMemes, activeCategory, query),
+    [activeCategory, query, yearFilteredMemes],
   );
 
   return (
@@ -114,6 +140,10 @@ export function SearchExperience() {
       </div>
 
       <div className="mt-3">
+        <YearTabs active={yearFilter} counts={yearCounts} onChange={(filter) => { setYearFilter(filter); setActiveCategory("all"); }} years={years} />
+      </div>
+
+      <div className="mt-1">
         <CategoryTabs
           active={activeCategory}
           categories={categories}

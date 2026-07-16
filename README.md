@@ -70,11 +70,14 @@ pnpm build
 | --- | --- | --- |
 | `GET` | `/api/v1/health` | 서비스 상태·버전 |
 | `GET` | `/api/v1/categories` | 서버에서 관리하는 활성 카테고리 목록 |
-| `GET` | `/api/v1/memes?page=1&pageSize=24&category=&tag=&query=` | 공개 사전 목록, 최대 48개 |
+| `GET` | `/api/v1/memes?page=1&pageSize=24&category=&year=&sort=latest` | 공개 사전 목록·연도 facet, 최대 48개 |
 | `GET` | `/api/v1/memes/:slug` | 공개된 사전 상세와 댓글·제안 수 |
+| `GET` | `/api/v1/memes/:slug/trends?from=&to=&source=&metric=&limit=400` | 일별 트렌드 스냅샷, 최대 1,000개 |
 | `GET/POST` | `/api/v1/memes/:id/participation?type=comment|proposal` | 비회원 댓글과 수정 제안 |
 | `GET` | `/api/v1/sitemap.xml` | 운영 사전 데이터 기반 검색엔진 sitemap |
 | `POST` | `/api/v1/intake` | 밈 요청·원본 제보·피드백·신고 접수 |
+
+트렌드 수집기는 `Authorization: Bearer $TREND_INGEST_TOKEN`으로 보호된 `POST /api/v1/internal/trends/snapshots`에 최대 500개를 한 번에 저장한다. 브라우저에서는 이 토큰이나 수집 API를 호출하지 않는다.
 
 관리자 API는 서명된 HttpOnly 쿠키가 필요합니다. 상세 계약은 [apps/api/src/CONTEXT.md](apps/api/src/CONTEXT.md)에 유지합니다.
 
@@ -113,7 +116,7 @@ import { Badge, Button, Card, Field, buttonClassName } from "@origin/ui";
 
 외부 게시물·영상·음원·이미지의 권리는 각 원저작자와 권리자에게 있습니다. ViralOrigin은 출처와 확산 맥락을 기록하며 권리 침해·삭제 요청은 사이트 문의 폼 또는 `iftype@naver.com`으로 받습니다.
 
-개인정보처리방침은 `/privacy`에 공개되어 있습니다. 회원, 분석 도구, 광고, 외부 이미지 저장소를 도입하기 전에 실제 수집·보관 정책과 법률 검토를 갱신해야 합니다.
+개인정보처리방침은 `/privacy`에 공개되어 있습니다. 운영 클라이언트는 Vercel Web Analytics로 페이지 방문의 집계 정보만 확인하며 댓글·제보 본문이나 이메일을 분석 이벤트로 전송하지 않습니다.
 
 ## Search indexing
 

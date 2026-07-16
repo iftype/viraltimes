@@ -1,7 +1,7 @@
 # Search feature
 
 - 목표: 제목, 별칭, 태그로 밈을 빠르게 찾고 서버 카테고리로 큰 탐색 영역을 전환한다.
-- 흐름: 헤더 검색 → 원본 확인 상태 탭 → 카테고리 탭 → 제안 수가 표시된 썸네일 피드 → 상세 페이지 이동.
+- 흐름: 헤더 검색 → 원본 확인 상태 탭 → 최신/연도 탭 → 카테고리 탭 → 제안 수가 표시된 썸네일 피드 → 상세 페이지 이동.
 - 데이터: 공개 사전 API의 `published` `Meme[]`; 연결 실패 때만 기본 샘플을 사용한다.
 - 경계: 검색 입력과 결과 목록을 소유하며 상세 콘텐츠는 소유하지 않는다.
-- 검색 dropdown은 API query를 사용한다. 홈은 `/categories`와 사전 첫 페이지를 함께 읽고 category ID 관계로 필터링한다.
+- 검색 dropdown은 API query를 사용한다. 홈은 `/categories`와 `sort=latest` 사전 첫 페이지를 함께 읽고 lifecycle originYear와 category ID 관계로 필터링한다.
