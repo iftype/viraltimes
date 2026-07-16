@@ -15,7 +15,7 @@ type VideoEmbedProps = {
   priority?: boolean;
 };
 
-export function VideoEmbed({ video }: VideoEmbedProps) {
+export function VideoEmbed({ video, priority = false }: VideoEmbedProps) {
   const youtubeId =
     video.platform === "youtube" ? getYouTubeVideoId(video.url) : null;
   const embedUrl =
@@ -67,6 +67,7 @@ export function VideoEmbed({ video }: VideoEmbedProps) {
                 src={imageUrl}
                 alt={video.title}
                 fill
+                priority={priority}
                 sizes="(max-width: 768px) 100vw, 420px"
               />
             </a>

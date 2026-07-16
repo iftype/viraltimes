@@ -28,7 +28,7 @@ Certbot is installed from the officially recommended snap package. Its systemd t
 
 The workflow uploads the static web output, compiled API, workspace lockfile, and release version. It installs only production API dependencies on the VM and restarts `origin-api`.
 
-The API stores anonymous comments and revision proposals in `PARTICIPATION_DATA_FILE` under the shared directory. Keep that file in the same backup scope as memes, categories, and the admin inbox.
+The API stores anonymous comments and revision proposals in `PARTICIPATION_DATA_FILE` and daily trend snapshots in `TREND_DATA_FILE` under the shared directory. Keep both files in the same backup scope as memes, categories, and the admin inbox. Set `TREND_INGEST_TOKEN` only in the Oracle environment and the scheduler secret store.
 
 ## Static admin deployment
 

@@ -8,7 +8,7 @@ import { Badge, cn } from "@origin/ui";
 import { memeHref } from "@/lib/meme-href";
 import type { Meme } from "@/types/meme";
 
-export function HeaderSearch({ className }: { className?: string }) {
+export function HeaderSearch({ className, compact = false }: { className?: string; compact?: boolean }) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Meme[]>([]);
@@ -53,7 +53,7 @@ export function HeaderSearch({ className }: { className?: string }) {
       onSubmit={submit}
       role="search"
     >
-      <div className="flex min-w-0 items-center gap-2 rounded-full border border-black/8 bg-[#f3f3f5] px-3.5 py-2 transition focus-within:border-black/25 focus-within:bg-white">
+      <div className={cn("flex min-w-0 items-center gap-2 rounded-full border border-black/8 bg-[#f3f3f5] px-3.5 transition-all duration-200 focus-within:border-black/25 focus-within:bg-white md:py-2", compact ? "py-1.5" : "py-2")}>
         <Search className="size-4 shrink-0 text-black/35" aria-hidden="true" />
         <input
           aria-label="밈 사전 검색"
