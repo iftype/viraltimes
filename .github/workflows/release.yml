@@ -122,6 +122,6 @@ jobs:
           SSH_TARGET="$ORACLE_USER@$ORACLE_HOST"
           SSH_PORT="${ORACLE_SSH_PORT:-22}"
           ssh -p "$SSH_PORT" "$SSH_TARGET" "mkdir -p '$ORACLE_DEPLOY_PATH'"
-          rsync -az --delete --exclude 'shared/' -e "ssh -p $SSH_PORT" .deploy/ "$SSH_TARGET:$ORACLE_DEPLOY_PATH/"
+          rsync -az --delete --no-owner --no-group --exclude 'shared/' -e "ssh -p $SSH_PORT" .deploy/ "$SSH_TARGET:$ORACLE_DEPLOY_PATH/"
           ssh -p "$SSH_PORT" "$SSH_TARGET" \
             "cd '$ORACLE_DEPLOY_PATH' && corepack enable && pnpm install --prod --frozen-lockfile --filter @origin/api... && systemctl --user restart origin-api"
