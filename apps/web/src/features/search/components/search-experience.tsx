@@ -11,6 +11,7 @@ import type { Meme, MemeCategory } from "@/types/meme";
 
 import { CategoryTabs } from "./category-tabs";
 import { MemeCard } from "./meme-card";
+import { VerificationTabs, type VerificationFilter } from "./verification-tabs";
 import { fallbackCategories, filterMemes } from "../lib/categories";
 
 export function SearchExperience() {
@@ -18,6 +19,7 @@ export function SearchExperience() {
   const [memes, setMemes] = useState<Meme[]>([]);
   const [categories, setCategories] = useState<MemeCategory[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
+  const [verificationFilter, setVerificationFilter] = useState<VerificationFilter>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [isFallback, setIsFallback] = useState(false);
 
@@ -53,20 +55,38 @@ export function SearchExperience() {
     };
   }, []);
 
+  const verificationCounts = useMemo(
+    () => ({
+      all: memes.length,
+      verified: memes.filter((meme) => meme.origin.status === "verified").length,
+      open: memes.filter((meme) => meme.origin.status !== "verified").length,
+    }),
+    [memes],
+  );
+
+  const statusFilteredMemes = useMemo(
+    () => memes.filter((meme) => {
+      if (verificationFilter === "verified") return meme.origin.status === "verified";
+      if (verificationFilter === "open") return meme.origin.status !== "verified";
+      return true;
+    }),
+    [memes, verificationFilter],
+  );
+
   const counts = useMemo(
     () =>
       Object.fromEntries(
-        [["all", memes.length], ...categories.map((category) => [
+        [["all", statusFilteredMemes.length], ...categories.map((category) => [
           category.id,
-          memes.filter((meme) => meme.categoryIds.includes(category.id)).length,
+          statusFilteredMemes.filter((meme) => meme.categoryIds.includes(category.id)).length,
         ])],
       ) as Record<string, number>,
-    [categories, memes],
+    [categories, statusFilteredMemes],
   );
 
   const visibleMemes = useMemo(
-    () => filterMemes(memes, activeCategory, query),
-    [activeCategory, memes, query],
+    () => filterMemes(statusFilteredMemes, activeCategory, query),
+    [activeCategory, query, statusFilteredMemes],
   );
 
   return (
@@ -90,6 +110,10 @@ export function SearchExperience() {
       </section>
 
       <div className="mt-6">
+        <VerificationTabs active={verificationFilter} counts={verificationCounts} onChange={(filter) => { setVerificationFilter(filter); setActiveCategory("all"); }} />
+      </div>
+
+      <div className="mt-3">
         <CategoryTabs
           active={activeCategory}
           categories={categories}

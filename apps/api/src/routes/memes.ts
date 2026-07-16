@@ -2,11 +2,13 @@ import type { FastifyInstance } from "fastify";
 
 import type { CategoryStore } from "../category-store.js";
 import type { MemeStore } from "../meme-store.js";
+import type { ParticipationStore } from "../participation-store.js";
 
 export function registerMemeRoutes(
   app: FastifyInstance,
   memeStore: MemeStore,
   categoryStore: CategoryStore,
+  participationStore: ParticipationStore,
 ) {
   app.get("/api/v1/memes", async (request, reply) => {
     const query = request.query as {
@@ -51,13 +53,18 @@ export function registerMemeRoutes(
     const total = filteredItems.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const start = (page - 1) * pageSize;
+    const pageItems = filteredItems.slice(start, start + pageSize);
+    const participationByMeme = await participationStore.counts(
+      pageItems.map((item) => item.id),
+    );
     reply.header("Cache-Control", "no-store");
     return {
-      items: filteredItems.slice(start, start + pageSize).map((item) => ({
+      items: pageItems.map((item) => ({
         ...item,
         categories: item.categoryIds
           .map((id) => categoryById.get(id))
           .filter(Boolean),
+        participation: participationByMeme[item.id] ?? { commentCount: 0, proposalCount: 0 },
       })),
       pagination: {
         page,
@@ -79,6 +86,10 @@ export function registerMemeRoutes(
     const categoryById = new Map(
       (await categoryStore.list()).map((category) => [category.id, category]),
     );
+    const participation = (await participationStore.counts([item.id]))[item.id] ?? {
+      commentCount: 0,
+      proposalCount: 0,
+    };
     reply.header("Cache-Control", "no-store");
     return {
       item: {
@@ -86,6 +97,7 @@ export function registerMemeRoutes(
         categories: item.categoryIds
           .map((id) => categoryById.get(id))
           .filter(Boolean),
+        participation,
       },
     };
   });

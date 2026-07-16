@@ -1,4 +1,5 @@
 import { ProposalDiscussion } from "@/features/contributions/components/proposal-discussion";
+import { CommentSection } from "@/features/contributions/components/comment-section";
 import type { Meme } from "@/types/meme";
 
 import { MemeDetailHeader } from "./meme-detail-header";
@@ -15,6 +16,7 @@ export function MemeDetail({ meme, otherMemes }: { meme: Meme; otherMemes: Meme[
       <VideoCollectionSection meme={meme} type="trending" />
       <VideoCollectionSection meme={meme} type="related" />
       <TimelineSection meme={meme} />
+      <CommentSection memeId={meme.id} memeTitle={meme.title} />
       <ProposalDiscussion memeId={meme.id} />
       <RelatedMemesSection memes={otherMemes} />
     </article>

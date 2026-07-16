@@ -8,4 +8,7 @@
 - 공개 카테고리는 `GET /api/v1/categories`, 사전은 `GET /api/v1/memes?page=&pageSize=&category=&tag=&query=`와 `GET /api/v1/memes/:slug`로 제공한다. pageSize 최대값은 48이다.
 - 카테고리는 `CATEGORY_DATA_FILE`에서 관리하고 meme은 `categoryIds`로 연결한다. 기존 데이터는 읽을 때 legacy kind/tag를 초기 category ID로 변환한다.
 - 관리자 카테고리 API는 생성·수정·활성화·정렬을 제공하며 hard delete 대신 비활성화를 사용한다.
+- 댓글과 수정 제안은 `PARTICIPATION_DATA_FILE`에 분리 저장하며 공개 API에서 페이지네이션한다. 제안은 section/action이 필수이고 관리자 `proposal` inbox도 함께 만든다.
+- participation POST는 IP 원문을 저장하지 않고 프로세스 메모리 기반 단기 rate limit, honeypot, 길이·링크 검증을 적용한다.
+- `GET /api/v1/sitemap.xml`은 published 사전의 `/memes/:slug` URL을 동적으로 만든다.
 - 관리자 사전 API는 draft/published/archived 상태와 slug 중복을 관리하고 `MEME_DATA_FILE`에 원자적으로 저장한다.

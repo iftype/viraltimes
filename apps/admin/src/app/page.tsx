@@ -33,7 +33,7 @@ import {
   type AdminCategory,
 } from "@/components/category-manager";
 
-type Category = "meme_request" | "origin_tip" | "feedback" | "report";
+type Category = "meme_request" | "origin_tip" | "feedback" | "proposal" | "report";
 type Status = "new" | "review" | "resolved" | "rejected";
 type Tab = "all" | Category | "final_review" | "dictionary" | "categories";
 
@@ -56,6 +56,7 @@ const categoryMeta: Record<Category, { label: string; className: string }> = {
   meme_request: { label: "밈 추가 요청", className: "bg-[#e8fffe] text-[#087b77]" },
   origin_tip: { label: "원본 영상", className: "bg-[#fff0f3] text-[#d91d46]" },
   feedback: { label: "피드백", className: "bg-[#f1edff] text-[#6941c6]" },
+  proposal: { label: "수정 제안", className: "bg-[#fff7df] text-[#9a6200]" },
   report: { label: "신고", className: "bg-[#fff6dc] text-[#9a6200]" },
 };
 
@@ -66,6 +67,7 @@ const tabs: { id: Tab; label: string; icon: typeof Bell }[] = [
   { id: "meme_request", label: "밈 추가 요청", icon: CircleHelp },
   { id: "origin_tip", label: "원본 영상", icon: Video },
   { id: "feedback", label: "피드백", icon: MessageSquareText },
+  { id: "proposal", label: "수정 제안", icon: FileCheck2 },
   { id: "final_review", label: "최종 검토", icon: FileCheck2 },
   { id: "report", label: "신고", icon: Flag },
 ];

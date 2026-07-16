@@ -7,11 +7,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "ViralOrigin — 밈의 시작을 확인하세요",
+    default: "ViralOrigin — 밈·챌린지 원본과 원조 검색",
     template: "%s | ViralOrigin",
   },
   description:
-    "밈, 챌린지, 바이럴 영상의 현재까지 확인된 원본과 확산 과정을 살펴보세요.",
+    "밈과 챌린지의 원본·원조, 별칭, 근거와 확산 타임라인을 검색하고 함께 검증하는 사전입니다.",
 };
 
 export default function RootLayout({

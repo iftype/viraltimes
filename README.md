@@ -71,7 +71,9 @@ pnpm build
 | `GET` | `/api/v1/health` | 서비스 상태·버전 |
 | `GET` | `/api/v1/categories` | 서버에서 관리하는 활성 카테고리 목록 |
 | `GET` | `/api/v1/memes?page=1&pageSize=24&category=&tag=&query=` | 공개 사전 목록, 최대 48개 |
-| `GET` | `/api/v1/memes/:slug` | 공개된 사전 상세 |
+| `GET` | `/api/v1/memes/:slug` | 공개된 사전 상세와 댓글·제안 수 |
+| `GET/POST` | `/api/v1/memes/:id/participation?type=comment|proposal` | 비회원 댓글과 수정 제안 |
+| `GET` | `/api/v1/sitemap.xml` | 운영 사전 데이터 기반 검색엔진 sitemap |
 | `POST` | `/api/v1/intake` | 밈 요청·원본 제보·피드백·신고 접수 |
 
 관리자 API는 서명된 HttpOnly 쿠키가 필요합니다. 상세 계약은 [apps/api/src/CONTEXT.md](apps/api/src/CONTEXT.md)에 유지합니다.
@@ -112,6 +114,13 @@ import { Badge, Button, Card, Field, buttonClassName } from "@origin/ui";
 외부 게시물·영상·음원·이미지의 권리는 각 원저작자와 권리자에게 있습니다. ViralOrigin은 출처와 확산 맥락을 기록하며 권리 침해·삭제 요청은 사이트 문의 폼 또는 `iftype@naver.com`으로 받습니다.
 
 개인정보처리방침은 `/privacy`에 공개되어 있습니다. 회원, 분석 도구, 광고, 외부 이미지 저장소를 도입하기 전에 실제 수집·보관 정책과 법률 검토를 갱신해야 합니다.
+
+## Search indexing
+
+- 공개 상세 canonical URL은 `/memes/:slug`다. Vercel이 정적 `/meme` shell로 rewrite한다.
+- 상세를 불러온 뒤 제목·별칭의 `원본`, `원조`, `챌린지 원조` 조합을 문서 title, description, canonical, Open Graph와 JSON-LD에 반영한다.
+- `/sitemap.xml`은 Oracle API의 현재 published 사전을 사용하므로 새 항목 공개 뒤 web 재배포가 필요 없다.
+- `/robots.txt`는 제보·피드백 폼을 제외하고 공개 사전의 수집을 허용한다.
 
 ## Documentation order for contributors and AI agents
 

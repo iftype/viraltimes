@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
 import { Badge, cn } from "@origin/ui";
+import { memeHref } from "@/lib/meme-href";
 import type { Meme } from "@/types/meme";
 
 export function HeaderSearch({ className }: { className?: string }) {
@@ -78,7 +79,7 @@ export function HeaderSearch({ className }: { className?: string }) {
           {results.map((meme) => (
             <Link
               className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition hover:bg-black/[0.04] focus:bg-black/[0.04] focus:outline-none"
-              href={`/meme?slug=${encodeURIComponent(meme.slug)}`}
+              href={memeHref(meme.slug)}
               key={meme.id}
               onClick={() => setOpen(false)}
               role="option"

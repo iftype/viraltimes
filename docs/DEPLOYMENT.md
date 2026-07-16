@@ -28,6 +28,8 @@ Certbot is installed from the officially recommended snap package. Its systemd t
 
 The workflow uploads the static web output, compiled API, workspace lockfile, and release version. It installs only production API dependencies on the VM and restarts `origin-api`.
 
+The API stores anonymous comments and revision proposals in `PARTICIPATION_DATA_FILE` under the shared directory. Keep that file in the same backup scope as memes, categories, and the admin inbox.
+
 ## Static admin deployment
 
 The admin build uses the `/viral` base path and is served as static files on the existing `iftype.store` Nginx server. It does not add another Node process. The `/viral/api/` location proxies only admin API calls to the ViralOrigin API domain.

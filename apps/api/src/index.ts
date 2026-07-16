@@ -5,11 +5,14 @@ import { AdminAuth } from "./admin-auth.js";
 import { AdminInboxStore } from "./admin-store.js";
 import { CategoryStore } from "./category-store.js";
 import { MemeStore } from "./meme-store.js";
+import { ParticipationStore } from "./participation-store.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 import { registerCategoryRoutes } from "./routes/categories.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerIntakeRoutes } from "./routes/intake.js";
 import { registerMemeRoutes } from "./routes/memes.js";
+import { registerParticipationRoutes } from "./routes/participation.js";
+import { registerSeoRoutes } from "./routes/seo.js";
 
 const app = Fastify({ logger: true, trustProxy: true });
 const host = process.env.HOST ?? "127.0.0.1";
@@ -30,6 +33,9 @@ const memeStore = new MemeStore(
 const categoryStore = new CategoryStore(
   process.env.CATEGORY_DATA_FILE ?? "/opt/origin/shared/categories.json",
 );
+const participationStore = new ParticipationStore(
+  process.env.PARTICIPATION_DATA_FILE ?? "/opt/origin/shared/participation.json",
+);
 
 await app.register(cors, {
   origin:
@@ -40,8 +46,10 @@ await app.register(cors, {
 
 registerHealthRoutes(app);
 registerCategoryRoutes(app, categoryStore);
-registerMemeRoutes(app, memeStore, categoryStore);
+registerMemeRoutes(app, memeStore, categoryStore, participationStore);
 registerIntakeRoutes(app, inboxStore);
+registerParticipationRoutes(app, { inboxStore, memeStore, participationStore });
+registerSeoRoutes(app, memeStore);
 registerAdminRoutes(app, { adminAuth, adminOrigin, categoryStore, inboxStore, memeStore });
 
 const stop = async (signal: string) => {

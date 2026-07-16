@@ -2,6 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/memes/:slug",
+      "destination": "/meme?slug=:slug"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "https://meme.iftype.store/api/v1/sitemap.xml"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://meme.iftype.store/api/:path*"
     }

@@ -1,162 +1,101 @@
 "use client";
 
-import { Check, Pencil, X } from "lucide-react";
+import { Check, LoaderCircle, Pencil, X } from "lucide-react";
 import { FormEvent, useState } from "react";
 
+import { cn } from "@origin/ui";
 import {
-  makeLocalId,
-  proposalSectionLabels,
-  readProposals,
+  participationUpdateEvent,
+  proposalSectionConfig,
   type ProposalSection,
-  writeProposals,
 } from "../lib/local-contributions";
 
 type ProposalButtonProps = {
+  className?: string;
   memeId: string;
   memeTitle: string;
   section: ProposalSection;
 };
 
-export function ProposalButton({
-  memeId,
-  memeTitle,
-  section,
-}: ProposalButtonProps) {
+export function ProposalButton({ className, memeId, memeTitle, section }: ProposalButtonProps) {
+  const config = proposalSectionConfig[section];
   const [isOpen, setIsOpen] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setStatus("sending");
     const form = new FormData(event.currentTarget);
-
-    const proposal = {
-      id: makeLocalId("proposal"),
-      memeId,
-      memeTitle,
-      section,
-      author: String(form.get("author") ?? "익명").trim() || "익명",
-      body: String(form.get("body") ?? "").trim(),
-      evidenceUrl: String(form.get("evidenceUrl") ?? "").trim() || undefined,
-      createdAt: new Date().toISOString(),
-      agree: 0,
-      disagree: 0,
-      comments: [],
-    };
-
-    writeProposals([
-      ...readProposals(),
-      proposal,
-    ]);
-
     try {
-      await fetch("/api/v1/intake", {
+      const response = await fetch(`/api/v1/memes/${encodeURIComponent(memeId)}/participation`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          category: "feedback",
-          title: `${memeTitle} · ${proposalSectionLabels[section]} 수정 제안`,
-          author: proposal.author,
-          description: proposal.body,
-          sourceUrl: proposal.evidenceUrl,
-          subjectId: memeId,
+          type: "proposal",
+          section,
+          action: String(form.get("action") ?? ""),
+          author: String(form.get("author") ?? "").trim() || "익명",
+          body: String(form.get("body") ?? "").trim(),
+          evidenceUrl: String(form.get("evidenceUrl") ?? "").trim() || undefined,
+          website: String(form.get("website") ?? ""),
         }),
       });
+      if (!response.ok) throw new Error("proposal failed");
+      setStatus("sent");
+      setIsOpen(false);
+      window.dispatchEvent(new CustomEvent(participationUpdateEvent));
     } catch {
-      // 로컬 토론은 네트워크 상태와 무관하게 유지합니다.
+      setStatus("error");
     }
-
-    setSubmitted(true);
-    setIsOpen(false);
   }
 
   return (
     <>
       <button
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-black text-black/55 hover:border-black hover:text-black"
-        type="button"
-        onClick={() => setIsOpen(true)}
-      >
-        {submitted ? (
-          <Check className="size-3.5" aria-hidden="true" />
-        ) : (
-          <Pencil className="size-3.5" aria-hidden="true" />
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-black text-black/55 hover:border-black hover:text-black",
+          className,
         )}
-        {submitted ? "제안 등록됨" : "수정 제안"}
+        onClick={() => { setIsOpen(true); setStatus("idle"); }}
+        type="button"
+      >
+        {status === "sent" ? <Check className="size-3.5" /> : <Pencil className="size-3.5" />}
+        {status === "sent" ? "제안 등록됨" : config.buttonLabel}
       </button>
 
       {isOpen && (
-        <div
-          className="fixed inset-0 z-[80] flex items-end justify-center bg-black/45 p-0 backdrop-blur-sm sm:items-center sm:p-5"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setIsOpen(false);
-          }}
-        >
-          <section
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={`proposal-title-${section}`}
-          >
+        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/45 p-0 backdrop-blur-sm sm:items-center sm:p-5" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsOpen(false); }} role="presentation">
+          <section aria-labelledby={`proposal-title-${section}`} aria-modal="true" className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl" role="dialog">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <span className="text-xs font-black text-[#fe2c55]">수정 제안</span>
-                <h2
-                  className="mt-1 text-2xl font-black tracking-[-0.04em]"
-                  id={`proposal-title-${section}`}
-                >
-                  {proposalSectionLabels[section]}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-black/45">
-                  바로 반영되지 않고 토론 중 제안으로 등록돼요.
-                </p>
+                <span className="text-xs font-black text-[#fe2c55]">{config.eyebrow}</span>
+                <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]" id={`proposal-title-${section}`}>{memeTitle} · {config.label}</h2>
+                <p className="mt-2 text-sm leading-6 text-black/45">제안은 바로 확정되지 않고 공개 토론과 운영 검토를 거칩니다.</p>
               </div>
-              <button
-                className="rounded-full bg-black/5 p-2 text-black/45 hover:text-black"
-                type="button"
-                onClick={() => setIsOpen(false)}
-                aria-label="닫기"
-              >
-                <X className="size-5" aria-hidden="true" />
-              </button>
+              <button aria-label="닫기" className="rounded-full bg-black/5 p-2 text-black/45 hover:text-black" onClick={() => setIsOpen(false)} type="button"><X className="size-5" /></button>
             </div>
 
             <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-              <label className="block text-sm font-bold">
-                닉네임
-                <input
-                  className="mt-2 w-full rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 outline-none focus:border-black"
-                  name="author"
-                  placeholder="익명"
-                />
+              <label className="block text-sm font-bold">제안 유형
+                <select className="mt-2 w-full rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 outline-none focus:border-black" name="action">
+                  {config.actions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}
+                </select>
               </label>
-              <label className="block text-sm font-bold">
-                어떻게 바꾸면 좋을까요?
-                <textarea
-                  className="mt-2 min-h-32 w-full resize-y rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 leading-6 outline-none focus:border-black"
-                  name="body"
-                  placeholder="수정할 내용과 이유를 적어주세요."
-                  required
-                />
+              <label className="block text-sm font-bold">닉네임 <span className="font-medium text-black/35">선택</span>
+                <input className="mt-2 w-full rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 outline-none focus:border-black" name="author" placeholder="익명" />
               </label>
-              <label className="block text-sm font-bold">
-                근거 링크 <span className="font-medium text-black/35">선택</span>
-                <input
-                  className="mt-2 w-full rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 outline-none focus:border-black"
-                  name="evidenceUrl"
-                  type="url"
-                  placeholder="https://"
-                />
+              <label className="block text-sm font-bold">{config.prompt}
+                <textarea className="mt-2 min-h-32 w-full resize-y rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 leading-6 outline-none focus:border-black" minLength={10} name="body" placeholder={config.placeholder} required />
               </label>
-              <button
-                className="w-full rounded-full bg-black px-5 py-3.5 text-sm font-black text-white"
-                type="submit"
-              >
-                토론에 제안 등록
+              <label className="block text-sm font-bold">근거·영상 링크 <span className="font-medium text-black/35">선택</span>
+                <input className="mt-2 w-full rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 outline-none focus:border-black" name="evidenceUrl" placeholder="https://" type="url" />
+              </label>
+              <input aria-hidden="true" className="hidden" name="website" tabIndex={-1} />
+              <button className="flex w-full items-center justify-center gap-2 rounded-full bg-black px-5 py-3.5 text-sm font-black text-white" disabled={status === "sending"} type="submit">
+                {status === "sending" && <LoaderCircle className="size-4 animate-spin" />}
+                {status === "sending" ? "등록 중" : "수정 제안 토론 열기"}
               </button>
-              <p className="text-center text-[0.7rem] leading-5 text-black/35">
-                토론은 이 브라우저에 남고, 제안 내용은 운영자 검토 목록에도 전달됩니다.
-              </p>
+              {status === "error" && <p className="text-center text-xs font-bold text-[#d91d46]">등록하지 못했습니다. 내용을 확인하고 다시 시도해 주세요.</p>}
             </form>
           </section>
         </div>

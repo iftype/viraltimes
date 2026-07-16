@@ -2,16 +2,19 @@
 
 import { AlertTriangle, ArrowLeft, LoaderCircle } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { getMemeBySlug, sampleMemes } from "@/data/sample-memes";
 import type { Meme } from "@/types/meme";
 
 import { MemeDetail } from "./meme-detail";
+import { applyMemeSeo } from "../lib/apply-meme-seo";
 
 export function DynamicMemeDetail() {
-  const slug = useSearchParams().get("slug")?.trim().toLowerCase() ?? "";
+  const pathname = usePathname();
+  const pathSlug = pathname.match(/^\/memes\/([^/]+)\/?$/)?.[1];
+  const slug = (useSearchParams().get("slug") ?? pathSlug ?? "").trim().toLowerCase();
   const [meme, setMeme] = useState<Meme | null>(null);
   const [otherMemes, setOtherMemes] = useState<Meme[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +30,7 @@ export function DynamicMemeDetail() {
 
     void Promise.all([
       fetch(`/api/v1/memes/${encodeURIComponent(slug)}`, { cache: "no-store" }),
-      fetch("/api/v1/memes", { cache: "no-store" }),
+      fetch("/api/v1/memes?pageSize=48", { cache: "no-store" }),
     ])
       .then(async ([detailResponse, listResponse]) => {
         if (!detailResponse.ok) throw new Error("not-found");
@@ -61,6 +64,11 @@ export function DynamicMemeDetail() {
       active = false;
     };
   }, [slug]);
+
+  useEffect(() => {
+    if (!meme) return;
+    return applyMemeSeo(meme);
+  }, [meme]);
 
   if (!slug) {
     return (

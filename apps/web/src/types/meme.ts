@@ -77,4 +77,22 @@ export type Meme = {
   categories?: MemeCategory[];
   tags: string[];
   accent: string;
+  participation?: {
+    commentCount: number;
+    proposalCount: number;
+  };
+};
+
+export type ParticipationEntry = {
+  id: string;
+  type: "comment" | "proposal";
+  memeId: string;
+  author: string;
+  body: string;
+  section?: "description" | "origin" | "trending" | "related" | "timeline";
+  action?: string;
+  evidenceUrl?: string;
+  status: "visible" | "pending" | "hidden";
+  createdAt: string;
+  updatedAt: string;
 };

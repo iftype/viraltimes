@@ -1,220 +1,73 @@
 "use client";
 
-import { ExternalLink, MessageCircle, ThumbsDown, ThumbsUp } from "lucide-react";
-import { FormEvent, useMemo, useState, useSyncExternalStore } from "react";
+import { ExternalLink, LoaderCircle, MessageSquareText } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
-import {
-  getProposalSnapshot,
-  makeLocalId,
-  proposalSectionLabels,
-  readProposals,
-  type Proposal,
-  subscribeToProposals,
-  writeProposals,
-} from "../lib/local-contributions";
+import type { ParticipationEntry } from "@/types/meme";
+import { participationUpdateEvent, proposalSectionLabels } from "../lib/local-contributions";
 
 export function ProposalDiscussion({ memeId }: { memeId: string }) {
-  const proposalSnapshot = useSyncExternalStore(
-    subscribeToProposals,
-    getProposalSnapshot,
-    () => "[]",
-  );
-  const proposals = useMemo(() => {
+  const [items, setItems] = useState<ParticipationEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
     try {
-      return (JSON.parse(proposalSnapshot) as Proposal[])
-        .filter((proposal) => proposal.memeId === memeId)
-        .reverse();
+      const response = await fetch(`/api/v1/memes/${encodeURIComponent(memeId)}/participation?type=proposal&pageSize=30`, { cache: "no-store" });
+      if (!response.ok) throw new Error("unavailable");
+      const data = (await response.json()) as { items: ParticipationEntry[] };
+      setItems(data.items);
     } catch {
-      return [] as Proposal[];
+      setItems([]);
+    } finally {
+      setLoading(false);
     }
-  }, [memeId, proposalSnapshot]);
-  const [commentDrafts, setCommentDrafts] = useState<
-    Record<string, { author: string; body: string }>
-  >({});
+  }, [memeId]);
 
-  function updateProposal(
-    proposalId: string,
-    updater: (proposal: Proposal) => Proposal,
-  ) {
-    writeProposals(
-      readProposals().map((proposal) =>
-        proposal.id === proposalId ? updater(proposal) : proposal,
-      ),
-    );
-  }
-
-  function addComment(event: FormEvent<HTMLFormElement>, proposalId: string) {
-    event.preventDefault();
-    const draft = commentDrafts[proposalId];
-    if (!draft?.body.trim()) return;
-
-    updateProposal(proposalId, (proposal) => ({
-      ...proposal,
-      comments: [
-        ...proposal.comments,
-        {
-          id: makeLocalId("comment"),
-          author: draft.author.trim() || "익명",
-          body: draft.body.trim(),
-          createdAt: new Date().toISOString(),
-        },
-      ],
-    }));
-    setCommentDrafts((current) => ({
-      ...current,
-      [proposalId]: { author: "", body: "" },
-    }));
-  }
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    const refresh = () => void load();
+    window.addEventListener(participationUpdateEvent, refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(participationUpdateEvent, refresh);
+    };
+  }, [load]);
 
   return (
-    <section className="page-shell py-14 sm:py-20" id="discussion">
-      <div className="mx-auto max-w-3xl">
+    <section className="border-y border-black/5 bg-white py-14 sm:py-20" id="proposals">
+      <div className="page-shell"><div className="mx-auto max-w-3xl">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-black text-[#8b5cf6]">OPEN DISCUSSION</p>
-            <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">
-              수정 제안 토론
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-black/45">
-              제안은 곧바로 확정되지 않아요. 근거와 의견을 모은 뒤 반영합니다.
-            </p>
+            <p className="text-xs font-black text-[#8b5cf6]">REVISION BOARD</p>
+            <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">수정 제안 토론</h2>
+            <p className="mt-2 text-sm leading-6 text-black/45">설명 수정, 원본 후보, 영상 추가와 타임라인 보완에 관한 글만 모아봅니다.</p>
           </div>
-          <span className="rounded-full bg-[#f4efff] px-3 py-1.5 text-xs font-black text-[#7047a5]">
-            토론 중 {proposals.length}
-          </span>
+          <span className="rounded-full bg-[#f4efff] px-3 py-1.5 text-xs font-black text-[#7047a5]">토론 중 {items.length}</span>
         </div>
 
-        {proposals.length ? (
-          <div className="mt-6 space-y-4">
-            {proposals.map((proposal) => {
-              const draft = commentDrafts[proposal.id] ?? {
-                author: "",
-                body: "",
-              };
-
-              return (
-                <article
-                  className="rounded-2xl border border-black/5 bg-white p-5 shadow-[0_6px_20px_rgba(0,0,0,0.04)] sm:p-6"
-                  key={proposal.id}
-                >
-                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                    <span className="rounded-full bg-[#fff7df] px-2.5 py-1 text-[#9a6200]">
-                      토론 중
-                    </span>
-                    <span className="text-black/35">
-                      {proposalSectionLabels[proposal.section]} · {proposal.author}
-                    </span>
-                  </div>
-                  <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-black/70">
-                    {proposal.body}
-                  </p>
-                  {proposal.evidenceUrl && (
-                    <a
-                      className="mt-3 inline-flex items-center gap-1.5 text-xs font-black text-[#fe2c55]"
-                      href={proposal.evidenceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      제안 근거
-                      <ExternalLink className="size-3" aria-hidden="true" />
-                    </a>
-                  )}
-
-                  <div className="mt-5 flex flex-wrap gap-2 border-t border-black/5 pt-4">
-                    <button
-                      className="inline-flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-2 text-xs font-black text-black/55"
-                      type="button"
-                      onClick={() =>
-                        updateProposal(proposal.id, (current) => ({
-                          ...current,
-                          agree: current.agree + 1,
-                        }))
-                      }
-                    >
-                      <ThumbsUp className="size-3.5" aria-hidden="true" /> 찬성 {proposal.agree}
-                    </button>
-                    <button
-                      className="inline-flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-2 text-xs font-black text-black/55"
-                      type="button"
-                      onClick={() =>
-                        updateProposal(proposal.id, (current) => ({
-                          ...current,
-                          disagree: current.disagree + 1,
-                        }))
-                      }
-                    >
-                      <ThumbsDown className="size-3.5" aria-hidden="true" /> 반대 {proposal.disagree}
-                    </button>
-                    <span className="inline-flex items-center gap-1.5 px-2 py-2 text-xs font-bold text-black/35">
-                      <MessageCircle className="size-3.5" aria-hidden="true" /> 의견 {proposal.comments.length}
-                    </span>
-                  </div>
-
-                  {proposal.comments.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      {proposal.comments.map((comment) => (
-                        <div
-                          className="rounded-xl bg-[#f7f7f8] px-4 py-3 text-sm"
-                          key={comment.id}
-                        >
-                          <span className="font-black">{comment.author}</span>
-                          <p className="mt-1 leading-5 text-black/55">{comment.body}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <form
-                    className="mt-4 grid gap-2 sm:grid-cols-[8rem_1fr_auto]"
-                    onSubmit={(event) => addComment(event, proposal.id)}
-                  >
-                    <input
-                      className="rounded-xl border border-black/10 bg-[#f7f7f8] px-3 py-2.5 text-sm outline-none focus:border-black"
-                      placeholder="닉네임"
-                      value={draft.author}
-                      onChange={(event) =>
-                        setCommentDrafts((current) => ({
-                          ...current,
-                          [proposal.id]: { ...draft, author: event.target.value },
-                        }))
-                      }
-                    />
-                    <input
-                      className="rounded-xl border border-black/10 bg-[#f7f7f8] px-3 py-2.5 text-sm outline-none focus:border-black"
-                      placeholder="이 제안에 의견을 남겨주세요"
-                      required
-                      value={draft.body}
-                      onChange={(event) =>
-                        setCommentDrafts((current) => ({
-                          ...current,
-                          [proposal.id]: { ...draft, body: event.target.value },
-                        }))
-                      }
-                    />
-                    <button
-                      className="rounded-xl bg-black px-4 py-2.5 text-sm font-black text-white"
-                      type="submit"
-                    >
-                      등록
-                    </button>
-                  </form>
-                </article>
-              );
-            })}
+        {loading ? (
+          <div className="mt-6 flex min-h-32 items-center justify-center"><LoaderCircle className="size-5 animate-spin text-black/25" /></div>
+        ) : items.length ? (
+          <div className="mt-6 space-y-3">
+            {items.map((item) => (
+              <article className="rounded-2xl border border-black/5 bg-[#f7f7f8] p-5 sm:p-6" key={item.id}>
+                <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
+                  <span className="rounded-full bg-[#fff7df] px-2.5 py-1 text-[#9a6200]">{item.action ?? "수정 제안"}</span>
+                  <span className="text-black/35">{item.section ? proposalSectionLabels[item.section] : "사전 항목"} · {item.author}</span>
+                </div>
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-black/70">{item.body}</p>
+                {item.evidenceUrl && <a className="mt-3 inline-flex items-center gap-1.5 text-xs font-black text-[#fe2c55]" href={item.evidenceUrl} rel="noreferrer" target="_blank">근거·영상 열기<ExternalLink className="size-3.5" /></a>}
+              </article>
+            ))}
           </div>
         ) : (
-          <div className="mt-6 rounded-2xl border border-dashed border-black/10 bg-white px-6 py-10 text-center">
-            <p className="text-sm font-black">아직 열린 제안이 없어요.</p>
-            <p className="mt-1 text-xs leading-5 text-black/40">
-              각 섹션의 ‘수정 제안’ 버튼으로 첫 토론을 시작해 보세요.
-            </p>
+          <div className="mt-6 rounded-2xl border border-dashed border-black/10 bg-[#f7f7f8] px-6 py-10 text-center">
+            <MessageSquareText className="mx-auto size-6 text-black/25" />
+            <p className="mt-3 text-sm font-black">아직 열린 수정 제안이 없어요.</p>
+            <p className="mt-1 text-xs leading-5 text-black/40">각 영역의 제안 버튼에서 설명 수정이나 영상 추가 토론을 시작할 수 있어요.</p>
           </div>
         )}
-
-        <p className="mt-4 text-center text-[0.7rem] leading-5 text-black/35">
-          현재 프로토타입의 제안과 토론은 이 브라우저에만 저장됩니다.
-        </p>
-      </div>
+      </div></div>
     </section>
   );
 }

@@ -9,9 +9,9 @@ export function OriginSection({ meme }: { meme: Meme }) {
   return (
     <section className="page-shell pb-14 sm:pb-20">
       <Card className="mx-auto max-w-3xl p-4 sm:p-7">
-        <div className="mb-5 flex items-start justify-between gap-4 px-1">
+        <div className="mb-5 flex flex-col gap-4 px-1 sm:flex-row sm:items-start sm:justify-between">
           <div><p className="text-xs font-black text-[#fe2c55]">ORIGINAL</p><h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">현재 확인된 원본</h2><p className="mt-2 text-sm leading-6 text-black/50">{meme.origin.summary}</p></div>
-          <ProposalButton memeId={meme.id} memeTitle={meme.title} section="origin" />
+          <ProposalButton className="w-full sm:w-auto" memeId={meme.id} memeTitle={meme.title} section="origin" />
         </div>
         <VideoEmbed video={meme.origin.video} priority />
         <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">

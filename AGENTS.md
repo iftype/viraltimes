@@ -29,6 +29,8 @@
 - URL은 `http/https`만 허용하고 사용자 본문은 React 기본 escaping을 유지한다.
 - 이미지 바이너리를 Oracle 로컬 디스크나 Git에 추가하지 않는다. 현재는 외부 HTTPS URL을 브라우저가 직접 읽는다.
 - 향후 댓글과 회원 데이터는 `PLAN.md`의 actor 모델을 따른다.
+- 댓글과 수정 제안은 `participation` API에서 타입을 분리하고, 수정 제안은 section/action을 반드시 저장한다.
+- 공개 상세 링크는 query URL이 아니라 `/memes/:slug` canonical URL을 사용한다.
 
 ## UI rules
 

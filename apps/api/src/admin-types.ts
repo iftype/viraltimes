@@ -2,6 +2,7 @@ export const inboxCategories = [
   "meme_request",
   "origin_tip",
   "feedback",
+  "proposal",
   "report",
 ] as const;
 

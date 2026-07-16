@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Badge, cn } from "@origin/ui";
+import { memeHref } from "@/lib/meme-href";
 import type { Meme, OriginStatus } from "@/types/meme";
 
 const kindLabels = {
@@ -36,7 +37,7 @@ export function MemeCard({
   return (
     <Link
       className="group overflow-hidden rounded-[var(--vo-radius-xl)] border border-[var(--vo-color-border)] bg-white shadow-[var(--vo-shadow-card)] transition duration-200 hover:-translate-y-1 hover:shadow-[var(--vo-shadow-float)]"
-      href={`/meme?slug=${encodeURIComponent(meme.slug)}`}
+      href={memeHref(meme.slug)}
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-black">
         <Image
@@ -52,9 +53,12 @@ export function MemeCard({
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/75" />
         <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 p-4">
-          <Badge className="bg-white/90 text-black">
-            <StatusIcon className="size-3" aria-hidden="true" /> {status.label}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge className="bg-white/90 text-black">
+              <StatusIcon className="size-3" aria-hidden="true" /> {status.label}
+            </Badge>
+            <Badge className="bg-[#fff7df] text-[#9a6200]">제안 {meme.participation?.proposalCount ?? 0}</Badge>
+          </div>
           <span className="flex size-9 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm">
             <MediaIcon className="size-4" aria-hidden="true" />
           </span>
