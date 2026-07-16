@@ -56,8 +56,11 @@ export function VideoEmbed({ video }: VideoEmbedProps) {
           <h3 className="line-clamp-2 text-sm font-bold leading-snug text-black sm:text-base">
             {video.title}
           </h3>
-          {video.creator && (
-            <p className="mt-1 text-xs text-black/40">@{video.creator}</p>
+          {(video.creator || video.viewCountLabel) && (
+            <p className="mt-1 flex flex-wrap gap-x-2 text-xs text-black/40">
+              {video.creator && <span>@{video.creator}</span>}
+              {video.viewCountLabel && <span>{video.viewCountLabel}</span>}
+            </p>
           )}
         </div>
 

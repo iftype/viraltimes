@@ -13,6 +13,7 @@ import { getMemeBySlug, sampleMemes } from "@/data/sample-memes";
 import { SubmissionCta } from "@/features/submissions/components/submission-cta";
 import { OriginTimeline } from "@/features/timeline/components/origin-timeline";
 import { VideoEmbed } from "@/features/video-embed/components/video-embed";
+import { VideoTabs } from "@/features/video-embed/components/video-tabs";
 import type { OriginStatus } from "@/types/meme";
 
 type MemePageProps = {
@@ -210,14 +211,16 @@ export default async function MemePage({ params }: MemePageProps) {
         <section className="border-y border-black/5 bg-white py-14 sm:py-20">
           <div className="page-shell">
             <div className="mx-auto max-w-3xl">
-              <p className="text-xs font-black text-[#fe2c55]">MORE CLIPS</p>
+              <p className="text-xs font-black text-[#fe2c55]">TRENDING CLIPS</p>
               <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">
-                같이 보면 좋은 영상
+                플랫폼별 트렌딩 영상
               </h2>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                {meme.topVideos.map((video) => (
-                  <VideoEmbed key={video.id} video={video} />
-                ))}
+              <p className="mt-2 text-sm text-black/45">
+                확인 가능한 대표 게시물을 플랫폼별로 모았어요. 수치는 마지막
+                검토 시점 기준입니다.
+              </p>
+              <div className="mt-6">
+                <VideoTabs videos={meme.topVideos} />
               </div>
             </div>
           </div>

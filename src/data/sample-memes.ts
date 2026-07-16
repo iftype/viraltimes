@@ -2,6 +2,114 @@ import type { Meme } from "@/types/meme";
 
 export const sampleMemes: Meme[] = [
   {
+    id: "kkungsit-kkungsit",
+    slug: "kkungsit-kkungsit",
+    title: "꿍싯꿍싯",
+    aliases: ["다이죠부이데쇼", "료 행진곡", "Otsukare Summer challenge"],
+    summary:
+      "NCT WISH 료의 안무에 HALCALI의 Otsukare SUMMER를 붙인 팬 편집 영상에서 시작된 귀여운 숏폼 챌린지.",
+    accent: "#fe2c55",
+    origin: {
+      status: "verified",
+      video: {
+        id: "kkungsit-origin",
+        platform: "instagram",
+        url: "https://www.instagram.com/reel/DXynhceJVBC/",
+        title: "꿍싯꿍싯 파트",
+        creator: "ryo.cuteeeeee",
+        uploadedAt: "2026-05-01",
+        viewCountLabel: "좋아요 8.7만",
+      },
+      summary:
+        "팬이 NCT WISH의 Ode to Love 속 료 안무에 HALCALI의 Otsukare SUMMER를 입힌 편집 릴스가 현재 확인된 챌린지의 출발점입니다.",
+      evidence: [
+        {
+          title: "가장 이른 확인 게시물",
+          detail:
+            "@ryo.cuteeeeee가 2026년 5월 1일 ‘꿍싯꿍싯 파트’라는 캡션으로 올린 릴스입니다.",
+          url: "https://www.instagram.com/reel/DXynhceJVBC/",
+        },
+        {
+          title: "팬이 만든 역챌린지",
+          detail:
+            "Ode to Love의 료 안무를 떼어내 Otsukare SUMMER 일부 구간에 합성한 팬 편집에서 유행이 시작됐다고 보도됐습니다.",
+          url: "https://v.daum.net/v/20260624144803751",
+        },
+        {
+          title: "아티스트의 공식 응답",
+          detail:
+            "NCT 공식 TikTok이 5월 8일 료의 ‘꿍싯꿍싯’ 영상을 게시하며 팬 유행에 직접 합류했습니다.",
+          url: "https://www.tiktok.com/@official_nct/video/7637412498311777543",
+        },
+      ],
+      lastReviewedAt: "2026-07-16",
+    },
+    timeline: [
+      {
+        id: "kkungsit-1",
+        dateLabel: "2025 봄",
+        title: "Otsukare SUMMER 재발견",
+        description:
+          "2003년 발표된 HALCALI의 곡이 영국과 미국 숏폼을 중심으로 다시 쓰이기 시작합니다.",
+        kind: "spread",
+      },
+      {
+        id: "kkungsit-2",
+        dateLabel: "2026. 05. 01",
+        title: "팬 편집 릴스 공개",
+        description:
+          "료의 Ode to Love 안무와 Otsukare SUMMER를 결합한 ‘꿍싯꿍싯 파트’가 Instagram에 올라옵니다.",
+        kind: "origin",
+      },
+      {
+        id: "kkungsit-3",
+        dateLabel: "2026. 05. 08",
+        title: "NCT 공식 계정이 탑승",
+        description:
+          "NCT 공식 TikTok이 료 버전을 직접 게시하면서 팬 편집이 공식 챌린지처럼 확장됩니다.",
+        kind: "mainstream",
+      },
+      {
+        id: "kkungsit-4",
+        dateLabel: "2026. 05–06",
+        title: "아이돌 전반으로 확산",
+        description:
+          "NCT WISH 멤버들의 변형 영상에 이어 카리나, 레이, 사쿠라 등 여러 아이돌이 참여하며 플랫폼 밖까지 알려집니다.",
+        kind: "spread",
+      },
+    ],
+    topVideos: [
+      {
+        id: "kkungsit-instagram-origin",
+        platform: "instagram",
+        url: "https://www.instagram.com/reel/DXynhceJVBC/",
+        title: "꿍싯꿍싯 파트 — 팬 편집 원본",
+        creator: "ryo.cuteeeeee",
+        uploadedAt: "2026-05-01",
+        viewCountLabel: "좋아요 8.7만",
+      },
+      {
+        id: "kkungsit-tiktok-ryo",
+        platform: "tiktok",
+        url: "https://www.tiktok.com/@official_nct/video/7637412498311777543",
+        title: "꿍싯꿍싯 #RYO #NCTWISH",
+        creator: "official_nct",
+        uploadedAt: "2026-05-08",
+        viewCountLabel: "350만 조회",
+      },
+      {
+        id: "kkungsit-tiktok-cheeseball",
+        platform: "tiktok",
+        url: "https://www.tiktok.com/@official_nct/video/7645885334546304264",
+        title: "치즈볼도 꿍싯꿍싯 #YUSHI #RYO #SAKUYA",
+        creator: "official_nct",
+        uploadedAt: "2026-05-31",
+        viewCountLabel: "460만 조회",
+      },
+    ],
+    tags: ["댄스", "역챌린지", "NCT WISH", "2026"],
+  },
+  {
     id: "harlem-shake",
     slug: "harlem-shake",
     title: "Harlem Shake",
