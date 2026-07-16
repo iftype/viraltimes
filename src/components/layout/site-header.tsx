@@ -19,18 +19,15 @@ export function SiteHeader() {
           >
             밈 찾기
           </Link>
-          <a
+          <Link
             className="flex items-center gap-1.5 rounded-full bg-black px-4 py-2 text-white transition-transform hover:scale-[1.02]"
-            href="https://github.com/iftype/meme-origin-timeline/issues/new"
-            target="_blank"
-            rel="noreferrer"
+            href="/submit"
           >
             <Plus className="size-4" aria-hidden="true" />
-            제보
-          </a>
+            등록
+          </Link>
         </nav>
       </div>
     </header>
   );
 }
-

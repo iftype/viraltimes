@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" rx="64" fill="#6d28d9"/>
+  <path d="M0 700 800 430v570H0Z" fill="#a78bfa"/>
+  <g fill="none" stroke="#fff" stroke-width="24">
+    <rect x="105" y="190" width="590" height="430" rx="58"/>
+    <path d="m300 190-74-88m274 88 74-88M330 688h140" stroke-linecap="round"/>
+  </g>
+  <circle cx="300" cy="392" r="18" fill="#fff"/>
+  <circle cx="500" cy="392" r="18" fill="#fff"/>
+  <path d="M310 494q90 62 180 0" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round"/>
+  <text x="52" y="850" fill="#171719" font-family="Arial, sans-serif" font-size="112" font-weight="900">어쩔TV</text>
+  <text x="57" y="918" fill="#171719" font-family="Arial, sans-serif" font-size="30" font-weight="700" letter-spacing="7">COMMUNITY WORD MEME</text>
+</svg>

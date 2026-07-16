@@ -11,7 +11,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getMemeBySlug, sampleMemes } from "@/data/sample-memes";
-import { SubmissionCta } from "@/features/submissions/components/submission-cta";
+import { ProposalButton } from "@/features/contributions/components/proposal-button";
+import { ProposalDiscussion } from "@/features/contributions/components/proposal-discussion";
 import { OriginTimeline } from "@/features/timeline/components/origin-timeline";
 import { VideoEmbed } from "@/features/video-embed/components/video-embed";
 import { VideoTabs } from "@/features/video-embed/components/video-tabs";
@@ -105,29 +106,43 @@ export default async function MemePage({ params }: MemePageProps) {
             <p className="mt-6 max-w-2xl text-base leading-7 text-black/60 sm:text-lg">
               {meme.summary}
             </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {meme.tags.map((tag) => (
-                <span
-                  className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-black/50 shadow-sm"
-                  key={tag}
-                >
-                  #{tag}
-                </span>
-              ))}
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap gap-2">
+                {meme.tags.map((tag) => (
+                  <span
+                    className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-black/50 shadow-sm"
+                    key={tag}
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+              <ProposalButton
+                memeId={meme.id}
+                memeTitle={meme.title}
+                section="description"
+              />
             </div>
           </div>
         </header>
 
         <section className="page-shell pb-14 sm:pb-20">
           <div className="mx-auto max-w-3xl rounded-3xl bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)] sm:p-7">
-            <div className="mb-5 px-1">
-              <p className="text-xs font-black text-[#fe2c55]">ORIGINAL</p>
-              <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">
-                현재 확인된 원본
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-black/50">
-                {meme.origin.summary}
-              </p>
+            <div className="mb-5 flex items-start justify-between gap-4 px-1">
+              <div>
+                <p className="text-xs font-black text-[#fe2c55]">ORIGINAL</p>
+                <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">
+                  현재 확인된 원본
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-black/50">
+                  {meme.origin.summary}
+                </p>
+              </div>
+              <ProposalButton
+                memeId={meme.id}
+                memeTitle={meme.title}
+                section="origin"
+              />
             </div>
 
             <VideoEmbed video={meme.origin.video} priority />
@@ -191,10 +206,6 @@ export default async function MemePage({ params }: MemePageProps) {
                   </li>
                 ))}
               </ol>
-
-              <div className="mt-5">
-                <SubmissionCta memeTitle={meme.title} />
-              </div>
             </div>
           </div>
         </section>
@@ -202,44 +213,83 @@ export default async function MemePage({ params }: MemePageProps) {
         <section className="border-y border-black/5 bg-white py-14 sm:py-20">
           <div className="page-shell">
             <div className="mx-auto max-w-3xl">
-              <p className="text-xs font-black text-[#fe2c55]">TRENDING CLIPS</p>
-              <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">
-                유행을 크게 만든 영상
-              </h2>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black text-[#fe2c55]">TRENDING CLIPS</p>
+                  <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">
+                    유행을 크게 만든 영상
+                  </h2>
+                </div>
+                <ProposalButton
+                  memeId={meme.id}
+                  memeTitle={meme.title}
+                  section="trending"
+                />
+              </div>
               <p className="mt-2 text-sm text-black/45">
                 원본을 더 넓은 사람들에게 퍼뜨린 대표 게시물이에요. 수치는 마지막
                 검토 시점 기준입니다.
               </p>
-              <div className="mt-6">
-                <VideoTabs videos={meme.trendingVideos} />
-              </div>
+              {meme.trendingVideos.length ? (
+                <div className="mt-6">
+                  <VideoTabs videos={meme.trendingVideos} />
+                </div>
+              ) : (
+                <div className="mt-6 rounded-2xl border border-dashed border-black/10 bg-[#f7f7f8] px-6 py-9 text-center text-sm text-black/40">
+                  아직 확인된 트렌딩 영상이 없어요. 수정 제안으로 알려주세요.
+                </div>
+              )}
             </div>
           </div>
         </section>
 
         <section className="page-shell py-14 sm:py-20">
           <div className="mx-auto max-w-3xl">
-            <p className="text-xs font-black text-[#8b5cf6]">RELATED</p>
-            <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">
-              관련 영상
-            </h2>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black text-[#8b5cf6]">RELATED</p>
+                <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">
+                  관련 영상
+                </h2>
+              </div>
+              <ProposalButton
+                memeId={meme.id}
+                memeTitle={meme.title}
+                section="related"
+              />
+            </div>
             <p className="mt-2 text-sm text-black/45">
               같은 포맷의 변형, 후속 참여, 맥락을 이해하는 데 도움이 되는
               영상이에요.
             </p>
-            <div className="mt-6">
-              <VideoTabs videos={meme.relatedVideos} />
-            </div>
+            {meme.relatedVideos.length ? (
+              <div className="mt-6">
+                <VideoTabs videos={meme.relatedVideos} />
+              </div>
+            ) : (
+              <div className="mt-6 rounded-2xl border border-dashed border-black/10 bg-white px-6 py-9 text-center text-sm text-black/40">
+                아직 등록된 관련 영상이 없어요. 수정 제안으로 알려주세요.
+              </div>
+            )}
           </div>
         </section>
 
         <section className="border-y border-black/5 bg-white py-14 sm:py-20">
           <div className="page-shell">
             <div className="mx-auto max-w-3xl">
-              <p className="text-xs font-black text-[#25a9a4]">TIMELINE</p>
-              <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">
-                시작부터 유행까지
-              </h2>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black text-[#25a9a4]">TIMELINE</p>
+                  <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">
+                    시작부터 유행까지
+                  </h2>
+                </div>
+                <ProposalButton
+                  memeId={meme.id}
+                  memeTitle={meme.title}
+                  section="timeline"
+                />
+              </div>
               <p className="mt-2 text-sm text-black/45">
                 각 단계의 링크를 열어 근거와 확산 흐름을 함께 확인해 보세요.
               </p>
@@ -249,6 +299,8 @@ export default async function MemePage({ params }: MemePageProps) {
             </div>
           </div>
         </section>
+
+        <ProposalDiscussion memeId={meme.id} />
 
         <section className="page-shell py-14 sm:py-20">
           <div className="mx-auto max-w-3xl">
@@ -261,12 +313,7 @@ export default async function MemePage({ params }: MemePageProps) {
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              {otherMemes.map((otherMeme) => {
-                const isChallenge = otherMeme.tags.some((tag) =>
-                  ["댄스", "챌린지", "역챌린지"].includes(tag),
-                );
-
-                return (
+              {otherMemes.map((otherMeme) => (
                   <Link
                     className="group flex min-h-48 flex-col rounded-2xl border border-black/5 bg-white p-5 shadow-[0_6px_20px_rgba(0,0,0,0.04)] transition-transform hover:-translate-y-1"
                     href={`/memes/${otherMeme.slug}`}
@@ -278,7 +325,11 @@ export default async function MemePage({ params }: MemePageProps) {
                           className="size-2 rounded-full"
                           style={{ backgroundColor: otherMeme.accent }}
                         />
-                        {isChallenge ? "챌린지" : "밈"}
+                        {otherMeme.kind === "challenge"
+                          ? "챌린지"
+                          : otherMeme.kind === "video-meme"
+                            ? "영상 밈"
+                            : "커뮤니티 밈"}
                       </span>
                       <ArrowUpRight
                         className="size-4 text-black/25 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
@@ -292,8 +343,7 @@ export default async function MemePage({ params }: MemePageProps) {
                       {otherMeme.summary}
                     </p>
                   </Link>
-                );
-              })}
+                ))}
             </div>
 
             <Link

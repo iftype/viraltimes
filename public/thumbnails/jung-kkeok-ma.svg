@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ffb703"/>
+      <stop offset="1" stop-color="#fb8500"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1000" rx="64" fill="url(#bg)"/>
+  <path d="M87 765c141-70 230-184 282-342l74 103c59-168 135-277 270-345" fill="none" stroke="#171719" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m604 172 109 9-22 106" fill="none" stroke="#171719" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="54" y="116" fill="#171719" font-family="Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="6">COMMUNITY SLOGAN MEME</text>
+  <text x="48" y="880" fill="#fff" font-family="Arial, sans-serif" font-size="154" font-weight="900">중꺾마</text>
+</svg>

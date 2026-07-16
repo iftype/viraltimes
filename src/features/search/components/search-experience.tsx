@@ -2,19 +2,29 @@
 
 import {
   ArrowUpRight,
+  BookOpenText,
   Check,
   CircleHelp,
   Clock3,
+  HelpCircle,
+  Lightbulb,
   Play,
   Search,
   Sparkles,
   X,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 
 import { sampleMemes } from "@/data/sample-memes";
 import type { OriginStatus } from "@/types/meme";
+
+const kindLabels = {
+  challenge: "챌린지",
+  "video-meme": "영상 밈",
+  "community-meme": "커뮤니티 밈",
+};
 
 const statusMeta: Record<
   OriginStatus,
@@ -85,6 +95,23 @@ export function SearchExperience() {
             </span>
           )}
         </label>
+
+        <div className="mx-auto mt-4 flex max-w-xl flex-col gap-2 sm:flex-row">
+          <Link
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-4 py-3 text-sm font-black text-black/65 hover:border-black"
+            href="/submit?type=request"
+          >
+            <HelpCircle className="size-4" aria-hidden="true" />
+            알고 싶은 밈·챌린지
+          </Link>
+          <Link
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-black px-4 py-3 text-sm font-black text-white"
+            href="/submit?type=origin"
+          >
+            <Lightbulb className="size-4" aria-hidden="true" />
+            원본을 아는 밈·챌린지
+          </Link>
+        </div>
       </section>
 
       <div className="page-shell">
@@ -109,53 +136,61 @@ export function SearchExperience() {
 
         {filteredMemes.length ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {filteredMemes.map((meme) => {
+            {filteredMemes.map((meme, index) => {
               const status = statusMeta[meme.origin.status];
               const StatusIcon = status.icon;
+              const thumbnailUrl = meme.thumbnailUrl.startsWith("/")
+                ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${meme.thumbnailUrl}`
+                : meme.thumbnailUrl;
+              const MediaIcon =
+                meme.kind === "community-meme" ? BookOpenText : Play;
 
               return (
                 <Link
-                  className="group relative flex min-h-[380px] overflow-hidden rounded-[1.75rem] p-5 text-white shadow-[0_12px_30px_rgba(0,0,0,0.12)] transition-transform hover:-translate-y-1"
+                  className="group overflow-hidden rounded-[1.75rem] border border-black/5 bg-white shadow-[0_10px_26px_rgba(0,0,0,0.08)] transition-transform hover:-translate-y-1"
                   href={`/memes/${meme.slug}`}
                   key={meme.id}
-                  style={{
-                    background: `linear-gradient(155deg, ${meme.accent} 0%, #1f1f24 78%)`,
-                  }}
                 >
-                  <span className="absolute -right-10 top-14 size-40 rounded-full border-[24px] border-white/10" />
-                  <span className="absolute -bottom-12 -left-8 size-44 rounded-full bg-white/10 blur-2xl" />
-
-                  <div className="relative z-10 flex w-full flex-col">
-                    <div className="flex items-center justify-between gap-3">
+                  <div className="relative aspect-[4/5] overflow-hidden bg-black">
+                    <Image
+                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      src={thumbnailUrl}
+                      alt={`${meme.title} 썸네일`}
+                      fill
+                      priority={index === 0}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/65" />
+                    <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 p-4">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold text-black">
                         <StatusIcon className="size-3" aria-hidden="true" />
                         {status.label}
                       </span>
-                      <span className="flex size-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-                        <Play className="ml-0.5 size-4 fill-current" aria-hidden="true" />
+                      <span className="flex size-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm">
+                        <MediaIcon className="size-4" aria-hidden="true" />
                       </span>
                     </div>
+                    <span className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1.5 text-xs font-black text-black">
+                      {kindLabels[meme.kind]}
+                    </span>
+                  </div>
 
-                    <div className="mt-auto">
-                      <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-white/60">
-                        Origin story
-                      </p>
-                      <h3 className="text-4xl font-black leading-none tracking-[-0.055em]">
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="text-2xl font-black leading-none tracking-[-0.045em]">
                         {meme.title}
                       </h3>
-                      <p className="mt-4 line-clamp-2 text-sm leading-6 text-white/70">
-                        {meme.summary}
-                      </p>
-                      <div className="mt-5 flex items-end justify-between gap-3">
-                        <p className="text-xs font-bold text-white/70">
-                          {meme.tags.slice(0, 3).map((tag) => `#${tag}`).join(" ")}
-                        </p>
-                        <ArrowUpRight
-                          className="size-5 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                          aria-hidden="true"
-                        />
-                      </div>
+                      <ArrowUpRight
+                        className="size-5 shrink-0 text-black/25 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                        aria-hidden="true"
+                      />
                     </div>
+                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-black/50">
+                      {meme.summary}
+                    </p>
+                    <p className="mt-4 truncate text-xs font-bold text-black/35">
+                      {meme.tags.slice(0, 3).map((tag) => `#${tag}`).join(" ")}
+                    </p>
                   </div>
                 </Link>
               );

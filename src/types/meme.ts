@@ -6,6 +6,7 @@ export type Platform =
   | "unknown";
 
 export type OriginStatus = "verified" | "likely" | "needs-review";
+export type MemeKind = "challenge" | "video-meme" | "community-meme";
 
 export type Video = {
   id: string;
@@ -54,6 +55,8 @@ export type Meme = {
   id: string;
   slug: string;
   title: string;
+  kind: MemeKind;
+  thumbnailUrl: string;
   aliases: string[];
   summary: string;
   origin: OriginClaim;

@@ -1,4 +1,5 @@
 import { ExternalLink, Play, ShieldAlert } from "lucide-react";
+import Image from "next/image";
 
 import type { Video } from "@/types/meme";
 
@@ -26,7 +27,14 @@ export function VideoEmbed({ video }: VideoEmbedProps) {
           ? getTikTokEmbedUrl(video.url)
           : null;
   const canEmbed = Boolean(embedUrl);
-  const isShortForm = ["instagram", "tiktok"].includes(video.platform);
+  const imageUrl = video.thumbnailUrl
+    ? video.thumbnailUrl.startsWith("/")
+      ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${video.thumbnailUrl}`
+      : video.thumbnailUrl
+    : null;
+  const hasMedia = canEmbed || Boolean(imageUrl);
+  const isShortForm =
+    ["instagram", "tiktok"].includes(video.platform) || Boolean(imageUrl);
 
   return (
     <article className="group overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
@@ -47,6 +55,21 @@ export function VideoEmbed({ video }: VideoEmbedProps) {
               allowFullScreen
               loading="lazy"
             />
+          ) : imageUrl ? (
+            <a
+              className="absolute inset-0 block"
+              href={video.url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Image
+                className="object-cover"
+                src={imageUrl}
+                alt={video.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 420px"
+              />
+            </a>
           ) : (
             <a
               className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_30%_10%,#fe2c5555,transparent_35%),radial-gradient(circle_at_80%_90%,#25f4ee44,transparent_35%)] px-7 text-center text-white"
@@ -72,7 +95,7 @@ export function VideoEmbed({ video }: VideoEmbedProps) {
         <div className="min-w-0">
           <div className="mb-1.5 flex items-center gap-2 text-[0.65rem] font-black uppercase tracking-[0.1em] text-black/35">
             <span>{platformLabels[video.platform]}</span>
-            {!canEmbed && (
+            {!hasMedia && (
               <span className="inline-flex items-center gap-1 text-[#fe2c55]">
                 <ShieldAlert className="size-3" aria-hidden="true" /> 링크
               </span>

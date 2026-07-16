@@ -5,6 +5,8 @@ export const sampleMemes: Meme[] = [
     id: "kkungsit-kkungsit",
     slug: "kkungsit-kkungsit",
     title: "꿍싯꿍싯",
+    kind: "challenge",
+    thumbnailUrl: "/thumbnails/kkungsit.svg",
     aliases: ["다이죠부이데쇼", "료 행진곡", "Otsukare Summer challenge"],
     summary:
       "NCT WISH 료의 안무에 HALCALI의 Otsukare SUMMER를 붙인 팬 편집 영상에서 시작된 귀여운 숏폼 챌린지.",
@@ -116,6 +118,8 @@ export const sampleMemes: Meme[] = [
     id: "harlem-shake",
     slug: "harlem-shake",
     title: "Harlem Shake",
+    kind: "challenge",
+    thumbnailUrl: "https://i.ytimg.com/vi/ygr5AHufBN4/hqdefault.jpg",
     aliases: ["할렘 쉐이크", "Harlem Shake meme"],
     summary:
       "한 사람이 춤추던 조용한 장면이 비트 드롭과 함께 집단 난장판으로 바뀌는 짧은 영상 포맷.",
@@ -200,6 +204,8 @@ export const sampleMemes: Meme[] = [
     id: "nyan-cat",
     slug: "nyan-cat",
     title: "Nyan Cat",
+    kind: "video-meme",
+    thumbnailUrl: "https://i.ytimg.com/vi/QH2-TGUlwu4/hqdefault.jpg",
     aliases: ["냥캣", "Pop Tart Cat"],
     summary:
       "팝타르트 몸을 가진 고양이가 무지개를 남기며 우주를 날아가는 루프 애니메이션과 음악.",
@@ -283,6 +289,8 @@ export const sampleMemes: Meme[] = [
     id: "rickroll",
     slug: "rickroll",
     title: "Rickroll",
+    kind: "community-meme",
+    thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
     aliases: ["릭롤", "Never Gonna Give You Up"],
     summary:
       "궁금한 링크인 척 유도한 뒤 Rick Astley의 뮤직비디오로 보내는 인터넷식 장난.",
@@ -361,6 +369,145 @@ export const sampleMemes: Meme[] = [
       },
     ],
     tags: ["링크", "장난", "2000s", "뮤직비디오"],
+  },
+  {
+    id: "eojjeol-tv",
+    slug: "eojjeol-tv",
+    title: "어쩔티비",
+    kind: "community-meme",
+    thumbnailUrl: "/thumbnails/eojjeol-tv.svg",
+    aliases: ["저쩔티비", "어쩔냉장고", "어쩔TV"],
+    summary:
+      "상대의 말에 장난스럽게 응수할 때 쓰이는 말장난형 커뮤니티 유행어. 변형 표현과 초기 사용례를 함께 수집 중입니다.",
+    accent: "#6d28d9",
+    origin: {
+      status: "needs-review",
+      video: {
+        id: "eojjeol-tv-origin",
+        platform: "unknown",
+        url: "https://www.memeki.co.kr/memes/f3209c50-5fc3-49c9-8b21-eeb48dfcd870",
+        title: "어쩔티비 커뮤니티 유행어",
+        creator: "커뮤니티 사용례",
+        uploadedAt: "2021 무렵",
+        thumbnailUrl: "/thumbnails/eojjeol-tv.svg",
+      },
+      summary:
+        "특정 단일 영상보다 온라인 대화와 말장난을 통해 퍼진 표현으로, 가장 이른 공개 사용례는 아직 토론이 필요합니다.",
+      evidence: [
+        {
+          title: "커뮤니티형 유행어",
+          detail:
+            "‘어쩌라고’에 가전제품 이름을 붙이는 방식으로 여러 변형이 만들어졌다고 정리돼 있습니다.",
+          url: "https://www.memeki.co.kr/memes/f3209c50-5fc3-49c9-8b21-eeb48dfcd870",
+        },
+        {
+          title: "최초 사용례 미확정",
+          detail:
+            "단일 창작자나 원본 게시물보다 구전·댓글 사용이 먼저였을 가능성이 있어 커뮤니티 설명과 초기 캡처 제안이 필요합니다.",
+        },
+      ],
+      lastReviewedAt: "2026-07-16",
+    },
+    timeline: [
+      {
+        id: "eojjeol-1",
+        dateLabel: "2021 무렵",
+        title: "온라인 말장난으로 확산",
+        description:
+          "‘어쩔티비·저쩔티비’처럼 상대의 말을 받아치는 표현이 커뮤니티와 또래 대화에서 쓰입니다.",
+        kind: "origin",
+        sourceUrl: "https://www.memeki.co.kr/memes/f3209c50-5fc3-49c9-8b21-eeb48dfcd870",
+        sourceLabel: "정리된 사용례",
+      },
+      {
+        id: "eojjeol-2",
+        dateLabel: "2021–2022",
+        title: "가전제품 변형이 대중화",
+        description:
+          "저쩔냉장고, 어쩔에어컨처럼 끝말을 바꾸는 파생형이 방송과 소셜 미디어로 넓어집니다.",
+        kind: "variation",
+        sourceUrl: "https://www.memeki.co.kr/memes/f3209c50-5fc3-49c9-8b21-eeb48dfcd870",
+        sourceLabel: "변형 예시",
+      },
+    ],
+    trendingVideos: [],
+    relatedVideos: [],
+    tags: ["유행어", "커뮤니티", "2020s", "텍스트밈"],
+  },
+  {
+    id: "jung-kkeok-ma",
+    slug: "jung-kkeok-ma",
+    title: "중꺾마",
+    kind: "community-meme",
+    thumbnailUrl: "/thumbnails/jung-kkeok-ma.svg",
+    aliases: ["중요한 건 꺾이지 않는 마음", "중요한 것은 꺾이지 않는 마음"],
+    summary:
+      "불리한 상황에서도 포기하지 않는 태도를 뜻하는 문구형 밈. e스포츠에서 시작해 스포츠와 일상 표현으로 확산됐습니다.",
+    accent: "#fb8500",
+    origin: {
+      status: "likely",
+      video: {
+        id: "jung-kkeok-ma-origin",
+        platform: "unknown",
+        url: "https://news.nate.com/view/20221211n01413",
+        title: "중요한 건 꺾이지 않는 마음",
+        creator: "인터뷰 기사 제목",
+        uploadedAt: "2022-10",
+        thumbnailUrl: "/thumbnails/jung-kkeok-ma.svg",
+      },
+      summary:
+        "DRX 데프트의 인터뷰 답변을 요약한 기사·영상 제목에서 문구가 만들어졌다는 기록이 유력하며, 직접 발언과 제목을 구분해 기록합니다.",
+      evidence: [
+        {
+          title: "인터뷰 제목에서 만들어진 문구",
+          detail:
+            "데프트의 답변을 바탕으로 기자가 ‘중요한 건 꺾이지 않는 마음’이라는 제목을 붙였다는 설명이 남아 있습니다.",
+          url: "https://news.nate.com/view/20221211n01413",
+        },
+        {
+          title: "월드컵을 통한 대중화",
+          detail:
+            "2022 카타르 월드컵에서 한국 대표팀이 문구가 적힌 태극기를 들면서 게임 팬 밖으로 크게 확산됐습니다.",
+          url: "https://www.hankyung.com/article/2022120956807",
+        },
+      ],
+      lastReviewedAt: "2026-07-16",
+    },
+    timeline: [
+      {
+        id: "jung-1",
+        dateLabel: "2022. 10",
+        title: "인터뷰 제목 등장",
+        description:
+          "경기 패배 뒤에도 팀이 무너지지 않으면 이길 수 있다는 데프트의 답변이 문구형 제목으로 정리됩니다.",
+        kind: "origin",
+        sourceUrl: "https://news.nate.com/view/20221211n01413",
+        sourceLabel: "유래 설명",
+      },
+      {
+        id: "jung-2",
+        dateLabel: "2022. 11",
+        title: "DRX 우승 서사와 결합",
+        description:
+          "DRX가 월드 챔피언십에서 우승하며 문구가 포기하지 않는 마음을 상징하는 밈으로 굳어집니다.",
+        kind: "spread",
+        sourceUrl: "https://www.hankyung.com/article/202212068022Y",
+        sourceLabel: "확산 배경",
+      },
+      {
+        id: "jung-3",
+        dateLabel: "2022. 12",
+        title: "월드컵과 일상 표현으로 대중화",
+        description:
+          "한국 축구 대표팀의 태극기 장면을 계기로 스포츠, 방송, 일상 응원 문구로 널리 사용됩니다.",
+        kind: "mainstream",
+        sourceUrl: "https://www.hankyung.com/article/2022120956807",
+        sourceLabel: "월드컵 확산 기사",
+      },
+    ],
+    trendingVideos: [],
+    relatedVideos: [],
+    tags: ["커뮤니티", "문구", "e스포츠", "2020s"],
   },
 ];
 
