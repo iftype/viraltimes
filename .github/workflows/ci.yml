@@ -41,3 +41,50 @@ jobs:
 
       - name: Build all apps
         run: pnpm build
+
+      - name: Resolve short SHA
+        id: vars
+        shell: bash
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Assemble deployment artifact
+        shell: bash
+        run: |
+          mkdir -p .deploy/apps/web .deploy/apps/api .deploy/apps/admin
+          cp -R apps/web/out .deploy/apps/web/out
+          cp -R apps/admin/out .deploy/apps/admin/out
+          cp -R apps/api/dist .deploy/apps/api/dist
+          cp apps/api/package.json .deploy/apps/api/package.json
+          cp package.json pnpm-lock.yaml pnpm-workspace.yaml .deploy/
+          echo "APP_VERSION=dev-${{ steps.vars.outputs.sha_short }}" > .deploy/release.env
+
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_SSH_PORT: ${{ secrets.ORACLE_SSH_PORT }}
+        shell: bash
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$ORACLE_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -p "${ORACLE_SSH_PORT:-22}" "$ORACLE_HOST" >> "$HOME/.ssh/known_hosts"
+
+      - name: Upload release
+        env:
+          ORACLE_DEPLOY_PATH: ${{ secrets.ORACLE_DEPLOY_PATH }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_PORT: ${{ secrets.ORACLE_SSH_PORT }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+        shell: bash
+        run: |
+          test -n "$ORACLE_DEPLOY_PATH"
+          test -n "$ORACLE_USER"
+          SSH_TARGET="$ORACLE_USER@$ORACLE_HOST"
+          SSH_PORT="${ORACLE_SSH_PORT:-22}"
+          ssh -p "$SSH_PORT" "$SSH_TARGET" "mkdir -p '$ORACLE_DEPLOY_PATH'"
+          rsync -az --delete --no-owner --no-group --exclude 'shared/' -e "ssh -p $SSH_PORT" .deploy/ "$SSH_TARGET:$ORACLE_DEPLOY_PATH/"
+          ssh -p "$SSH_PORT" "$SSH_TARGET" \
+            "cd '$ORACLE_DEPLOY_PATH' && corepack enable && pnpm install --prod --frozen-lockfile --filter @origin/api... && systemctl --user restart origin-api"
