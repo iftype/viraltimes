@@ -66,7 +66,7 @@ registerTrendRoutes(app, {
   trendStore,
 });
 registerQuizRoutes(app, quizStore, memeStore);
-registerAdminRoutes(app, { adminAuth, adminOrigin, categoryStore, inboxStore, memeStore });
+registerAdminRoutes(app, { adminAuth, adminOrigin, categoryStore, inboxStore, memeStore, quizStore });
 
 const stop = async (signal: string) => {
   app.log.info({ signal }, "shutting down");

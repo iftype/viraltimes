@@ -7,6 +7,7 @@ import type { CategoryStore } from "../category-store.js";
 import { parseCategoryInput } from "../category-validation.js";
 import type { MemeStore } from "../meme-store.js";
 import { parseMemeInput } from "../meme-validation.js";
+import type { QuizStore } from "../quiz-store.js";
 
 export function registerAdminRoutes(
   app: FastifyInstance,
@@ -16,9 +17,10 @@ export function registerAdminRoutes(
     categoryStore: CategoryStore;
     inboxStore: AdminInboxStore;
     memeStore: MemeStore;
+    quizStore: QuizStore;
   },
 ) {
-  const { adminAuth, adminOrigin, categoryStore, inboxStore, memeStore } = dependencies;
+  const { adminAuth, adminOrigin, categoryStore, inboxStore, memeStore, quizStore } = dependencies;
   const requireAdmin = async (request: FastifyRequest, reply: FastifyReply) => {
     if (
       !adminAuth.isConfigured() ||
@@ -186,6 +188,15 @@ export function registerAdminRoutes(
       );
       if (result.conflict) return reply.code(409).send({ error: result.conflict });
       return { item: result.item };
+    },
+  );
+
+  app.get(
+    "/api/v1/admin/quiz/logs",
+    { preHandler: requireAdmin },
+    async (request, reply) => {
+      reply.header("Cache-Control", "no-store");
+      return { items: await quizStore.getLogs() };
     },
   );
 }

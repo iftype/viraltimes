@@ -20,6 +20,8 @@ import {
   Tags,
   Video,
   X,
+  BarChart3,
+  Download,
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { BrandMark } from "@origin/ui";
@@ -35,7 +37,7 @@ import {
 
 type Category = "meme_request" | "origin_tip" | "feedback" | "proposal" | "report";
 type Status = "new" | "review" | "resolved" | "rejected";
-type Tab = "all" | Category | "final_review" | "dictionary" | "categories";
+type Tab = "all" | Category | "final_review" | "dictionary" | "categories" | "quiz_logs";
 
 type InboxItem = {
   id: string;
@@ -48,6 +50,15 @@ type InboxItem = {
   subjectId?: string;
   createdAt: string;
   updatedAt: string;
+};
+
+type QuizLog = {
+  id: string;
+  sessionId: string;
+  cardId: string;
+  cardType: "minor" | "origin";
+  response: "know" | "dont_know" | "view_detail";
+  timestamp: string;
 };
 
 const apiBase = "/viral/api/v1";
@@ -64,6 +75,7 @@ const tabs: { id: Tab; label: string; icon: typeof Bell }[] = [
   { id: "all", label: "전체 알림", icon: Bell },
   { id: "dictionary", label: "사전 관리", icon: BookOpenText },
   { id: "categories", label: "카테고리", icon: Tags },
+  { id: "quiz_logs", label: "매치 로그", icon: BarChart3 },
   { id: "meme_request", label: "밈 추가 요청", icon: CircleHelp },
   { id: "origin_tip", label: "원본 영상", icon: Video },
   { id: "feedback", label: "피드백", icon: MessageSquareText },
@@ -158,6 +170,7 @@ export default function AdminPage() {
   const [items, setItems] = useState<InboxItem[]>([]);
   const [memes, setMemes] = useState<AdminMeme[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [quizLogs, setQuizLogs] = useState<QuizLog[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>("all");
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -167,24 +180,35 @@ export default function AdminPage() {
     setLoading(true);
     setError("");
     try {
-      const [inboxResponse, memeResponse, categoryResponse] = await Promise.all([
+      const [inboxResponse, memeResponse, categoryResponse, quizLogsResponse] = await Promise.all([
         fetch(`${apiBase}/admin/inbox`, { cache: "no-store" }),
         fetch(`${apiBase}/admin/memes`, { cache: "no-store" }),
         fetch(`${apiBase}/admin/categories`, { cache: "no-store" }),
+        fetch(`${apiBase}/admin/quiz/logs`, { cache: "no-store" }),
       ]);
-      if (inboxResponse.status === 401 || memeResponse.status === 401 || categoryResponse.status === 401) {
+      if (
+        inboxResponse.status === 401 ||
+        memeResponse.status === 401 ||
+        categoryResponse.status === 401 ||
+        quizLogsResponse.status === 401
+      ) {
         setAuthenticated(false);
         return;
       }
       if (!inboxResponse.ok) throw new Error(await readError(inboxResponse));
       if (!memeResponse.ok) throw new Error(await readError(memeResponse));
       if (!categoryResponse.ok) throw new Error(await readError(categoryResponse));
+      if (!quizLogsResponse.ok) throw new Error(await readError(quizLogsResponse));
+      
       const inboxData = (await inboxResponse.json()) as { items: InboxItem[] };
       const memeData = (await memeResponse.json()) as { items: AdminMeme[] };
       const categoryData = (await categoryResponse.json()) as { items: AdminCategory[] };
+      const quizLogsData = (await quizLogsResponse.json()) as { items: QuizLog[] };
+      
       setItems(inboxData.items);
       setMemes(memeData.items);
       setCategories(categoryData.items);
+      setQuizLogs(quizLogsData.items || []);
       setAuthenticated(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "알림을 불러오지 못했습니다.");
@@ -202,7 +226,7 @@ export default function AdminPage() {
   const openItems = useMemo(() => items.filter((item) => item.status === "new" || item.status === "review"), [items]);
   const visibleItems = useMemo(() => {
     if (activeTab === "all") return openItems;
-    if (activeTab === "dictionary" || activeTab === "categories") return [];
+    if (activeTab === "dictionary" || activeTab === "categories" || activeTab === "quiz_logs") return [];
     if (activeTab === "final_review") return items.filter((item) => item.status === "review");
     return items.filter((item) => item.category === activeTab && (item.status === "new" || item.status === "review"));
   }, [activeTab, items, openItems]);
@@ -211,8 +235,54 @@ export default function AdminPage() {
     if (tab === "all") return openItems.length;
     if (tab === "dictionary") return memes.filter((meme) => meme.publicationStatus === "published").length;
     if (tab === "categories") return categories.filter((category) => category.isActive).length;
+    if (tab === "quiz_logs") return quizLogs.length;
     if (tab === "final_review") return items.filter((item) => item.status === "review").length;
     return openItems.filter((item) => item.category === tab).length;
+  };
+
+  const quizStats = useMemo(() => {
+    const total = quizLogs.length;
+    const stats: Record<string, { know: number; dont_know: number; view_detail: number; total: number }> = {
+      minor: { know: 0, dont_know: 0, view_detail: 0, total: 0 },
+      origin: { know: 0, dont_know: 0, view_detail: 0, total: 0 }
+    };
+    quizLogs.forEach(log => {
+      const type = log.cardType;
+      if (type && stats[type]) {
+        stats[type].total++;
+        if (log.response === "know") stats[type].know++;
+        else if (log.response === "dont_know") stats[type].dont_know++;
+        else if (log.response === "view_detail") stats[type].view_detail++;
+      }
+    });
+    return { total, stats };
+  }, [quizLogs]);
+
+  const downloadCSV = () => {
+    if (!quizLogs.length) return;
+    const headers = ["ID", "Session ID", "Card ID", "Card Type", "Response", "Timestamp"];
+    const rows = quizLogs.map(log => [
+      log.id,
+      log.sessionId,
+      log.cardId,
+      log.cardType,
+      log.response,
+      log.timestamp
+    ]);
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(val => `"${val}"`).join(","))
+    ].join("\n");
+    
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `quiz_match_logs_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   async function updateStatus(item: InboxItem, status: Status) {
@@ -239,6 +309,7 @@ export default function AdminPage() {
     setItems([]);
     setMemes([]);
     setCategories([]);
+    setQuizLogs([]);
     setAuthenticated(false);
   }
 
@@ -285,6 +356,100 @@ export default function AdminPage() {
           <DictionaryManager categories={categories} items={memes} onChange={setMemes} />
         ) : activeTab === "categories" ? (
           <CategoryManager items={categories} onChange={setCategories} />
+        ) : activeTab === "quiz_logs" ? (
+          <section className="space-y-6">
+            {/* 요약 카드 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white rounded-3xl border border-black/5 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
+                <p className="text-xs font-bold text-black/40">총 플레이 로그 수</p>
+                <p className="mt-2 text-2xl font-black">{quizStats.total}건</p>
+              </div>
+              <div className="bg-white rounded-3xl border border-black/5 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
+                <p className="text-xs font-bold text-[#fe2c55]">마이너 밈 인지도 (KNOW)</p>
+                <p className="mt-2 text-2xl font-black">
+                  {quizStats.stats.minor.total > 0 
+                    ? `${Math.round((quizStats.stats.minor.know / quizStats.stats.minor.total) * 100)}%` 
+                    : "0%"}
+                  <span className="text-xs font-medium text-black/35 ml-1">({quizStats.stats.minor.know}/{quizStats.stats.minor.total})</span>
+                </p>
+              </div>
+              <div className="bg-white rounded-3xl border border-black/5 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
+                <p className="text-xs font-bold text-[#087b77]">원조 챌린지 인지도 (KNOW)</p>
+                <p className="mt-2 text-2xl font-black">
+                  {quizStats.stats.origin.total > 0 
+                    ? `${Math.round((quizStats.stats.origin.know / quizStats.stats.origin.total) * 100)}%` 
+                    : "0%"}
+                  <span className="text-xs font-medium text-black/35 ml-1">({quizStats.stats.origin.know}/{quizStats.stats.origin.total})</span>
+                </p>
+              </div>
+            </div>
+
+            {/* 조작 패널 */}
+            <div className="flex justify-between items-center bg-white rounded-3xl border border-black/5 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
+              <div>
+                <h3 className="font-extrabold text-sm text-neutral-900">원시 매치 로그 목록</h3>
+                <p className="text-xs text-black/35 mt-0.5">사용자들의 스와이프 행위 로그 원시 데이터 목록입니다.</p>
+              </div>
+              <button 
+                onClick={downloadCSV}
+                className="flex items-center gap-1.5 rounded-full bg-black px-4 py-2.5 text-xs font-black text-white hover:bg-neutral-800 transition"
+              >
+                <Download className="size-3.5" /> 로그 CSV 저장
+              </button>
+            </div>
+
+            {/* 로그 테이블 */}
+            <div className="bg-white rounded-3xl border border-black/5 shadow-[0_8px_28px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-neutral-50 border-b border-black/5 text-black/40 font-bold">
+                      <th className="p-4 font-black">시간</th>
+                      <th className="p-4 font-black">세션 ID</th>
+                      <th className="p-4 font-black">카드 ID</th>
+                      <th className="p-4 font-black">카드 종류</th>
+                      <th className="p-4 font-black">반응</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/5 font-semibold text-black/75">
+                    {quizLogs.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-black/30 font-medium">적재된 로그가 없습니다.</td>
+                      </tr>
+                    ) : (
+                      quizLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-neutral-50/50">
+                          <td className="p-4 whitespace-nowrap text-black/40">{new Date(log.timestamp).toLocaleString("ko-KR")}</td>
+                          <td className="p-4 font-mono select-all text-black/50">{log.sessionId}</td>
+                          <td className="p-4 font-bold">{log.cardId}</td>
+                          <td className="p-4">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                              log.cardType === "minor" 
+                                ? "bg-rose-50 text-rose-600" 
+                                : "bg-emerald-50 text-emerald-600"
+                            }`}>
+                              {log.cardType === "minor" ? "마이너 밈" : "원조 챌린지"}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <span className={`font-black ${
+                              log.response === "know" 
+                                ? "text-emerald-600" 
+                                : log.response === "dont_know" 
+                                ? "text-rose-500" 
+                                : "text-amber-500"
+                            }`}>
+                              {log.response === "know" ? "KNOW" : log.response === "dont_know" ? "DONT_KNOW" : "VIEW_DETAIL"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
         ) : <section className="mt-4 space-y-3" aria-live="polite">
           {loading ? <div className="flex min-h-56 items-center justify-center rounded-3xl border border-black/5 bg-white"><LoaderCircle className="size-6 animate-spin text-black/25" /></div> : visibleItems.length === 0 ? <div className="flex min-h-64 flex-col items-center justify-center rounded-3xl border border-dashed border-black/10 bg-white px-6 text-center"><span className="flex size-12 items-center justify-center rounded-2xl bg-[#e8fffe] text-[#087b77]"><Check className="size-6" /></span><h2 className="mt-4 text-lg font-black">여기는 다 확인했어요</h2><p className="mt-1 text-sm leading-6 text-black/40">새로운 알림이 들어오면 이 탭에 바로 표시됩니다.</p></div> : visibleItems.map((item) => {
             const meta = categoryMeta[item.category];
