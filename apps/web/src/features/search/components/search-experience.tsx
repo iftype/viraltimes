@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleHelp, Sparkles } from "lucide-react";
+import { CircleHelp, Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -134,6 +134,27 @@ export function SearchExperience() {
           {isFallback ? "기본 사전 표시 중" : "검토 완료 데이터"}
         </div>
       </section>
+
+      {/* 퀴즈 테스트 유도 배너 */}
+      <div className="mt-6 p-5 rounded-[var(--vo-radius-lg)] bg-gradient-to-r from-[var(--vo-color-brand)] via-[#ff5436] to-[#fe792c] text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg border border-red-500/10">
+        <div className="space-y-1">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-white/20 text-white">
+            HOT MATCH TEST
+          </span>
+          <h2 className="text-lg font-black tracking-tight leading-snug">
+            마이너 밈 vs 원조 챌린지, 당신의 선택은?
+          </h2>
+          <p className="text-xs text-white/80 font-medium">
+            스와이프로 밈 인지도를 바로 테스트하고 사람들의 선호 트렌드 리포트를 분석해 보세요.
+          </p>
+        </div>
+        <Link 
+          href="/quiz" 
+          className="shrink-0 inline-flex items-center gap-2 bg-white text-neutral-900 font-extrabold text-sm px-5 py-3 rounded-[var(--vo-radius-md)] hover:bg-neutral-50 active:scale-[0.98] transition-all duration-200 shadow-md"
+        >
+          테스트 시작하기 <ArrowRight size={16} />
+        </Link>
+      </div>
 
       <div className="mt-6">
         <VerificationTabs active={verificationFilter} counts={verificationCounts} onChange={(filter) => { setVerificationFilter(filter); setActiveCategory("all"); }} />

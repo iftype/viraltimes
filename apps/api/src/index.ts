@@ -7,6 +7,7 @@ import { CategoryStore } from "./category-store.js";
 import { MemeStore } from "./meme-store.js";
 import { ParticipationStore } from "./participation-store.js";
 import { TrendStore } from "./trend-store.js";
+import { QuizStore } from "./quiz-store.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 import { registerCategoryRoutes } from "./routes/categories.js";
 import { registerHealthRoutes } from "./routes/health.js";
@@ -15,6 +16,7 @@ import { registerMemeRoutes } from "./routes/memes.js";
 import { registerParticipationRoutes } from "./routes/participation.js";
 import { registerSeoRoutes } from "./routes/seo.js";
 import { registerTrendRoutes } from "./routes/trends.js";
+import { registerQuizRoutes } from "./routes/quiz.js";
 
 const app = Fastify({ logger: true, trustProxy: true });
 const host = process.env.HOST ?? "127.0.0.1";
@@ -41,6 +43,9 @@ const participationStore = new ParticipationStore(
 const trendStore = new TrendStore(
   process.env.TREND_DATA_FILE ?? "/opt/origin/shared/trend-snapshots.json",
 );
+const quizStore = new QuizStore(
+  process.env.QUIZ_LOG_FILE ?? "./.data/quiz-logs.json",
+);
 
 await app.register(cors, {
   origin:
@@ -60,6 +65,7 @@ registerTrendRoutes(app, {
   memeStore,
   trendStore,
 });
+registerQuizRoutes(app, quizStore);
 registerAdminRoutes(app, { adminAuth, adminOrigin, categoryStore, inboxStore, memeStore });
 
 const stop = async (signal: string) => {
