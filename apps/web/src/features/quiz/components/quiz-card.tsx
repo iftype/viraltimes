@@ -2,7 +2,7 @@
 
 import { useState, useRef, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from "react";
 import { Info, Check, X } from "lucide-react";
-import { Card } from "@origin/ui";
+import { Card, Button } from "@origin/ui";
 
 interface QuizCardData {
   id: string;
@@ -212,16 +212,17 @@ export function QuizCard({ card, active, onSwipe, onViewDetail }: QuizCardProps)
 
           {/* 아래 버튼 (상세 정보 보기) */}
           <div className="pt-4 mt-auto">
-            <button
+            <Button
+              variant="secondary"
               onClick={(e) => {
                 e.stopPropagation();
                 onViewDetail();
               }}
-              className="w-full py-3.5 px-4 bg-neutral-50 dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-750 text-neutral-800 dark:text-neutral-200 rounded-[var(--vo-radius-md)] text-sm font-bold border border-neutral-200/50 dark:border-neutral-800 flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+              className="w-full text-xs font-bold py-3.5 flex items-center justify-center gap-2 border border-black/10 hover:border-black/35 hover:text-black transition"
             >
               <Info size={16} />
               궁금해요! 상세 정보 보기
-            </button>
+            </Button>
           </div>
         </div>
       </Card>

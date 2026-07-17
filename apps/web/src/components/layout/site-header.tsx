@@ -3,12 +3,14 @@
 import { MessageCircleMore, Plus } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { BrandMark, buttonClassName, cn } from "@origin/ui";
 
 import { HeaderSearch } from "./header-search";
 
 export function SiteHeader() {
+  const pathname = usePathname();
   const [compact, setCompact] = useState(false);
 
   useEffect(() => {
@@ -17,6 +19,8 @@ export function SiteHeader() {
     window.addEventListener("scroll", update, { passive: true });
     return () => window.removeEventListener("scroll", update);
   }, []);
+
+  if (pathname === "/quiz") return null;
 
   return (
     <header className="sticky top-0 z-50 border-b border-black/5 bg-white/92 backdrop-blur-xl">

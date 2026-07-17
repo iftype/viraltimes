@@ -269,25 +269,22 @@ export function QuizPage() {
   const isCompleted = currentIndex >= cards.length;
 
   return (
-    <div className="page-shell py-8 min-h-[80vh] flex flex-col items-center">
+    <div className={`w-full flex flex-col items-center justify-between overflow-hidden ${!isCompleted ? "h-[100dvh] py-4 px-4 sm:py-6" : "page-shell py-8 min-h-[80vh]"}`}>
       
       {!isCompleted ? (
-        <div className="w-full max-w-md flex flex-col items-center gap-6">
+        <div className="w-full max-w-sm flex-1 flex flex-col justify-between gap-3">
           {/* 타이틀 및 진행 상태 */}
-          <div className="w-full text-center space-y-2">
-            <h1 className="text-2xl font-black tracking-tight text-neutral-900 dark:text-white flex items-center justify-center gap-2">
-              <ArrowLeftRight className="text-[var(--vo-color-brand)]" size={24} />
-              밈 인지도 매치 테스트
-            </h1>
-            <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-              아는 것은 <strong className="text-emerald-600">오른쪽(KNOW)</strong>, 모르는 것은 <strong className="text-rose-500">왼쪽(NO)</strong>으로 스와이프 하세요.
-            </p>
-            <div className="flex justify-between items-center text-xs font-bold text-neutral-400 px-2 pt-2">
-              <span>PROGRESS</span>
+          <div className="w-full text-center space-y-1">
+            <div className="flex items-center justify-between text-xs font-bold text-neutral-400/80 px-1">
+              <span className="flex items-center gap-1">
+                <ArrowLeftRight className="text-[var(--vo-color-brand)] size-3.5" />
+                MEME MATCH
+              </span>
               <span>{currentIndex + 1} / {cards.length} CARDS</span>
             </div>
+            
             {/* 프로그레스 바 */}
-            <div className="w-full h-1.5 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
+            <div className="w-full h-1 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden mt-1">
               <div 
                 className="h-full bg-[var(--vo-color-brand)] transition-all duration-300"
                 style={{ width: `${((currentIndex) / cards.length) * 100}%` }}
@@ -295,8 +292,8 @@ export function QuizPage() {
             </div>
           </div>
 
-          {/* 카드 덱 영역 */}
-          <div className="relative w-full aspect-[3/4.5] flex items-center justify-center">
+          {/* 카드 덱 영역 - 스크롤 유발 최소화 */}
+          <div className="flex-1 w-full flex items-center justify-center relative my-auto min-h-[360px] max-h-[55dvh] overflow-hidden">
             {cards.map((card, index) => (
               <QuizCard
                 key={card.id}
@@ -308,17 +305,17 @@ export function QuizPage() {
             ))}
           </div>
 
-          {/* 보조 버튼 안내 */}
-          <div className="w-full flex justify-between items-center gap-4 px-4">
+          {/* 보조 버튼 안내 - 화면 바닥 밀착 */}
+          <div className="w-full flex justify-between items-center gap-3 pb-2">
             <button
               onClick={() => handleSwipe("left")}
-              className="flex-1 py-3 px-4 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-500 dark:text-rose-400 rounded-xl text-sm font-extrabold flex items-center justify-center gap-1.5 transition-colors"
+              className="flex-1 py-3 px-4 border border-rose-200 dark:border-rose-950/50 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-500 dark:text-rose-400 rounded-2xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-colors"
             >
               몰라요 (NO)
             </button>
             <button
               onClick={() => handleSwipe("right")}
-              className="flex-1 py-3 px-4 border border-emerald-200 dark:border-emerald-950/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-sm font-extrabold flex items-center justify-center gap-1.5 transition-colors"
+              className="flex-1 py-3 px-4 border border-emerald-200 dark:border-emerald-950/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-2xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-colors"
             >
               알아요 (KNOW)
             </button>
