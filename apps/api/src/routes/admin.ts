@@ -6,7 +6,9 @@ import { inboxStatuses } from "../admin-types.js";
 import type { CategoryStore } from "../category-store.js";
 import { parseCategoryInput } from "../category-validation.js";
 import type { MemeStore } from "../meme-store.js";
+import type { MetadataSuggestionService } from "../metadata-suggestion.js";
 import { parseMemeInput } from "../meme-validation.js";
+import { publicationStatuses, type PublicationStatus } from "../meme-types.js";
 import type { QuizStore } from "../quiz-store.js";
 
 export function registerAdminRoutes(
@@ -17,10 +19,11 @@ export function registerAdminRoutes(
     categoryStore: CategoryStore;
     inboxStore: AdminInboxStore;
     memeStore: MemeStore;
+    metadataSuggestionService: MetadataSuggestionService;
     quizStore: QuizStore;
   },
 ) {
-  const { adminAuth, adminOrigin, categoryStore, inboxStore, memeStore, quizStore } = dependencies;
+  const { adminAuth, adminOrigin, categoryStore, inboxStore, memeStore, metadataSuggestionService, quizStore } = dependencies;
   const requireAdmin = async (request: FastifyRequest, reply: FastifyReply) => {
     if (
       !adminAuth.isConfigured() ||
@@ -143,6 +146,28 @@ export function registerAdminRoutes(
   );
 
   app.post(
+    "/api/v1/admin/metadata/preview",
+    { preHandler: requireAdmin },
+    async (request, reply) => {
+      if (!hasTrustedOrigin(request.headers.origin)) {
+        return reply.code(403).send({ error: "허용되지 않은 요청입니다." });
+      }
+      const body = request.body as { url?: unknown } | null;
+      const url = typeof body?.url === "string" ? body.url.trim() : "";
+      if (!url || url.length > 2_000) {
+        return reply.code(400).send({ error: "분석할 링크를 확인해 주세요." });
+      }
+      try {
+        return { suggestion: await metadataSuggestionService.suggest(url) };
+      } catch (error) {
+        return reply.code(400).send({
+          error: error instanceof Error ? error.message : "링크 정보를 불러오지 못했습니다.",
+        });
+      }
+    },
+  );
+
+  app.post(
     "/api/v1/admin/memes",
     { preHandler: requireAdmin },
     async (request, reply) => {
@@ -190,6 +215,74 @@ export function registerAdminRoutes(
       return { item: result.item };
     },
   );
+
+  app.patch(
+    "/api/v1/admin/memes/bulk",
+    { preHandler: requireAdmin },
+    async (request, reply) => {
+      if (!hasTrustedOrigin(request.headers.origin)) {
+        return reply.code(403).send({ error: "허용되지 않은 요청입니다." });
+      }
+      const body = request.body as {
+        ids?: unknown;
+        action?: unknown;
+        publicationStatus?: unknown;
+        categoryId?: unknown;
+      } | null;
+      const ids = Array.isArray(body?.ids)
+        ? [...new Set(body.ids.filter((id): id is string => typeof id === "string").map((id) => id.trim()).filter(Boolean))]
+        : [];
+      if (!ids.length || ids.length > 100) {
+        return reply.code(400).send({ error: "한 번에 1개부터 100개까지 선택해 주세요." });
+      }
+
+      const action = body?.action;
+      if (action === "delete") {
+        return memeStore.bulkManage(ids, { action });
+      }
+      if (action === "status") {
+        if (!publicationStatuses.includes(body?.publicationStatus as PublicationStatus)) {
+          return reply.code(400).send({ error: "변경할 공개 상태를 확인해 주세요." });
+        }
+        return memeStore.bulkManage(ids, {
+          action,
+          publicationStatus: body?.publicationStatus as PublicationStatus,
+        });
+      }
+      if (action === "add-category" || action === "remove-category") {
+        const categoryId = typeof body?.categoryId === "string" ? body.categoryId.trim() : "";
+        const categoryExists = (await categoryStore.list(true)).some((category) => category.id === categoryId);
+        if (!categoryExists) {
+          return reply.code(400).send({ error: "유효한 카테고리를 선택해 주세요." });
+        }
+        if (action === "remove-category") {
+          const selected = (await memeStore.list(true)).filter((item) => ids.includes(item.id));
+          if (selected.some((item) => item.categoryIds.includes(categoryId) && item.categoryIds.length === 1)) {
+            return reply.code(400).send({ error: "카테고리가 하나뿐인 항목에서는 제거할 수 없습니다." });
+          }
+        }
+        return memeStore.bulkManage(ids, { action, categoryId });
+      }
+      return reply.code(400).send({ error: "지원하지 않는 일괄 작업입니다." });
+    },
+  );
+
+  app.delete(
+    "/api/v1/admin/memes/:id",
+    { preHandler: requireAdmin },
+    async (request, reply) => {
+      if (!hasTrustedOrigin(request.headers.origin)) {
+        return reply.code(403).send({ error: "허용되지 않은 요청입니다." });
+      }
+      const params = request.params as { id: string };
+      const deleted = await memeStore.delete(params.id);
+      if (!deleted) {
+        return reply.code(404).send({ error: "사전 항목을 찾을 수 없습니다." });
+      }
+      return { success: true };
+    },
+  );
+
 
   app.get(
     "/api/v1/admin/quiz/logs",

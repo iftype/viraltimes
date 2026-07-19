@@ -152,16 +152,16 @@ export function SubmissionForm() {
             />
           </label>
           <label className="block text-sm font-bold sm:col-span-2">
-            {isOrigin ? "원본이라고 생각하는 이유" : "어떤 내용이 궁금한가요?"}
+            {isOrigin ? "원본이라고 생각하는 이유" : <>알고 있는 설명 <span className="font-medium text-black/35">선택</span></>}
             <textarea
               className="mt-2 min-h-36 w-full resize-y rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 leading-6 outline-none focus:border-black"
               name="description"
               placeholder={
                 isOrigin
                   ? "더 오래된 게시물인지, 어떤 흐름으로 퍼졌는지 적어주세요."
-                  : "원본, 유행 과정, 의미 등 궁금한 점을 적어주세요."
+                  : "비워도 등록할 수 있어요. 의미나 사용처를 알고 있다면 적어주세요."
               }
-              required
+              required={isOrigin}
             />
           </label>
         </div>

@@ -57,7 +57,7 @@ type QuizLog = {
   sessionId: string;
   cardId: string;
   cardType: "minor" | "origin";
-  response: "know" | "dont_know" | "view_detail";
+  response: "know" | "dont_know" | "view_detail" | "helpful" | "not_helpful";
   timestamp: string;
 };
 
@@ -242,17 +242,18 @@ export default function AdminPage() {
 
   const quizStats = useMemo(() => {
     const total = quizLogs.length;
-    const stats: Record<string, { know: number; dont_know: number; view_detail: number; total: number }> = {
-      minor: { know: 0, dont_know: 0, view_detail: 0, total: 0 },
-      origin: { know: 0, dont_know: 0, view_detail: 0, total: 0 }
+    const stats: Record<string, { know: number; dont_know: number; view_detail: number; helpful: number; not_helpful: number; total: number; feedbackTotal: number }> = {
+      minor: { know: 0, dont_know: 0, view_detail: 0, helpful: 0, not_helpful: 0, total: 0, feedbackTotal: 0 },
+      origin: { know: 0, dont_know: 0, view_detail: 0, helpful: 0, not_helpful: 0, total: 0, feedbackTotal: 0 }
     };
     quizLogs.forEach(log => {
       const type = log.cardType;
       if (type && stats[type]) {
-        stats[type].total++;
-        if (log.response === "know") stats[type].know++;
-        else if (log.response === "dont_know") stats[type].dont_know++;
+        if (log.response === "know") { stats[type].know++; stats[type].total++; }
+        else if (log.response === "dont_know") { stats[type].dont_know++; stats[type].total++; }
         else if (log.response === "view_detail") stats[type].view_detail++;
+        else if (log.response === "helpful") { stats[type].helpful++; stats[type].feedbackTotal++; }
+        else if (log.response === "not_helpful") { stats[type].not_helpful++; stats[type].feedbackTotal++; }
       }
     });
     return { total, stats };
@@ -359,10 +360,15 @@ export default function AdminPage() {
         ) : activeTab === "quiz_logs" ? (
           <section className="space-y-6">
             {/* 요약 카드 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-white rounded-3xl border border-black/5 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
                 <p className="text-xs font-bold text-black/40">총 플레이 로그 수</p>
                 <p className="mt-2 text-2xl font-black">{quizStats.total}건</p>
+              </div>
+              <div className="bg-white rounded-3xl border border-black/5 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
+                <p className="text-xs font-bold text-[#7047a5]">설명 이해 도움률</p>
+                <p className="mt-2 text-2xl font-black">{quizStats.stats.minor.feedbackTotal + quizStats.stats.origin.feedbackTotal > 0 ? `${Math.round(((quizStats.stats.minor.helpful + quizStats.stats.origin.helpful) / (quizStats.stats.minor.feedbackTotal + quizStats.stats.origin.feedbackTotal)) * 100)}%` : "집계 전"}</p>
+                <p className="mt-1 text-[0.68rem] text-black/35">상세 열람 후 효과 응답</p>
               </div>
               <div className="bg-white rounded-3xl border border-black/5 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
                 <p className="text-xs font-bold text-[#fe2c55]">마이너 밈 인지도 (KNOW)</p>
@@ -433,13 +439,13 @@ export default function AdminPage() {
                           </td>
                           <td className="p-4">
                             <span className={`font-black ${
-                              log.response === "know" 
+                              log.response === "know" || log.response === "helpful"
                                 ? "text-emerald-600" 
-                                : log.response === "dont_know" 
+                                : log.response === "dont_know" || log.response === "not_helpful"
                                 ? "text-rose-500" 
                                 : "text-amber-500"
                             }`}>
-                              {log.response === "know" ? "KNOW" : log.response === "dont_know" ? "DONT_KNOW" : "VIEW_DETAIL"}
+                              {log.response === "know" ? "KNOW" : log.response === "dont_know" ? "DONT_KNOW" : log.response === "view_detail" ? "VIEW_DETAIL" : log.response === "helpful" ? "HELPFUL" : "NOT_HELPFUL"}
                             </span>
                           </td>
                         </tr>

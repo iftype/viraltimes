@@ -76,18 +76,29 @@ pnpm build
 | `GET/POST` | `/api/v1/memes/:id/participation?type=comment|proposal` | 비회원 댓글과 수정 제안 |
 | `GET` | `/api/v1/sitemap.xml` | 운영 사전 데이터 기반 검색엔진 sitemap |
 | `POST` | `/api/v1/intake` | 밈 요청·원본 제보·피드백·신고 접수 |
+| `GET/POST` | `/api/v1/quiz/cards`, `/api/v1/quiz/log` | 밈 인지도와 설명 도움 여부 측정 |
 
 트렌드 수집기는 `Authorization: Bearer $TREND_INGEST_TOKEN`으로 보호된 `POST /api/v1/internal/trends/snapshots`에 최대 500개를 한 번에 저장한다. 브라우저에서는 이 토큰이나 수집 API를 호출하지 않는다.
 
-관리자 API는 서명된 HttpOnly 쿠키가 필요합니다. 상세 계약은 [apps/api/src/CONTEXT.md](apps/api/src/CONTEXT.md)에 유지합니다.
+관리자 API는 서명된 HttpOnly 쿠키가 필요합니다. 사전 CRUD 외에 `PATCH /api/v1/admin/memes/bulk`로 최대 100개 항목의 상태·카테고리·삭제를 한 번에 처리하고, `POST /api/v1/admin/metadata/preview`로 허용된 외부 링크의 oEmbed/Open Graph 정보를 미리 봅니다. 상세 계약은 [apps/api/src/CONTEXT.md](apps/api/src/CONTEXT.md)에 유지합니다.
 
 ## Adding dictionary entries
 
 1. `https://iftype.store/viral/`에서 로그인합니다.
 2. `카테고리` 탭에서 큰 탐색 영역의 이름·순서·노출 여부를 관리합니다.
-3. `사전 관리` 탭에서 카테고리를 선택하고 작은 검색 키워드는 태그로 입력합니다.
-4. 원본·근거·타임라인을 검토합니다.
-5. `공개`로 바꾸면 운영·개발 클라이언트가 API에서 즉시 읽습니다.
+3. `사전 관리` 탭에서 카테고리를 선택하고 작은 검색 키워드는 태그로 입력합니다. 코리아 마이너 밈은 원본 영상과 설명 없이 초안으로 시작할 수 있습니다.
+4. 커뮤니티 링크를 `제목 | URL` 형식으로 붙이고 필요할 때 링크 자동 채우기로 썸네일·설명 후보를 받습니다.
+5. 원본·근거·타임라인은 필요한 항목에서만 고급 편집을 펼쳐 검토합니다.
+6. `공개`로 바꾸면 운영·개발 클라이언트가 API에서 즉시 읽습니다.
+
+목록의 체크박스와 일괄 작업을 사용하면 공개/작성 중/보관, 카테고리 추가·제거, 완전 삭제를 최대 100개까지 한 번에 처리할 수 있습니다. 완전 삭제는 되돌릴 수 있으므로 먼저 보관 상태를 권장합니다.
+
+### Gemma와 썸네일 자동화
+
+- 썸네일: AI보다 저렴하고 정확한 YouTube oEmbed 또는 페이지 Open Graph 이미지를 우선 사용합니다.
+- 설명: 서버에 `GEMMA_API_KEY`가 있을 때 Gemma가 공개 메타데이터를 120자 이내 한국어 초안으로 정리합니다.
+- 이미지 생성: Gemma는 이미지 이해·텍스트 생성 모델이므로 썸네일 이미지를 직접 생성하지 않습니다. 생성 이미지가 꼭 필요할 때만 별도 Gemini Image 모델과 object storage/CDN을 검토합니다.
+- 안전: 관리자 전용, 허용 호스트만 서버가 읽으며 AI 결과는 자동 공개하지 않습니다.
 
 항목 추가만으로 web을 커밋하거나 Vercel을 재배포하지 않습니다. 코드 변경이 아닌 콘텐츠 변경은 관리자 API가 정답입니다.
 

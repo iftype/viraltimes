@@ -12,7 +12,11 @@ export class MemeStore {
   async list(includeUnpublished = false) {
     const document = await this.read();
     return document.items
-      .map((item) => ({ ...item, categoryIds: legacyCategoryIds(item) }))
+      .map((item) => ({
+        ...item,
+        categoryIds: legacyCategoryIds(item),
+        sourceLinks: item.sourceLinks ?? [],
+      }))
       .filter((item) => includeUnpublished || item.publicationStatus === "published")
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
@@ -24,7 +28,13 @@ export class MemeStore {
         candidate.slug === slug &&
         (includeUnpublished || candidate.publicationStatus === "published"),
     );
-    return item ? { ...item, categoryIds: legacyCategoryIds(item) } : null;
+    return item
+      ? {
+          ...item,
+          categoryIds: legacyCategoryIds(item),
+          sourceLinks: item.sourceLinks ?? [],
+        }
+      : null;
   }
 
   async save(
@@ -85,5 +95,64 @@ export class MemeStore {
     const temporaryPath = `${this.filePath}.${process.pid}.tmp`;
     await writeFile(temporaryPath, `${JSON.stringify(document, null, 2)}\n`, { mode: 0o600 });
     await rename(temporaryPath, this.filePath);
+  }
+
+  async delete(id: string): Promise<boolean> {
+    let deleted = false;
+    await this.serialWrite(async () => {
+      const document = await this.read();
+      const existingIndex = document.items.findIndex((item) => item.id === id);
+      if (existingIndex >= 0) {
+        document.items.splice(existingIndex, 1);
+        await this.write(document);
+        deleted = true;
+      }
+    });
+    return deleted;
+  }
+
+  async bulkManage(
+    ids: string[],
+    operation:
+      | { action: "status"; publicationStatus: PublicationStatus }
+      | { action: "delete" }
+      | { action: "add-category" | "remove-category"; categoryId: string },
+  ): Promise<{ items: StoredMeme[]; deletedIds: string[]; missingIds: string[] }> {
+    const requestedIds = [...new Set(ids)];
+    let result = { items: [] as StoredMeme[], deletedIds: [] as string[], missingIds: [] as string[] };
+
+    await this.serialWrite(async () => {
+      const document = await this.read();
+      const existingIds = new Set(document.items.map((item) => item.id));
+      const requestedSet = new Set(requestedIds);
+      result.missingIds = requestedIds.filter((id) => !existingIds.has(id));
+
+      if (operation.action === "delete") {
+        result.deletedIds = document.items
+          .filter((item) => requestedSet.has(item.id))
+          .map((item) => item.id);
+        document.items = document.items.filter((item) => !requestedSet.has(item.id));
+      } else {
+        const now = new Date().toISOString();
+        document.items = document.items.map((item) => {
+          if (!requestedSet.has(item.id)) return item;
+          const updated: StoredMeme = operation.action === "status"
+            ? { ...item, publicationStatus: operation.publicationStatus, updatedAt: now }
+            : {
+                ...item,
+                categoryIds: operation.action === "add-category"
+                  ? [...new Set([...item.categoryIds, operation.categoryId])]
+                  : item.categoryIds.filter((id) => id !== operation.categoryId),
+                updatedAt: now,
+              };
+          result.items.push(updated);
+          return updated;
+        });
+      }
+
+      await this.write(document);
+    });
+
+    return result;
   }
 }

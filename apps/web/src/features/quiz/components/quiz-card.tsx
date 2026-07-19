@@ -2,14 +2,14 @@
 
 import { useState, useRef, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from "react";
 import { Info, Check, X } from "lucide-react";
-import { Card, Button } from "@origin/ui";
+import { Card } from "@origin/ui";
 
 interface QuizCardData {
   id: string;
   title: string;
   summary: string;
   type: "minor" | "origin";
-  thumbnailUrl: string;
+  thumbnailUrl?: string;
   accentColor?: string;
   originDetail: {
     creator?: string;
@@ -60,7 +60,7 @@ export function QuizCard({ card, active, onSwipe, onViewDetail }: QuizCardProps)
   const handleEnd = () => {
     if (!dragState.isDragging) return;
     const threshold = 120; // 스와이프 인정 임계치 (px)
-    
+
     if (dragState.offsetX > threshold) {
       // 오른쪽 스와이프 (KNOW)
       triggerFlee("right");
@@ -122,7 +122,7 @@ export function QuizCard({ card, active, onSwipe, onViewDetail }: QuizCardProps)
   const { offsetX, offsetY, isDragging } = dragState;
   const rotation = offsetX * 0.08; // 기울기 계산
   const scale = isDragging ? 1.02 : 1;
-  
+
   // 날아간 상태 스타일 계산
   let transformStyle = "";
   if (fledDirection === "right") {
@@ -158,22 +158,20 @@ export function QuizCard({ card, active, onSwipe, onViewDetail }: QuizCardProps)
         !active ? "pointer-events-none opacity-40 scale-95" : ""
       }`}
     >
-      <Card className="w-full h-full p-0 overflow-hidden flex flex-col border border-neutral-200/60 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl rounded-[var(--vo-radius-lg)]">
-        
+      <Card className="w-full h-full p-0 overflow-hidden flex flex-col border border-neutral-200/60  bg-white  shadow-xl rounded-[var(--vo-radius-lg)]">
+
         {/* 카드 미디어/썸네일 영역 */}
-        <div className="relative w-full aspect-[4/3] bg-neutral-100 dark:bg-neutral-950 overflow-hidden border-b border-neutral-100 dark:border-neutral-800">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={card.thumbnailUrl}
-            alt={card.title}
-            className="w-full h-full object-cover pointer-events-none"
-          />
-          
+        <div className="relative w-full aspect-[4/3] bg-neutral-100  overflow-hidden border-b border-neutral-100 ">
+          {card.thumbnailUrl ? <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={card.thumbnailUrl} alt={`${card.title} 대표 장면`} className="w-full h-full object-cover pointer-events-none" />
+          </> : <div aria-label={`${card.title} 썸네일 없음`} className="absolute inset-0" role="img" style={{ background: `radial-gradient(circle at 30% 25%, ${card.accentColor ?? "#fe2c55"}88, transparent 48%), #111` }} />}
+
           {/* 카드 타입 뱃지 */}
           <div className="absolute top-4 left-4 flex gap-2">
             <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full text-white shadow-sm ${
-              card.type === "minor" 
-                ? "bg-[var(--vo-color-brand)]" 
+              card.type === "minor"
+                ? "bg-[var(--vo-color-brand)]"
                 : "bg-[var(--vo-color-signal)] text-neutral-900"
             }`}>
               {card.type === "minor" ? "마이너 밈" : "원조 챌린지"}
@@ -184,7 +182,7 @@ export function QuizCard({ card, active, onSwipe, onViewDetail }: QuizCardProps)
           {isRightSticker && (
             <div
               style={{ opacity: stickerOpacity }}
-              className="absolute top-8 right-6 border-4 border-emerald-500 text-emerald-500 font-black text-3xl px-3 py-1 rounded-lg uppercase tracking-wider rotate-12 pointer-events-none flex items-center gap-1 bg-white/90 dark:bg-neutral-950/90 shadow-md"
+              className="absolute top-8 right-6 border-4 border-emerald-500 text-emerald-500 font-black text-3xl px-3 py-1 rounded-lg uppercase tracking-wider rotate-12 pointer-events-none flex items-center gap-1 bg-white/90  shadow-md"
             >
               <Check size={28} className="stroke-[3]" /> KNOW
             </div>
@@ -192,7 +190,7 @@ export function QuizCard({ card, active, onSwipe, onViewDetail }: QuizCardProps)
           {isLeftSticker && (
             <div
               style={{ opacity: stickerOpacity }}
-              className="absolute top-8 left-6 border-4 border-rose-500 text-rose-500 font-black text-3xl px-3 py-1 rounded-lg uppercase tracking-wider -rotate-12 pointer-events-none flex items-center gap-1 bg-white/90 dark:bg-neutral-950/90 shadow-md"
+              className="absolute top-8 left-6 border-4 border-rose-500 text-rose-500 font-black text-3xl px-3 py-1 rounded-lg uppercase tracking-wider -rotate-12 pointer-events-none flex items-center gap-1 bg-white/90  shadow-md"
             >
               <X size={28} className="stroke-[3]" /> NO
             </div>
@@ -202,27 +200,26 @@ export function QuizCard({ card, active, onSwipe, onViewDetail }: QuizCardProps)
         {/* 설명 및 콘텐츠 영역 */}
         <div className="flex-1 p-5 flex flex-col justify-between">
           <div className="space-y-2.5">
-            <h2 className="text-xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight leading-snug">
+            <h2 className="text-xl font-extrabold text-neutral-900  tracking-tight leading-snug">
               {card.title}
             </h2>
-            <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 leading-relaxed line-clamp-3">
+            <p className="text-sm font-medium text-neutral-500  leading-relaxed line-clamp-3">
               {card.summary}
             </p>
           </div>
 
           {/* 아래 버튼 (상세 정보 보기) */}
           <div className="pt-4 mt-auto">
-            <Button
-              variant="secondary"
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 onViewDetail();
               }}
-              className="w-full text-xs font-bold py-3.5 flex items-center justify-center gap-2 border border-black/10 hover:border-black/35 hover:text-black transition"
+              className="w-full py-3.5 px-4 bg-neutral-50  hover:bg-neutral-100  text-neutral-800  rounded-[var(--vo-radius-md)] text-sm font-bold border border-neutral-200/50  flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
             >
               <Info size={16} />
               궁금해요! 상세 정보 보기
-            </Button>
+            </button>
           </div>
         </div>
       </Card>

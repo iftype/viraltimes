@@ -3,7 +3,7 @@ export type QuizCard = {
   title: string;
   summary: string;
   type: "minor" | "origin";
-  thumbnailUrl: string;
+  thumbnailUrl?: string;
   accentColor?: string;
   originDetail: {
     creator?: string;
@@ -18,7 +18,7 @@ export type QuizLog = {
   sessionId: string;
   cardId: string;
   cardType: "minor" | "origin";
-  response: "know" | "dont_know" | "view_detail";
+  response: "know" | "dont_know" | "view_detail" | "helpful" | "not_helpful";
   timestamp: string;
 };
 

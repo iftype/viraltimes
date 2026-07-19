@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Badge, buttonClassName, cn } from "@origin/ui";
+import { getMemeCardThumbnail } from "@/lib/meme-thumbnail";
 import { memeHref } from "@/lib/meme-href";
 import type { Meme } from "@/types/meme";
 
@@ -17,13 +18,24 @@ export function RelatedMemesSection({ memes }: { memes: Meme[] }) {
         <p className="mt-2 text-sm text-black/45">대표 장면과 검토 상태를 보고 다음 항목을 골라보세요.</p>
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           {memes.map((meme) => {
-            const thumbnailUrl = meme.thumbnailUrl.startsWith("/")
-              ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${meme.thumbnailUrl}`
-              : meme.thumbnailUrl;
+            const thumbnailUrl = getMemeCardThumbnail(
+              meme,
+              process.env.NEXT_PUBLIC_BASE_PATH ?? "",
+            );
             return (
               <Link className="group overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[var(--vo-shadow-card)]" href={memeHref(meme.slug)} key={meme.id}>
                 <div className="relative aspect-[4/3] overflow-hidden bg-black">
-                  <Image alt={`${meme.title} 미리보기`} className={cn("transition-transform duration-300 group-hover:scale-[1.04]", meme.thumbnailFit === "contain" ? "object-contain" : "object-cover")} fill sizes="(max-width: 640px) 100vw, 33vw" src={thumbnailUrl} />
+                  {thumbnailUrl ? (
+                    <Image alt={`${meme.title} 미리보기`} className={cn("transition-transform duration-300 group-hover:scale-[1.04]", meme.thumbnailFit === "contain" ? "object-contain" : "object-cover")} fill sizes="(max-width: 640px) 100vw, 33vw" src={thumbnailUrl} />
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-0"
+                      style={{
+                        background: `radial-gradient(circle at 30% 30%, ${meme.accent}66, transparent 55%), #111`,
+                      }}
+                    />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
                   <Badge className="absolute left-3 top-3 bg-white/90 text-black">{statusLabel[meme.origin.status]}</Badge>
                   <h3 className="absolute inset-x-3 bottom-3 text-xl font-black tracking-[-0.04em] text-white">{meme.title}</h3>

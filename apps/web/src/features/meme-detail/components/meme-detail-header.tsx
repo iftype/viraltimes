@@ -30,6 +30,12 @@ export function MemeDetailHeader({ meme }: { meme: Meme }) {
         </div>
         <div className="mt-7 flex flex-wrap items-center gap-2">
           <Badge className={status.className}><StatusIcon className="size-3.5" />{status.label}</Badge>
+          {meme.kind === "minor-meme" && <Badge className="bg-black text-white">코리아 마이너 밈</Badge>}
+          {meme.origin.video && meme.origin.video.url && meme.origin.video.url.trim().length > 0 && (
+            <Badge className="bg-[#fe2c55] text-white">
+              원본 영상
+            </Badge>
+          )}
           {meme.lifecycle?.originYear && (
             <Badge className="bg-black/5 text-black/55">
               <CalendarDays className="size-3.5" /> {meme.lifecycle.originYear}년 시작
@@ -45,7 +51,9 @@ export function MemeDetailHeader({ meme }: { meme: Meme }) {
           {meme.title} 원본·원조를 확인하세요.
           {meme.aliases.length > 0 && ` ${meme.aliases.slice(0, 4).map((alias) => `${alias} 원조`).join(", ")}로 검색되는 같은 밈·챌린지의 근거와 확산 과정도 함께 정리합니다.`}
         </p>
-        <p className="mt-6 max-w-2xl text-base leading-7 text-black/60 sm:text-lg">{meme.summary}</p>
+        <p className="mt-6 max-w-2xl text-base leading-7 text-black/60 sm:text-lg">
+          {meme.summary || "아직 등록된 설명이 없습니다. 이 밈을 알고 있다면 아래 수정 제안으로 설명을 보태주세요."}
+        </p>
         <div className="mt-5 flex flex-wrap items-center gap-2">
           {categories.map((category) => <Badge className="bg-black text-white" key={category.id}>{category.label}</Badge>)}
         </div>

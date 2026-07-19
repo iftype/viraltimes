@@ -55,6 +55,20 @@ export class CategoryStore {
     return result;
   }
 
+  async ensureDefaults() {
+    await this.serialWrite(async () => {
+      const document = await this.read();
+      const existingIds = new Set(document.items.map((item) => item.id));
+      const existingSlugs = new Set(document.items.map((item) => item.slug));
+      const missing = defaultCategories.filter(
+        (category) => !existingIds.has(category.id) && !existingSlugs.has(category.slug),
+      );
+      if (!missing.length) return;
+      document.items.push(...structuredClone(missing));
+      await this.write(document);
+    });
+  }
+
   private async serialWrite(operation: () => Promise<void>) {
     this.writeQueue = this.writeQueue.then(operation, operation);
     await this.writeQueue;

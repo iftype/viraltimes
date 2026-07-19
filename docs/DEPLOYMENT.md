@@ -30,6 +30,8 @@ The workflow uploads the static web output, compiled API, workspace lockfile, an
 
 The API stores anonymous comments and revision proposals in `PARTICIPATION_DATA_FILE` and daily trend snapshots in `TREND_DATA_FILE` under the shared directory. Keep both files in the same backup scope as memes, categories, and the admin inbox. Set `TREND_INGEST_TOKEN` only in the Oracle environment and the scheduler secret store.
 
+Optional admin link enrichment uses `GEMMA_API_KEY`, `GEMMA_MODEL` and `METADATA_ALLOWED_HOSTS`. Keep the key only in `/opt/origin/shared/api.env`. Without the key, YouTube oEmbed and Open Graph thumbnail/title extraction still work; the API returns a metadata-only suggestion. The startup category migration is add-only and introduces `category-korea-minor-meme` when absent, so rollback does not delete or rewrite existing category data.
+
 ## Static admin deployment
 
 The admin build uses the `/viral` base path and is served as static files on the existing `iftype.store` Nginx server. It does not add another Node process. The `/viral/api/` location proxies only admin API calls to the ViralOrigin API domain.

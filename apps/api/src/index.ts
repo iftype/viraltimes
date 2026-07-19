@@ -5,6 +5,7 @@ import { AdminAuth } from "./admin-auth.js";
 import { AdminInboxStore } from "./admin-store.js";
 import { CategoryStore } from "./category-store.js";
 import { MemeStore } from "./meme-store.js";
+import { MetadataSuggestionService } from "./metadata-suggestion.js";
 import { ParticipationStore } from "./participation-store.js";
 import { TrendStore } from "./trend-store.js";
 import { QuizStore } from "./quiz-store.js";
@@ -46,6 +47,13 @@ const trendStore = new TrendStore(
 const quizStore = new QuizStore(
   process.env.QUIZ_LOG_FILE ?? "./.data/quiz-logs.json",
 );
+const metadataSuggestionService = new MetadataSuggestionService(
+  process.env.GEMMA_API_KEY ?? "",
+  process.env.GEMMA_MODEL ?? "gemma-4-26b-a4b-it",
+  process.env.METADATA_ALLOWED_HOSTS ?? "",
+);
+
+await categoryStore.ensureDefaults();
 
 await app.register(cors, {
   origin:
@@ -66,7 +74,15 @@ registerTrendRoutes(app, {
   trendStore,
 });
 registerQuizRoutes(app, quizStore, memeStore);
-registerAdminRoutes(app, { adminAuth, adminOrigin, categoryStore, inboxStore, memeStore, quizStore });
+registerAdminRoutes(app, {
+  adminAuth,
+  adminOrigin,
+  categoryStore,
+  inboxStore,
+  memeStore,
+  metadataSuggestionService,
+  quizStore,
+});
 
 const stop = async (signal: string) => {
   app.log.info({ signal }, "shutting down");

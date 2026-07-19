@@ -86,20 +86,27 @@ export function parseMemeInput(value: unknown): ParseResult {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
     return { ok: false, error: "slug는 영문 소문자, 숫자, 하이픈만 사용할 수 있습니다." };
   }
-  if (!title || !summary || !thumbnailUrl || !kind) {
-    return { ok: false, error: "제목, 종류, 요약, 썸네일을 확인해 주세요." };
+  if (!title || !kind) {
+    return { ok: false, error: "제목과 종류를 확인해 주세요." };
   }
 
   const originRaw = raw.origin as Record<string, unknown> | undefined;
-  const originVideo = parseVideo(originRaw?.video, `${slug}-origin`);
+  const originVideoRaw = originRaw?.video as Record<string, unknown> | undefined;
+  const originVideoUrl = text(originVideoRaw?.url, 2000);
+  const originVideoTitle = text(originVideoRaw?.title, 160);
+  if (originVideoUrl && !safeUrl(originVideoUrl)) {
+    return { ok: false, error: "원본 URL은 http 또는 https 주소여야 합니다." };
+  }
+  const originVideo = originVideoUrl && originVideoTitle
+    ? parseVideo(originVideoRaw, `${slug}-origin`) ?? undefined
+    : undefined;
+  if ((originVideoUrl && !originVideoTitle) || (!originVideoUrl && originVideoTitle)) {
+    return { ok: false, error: "원본 URL과 제목은 함께 입력하거나 모두 비워 주세요." };
+  }
   const originSummary = text(originRaw?.summary, 1500);
   const originStatus = originStatuses.includes(originRaw?.status as OriginStatus)
     ? (originRaw?.status as OriginStatus)
     : "needs-review";
-  if (!originVideo || !originSummary) {
-    return { ok: false, error: "원본 영상과 원본 설명을 확인해 주세요." };
-  }
-
   const evidence = Array.isArray(originRaw?.evidence)
     ? originRaw.evidence
         .map((item) => {
@@ -153,6 +160,31 @@ export function parseMemeInput(value: unknown): ParseResult {
           .slice(0, 20)
       : [];
 
+  const sourceLinkInputs = Array.isArray(raw.sourceLinks) ? raw.sourceLinks : [];
+  const hasInvalidSourceLink = sourceLinkInputs.some((item) => {
+    const entry = item as Record<string, unknown>;
+    const url = text(entry?.url, 2000);
+    return Boolean(url) && !safeUrl(url);
+  });
+  if (hasInvalidSourceLink) {
+    return { ok: false, error: "커뮤니티 링크는 http 또는 https 주소여야 합니다." };
+  }
+
+  const sourceLinks = sourceLinkInputs
+        .map((item, index) => {
+          const entry = item as Record<string, unknown>;
+          const url = safeUrl(entry.url);
+          if (!url) return null;
+          return {
+            id: text(entry.id, 120) || `${slug}-source-${index + 1}`,
+            title: text(entry.title, 160) || "관련 커뮤니티 링크",
+            url,
+            siteName: optionalText(entry.siteName, 100),
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => Boolean(item))
+        .slice(0, 30);
+
   const lifecycleRaw = raw.lifecycle as Record<string, unknown> | undefined;
   const originYearValue = Number(lifecycleRaw?.originYear);
   const originYear = Number.isInteger(originYearValue) && originYearValue >= 1900 && originYearValue <= new Date().getFullYear() + 1
@@ -184,6 +216,7 @@ export function parseMemeInput(value: unknown): ParseResult {
       timeline,
       trendingVideos: parseVideos(raw.trendingVideos, "trending"),
       relatedVideos: parseVideos(raw.relatedVideos, "related"),
+      sourceLinks,
       lifecycle: {
         originYear,
         firstSeenAt,

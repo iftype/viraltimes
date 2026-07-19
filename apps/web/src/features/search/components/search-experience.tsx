@@ -122,7 +122,7 @@ export function SearchExperience() {
           <Badge className="bg-[#fff0f3] text-[#d91d46]">
             <Sparkles className="size-3.5" aria-hidden="true" /> ORIGIN FEED
           </Badge>
-          <h1 className="mt-3 text-3xl font-black tracking-[-0.055em] sm:text-4xl">
+          <h1 className="mt-3 text-2xl font-black leading-tight tracking-[-0.045em] sm:text-4xl sm:tracking-[-0.055em]">
             {query ? `“${query}” 검색 결과` : "밈, 챌린지의 원본을 살펴보세요"}
           </h1>
           <p className="mt-2 text-sm text-black/45">
@@ -142,10 +142,10 @@ export function SearchExperience() {
             HOT MATCH TEST
           </span>
           <h2 className="text-lg font-black tracking-tight leading-snug">
-            마이너 밈 vs 원조 챌린지, 당신의 선택은?
+            마이너 밈, 얼마나 알고 있나요?
           </h2>
           <p className="text-xs text-white/80 font-medium">
-            스와이프로 밈 인지도를 바로 테스트하고 사람들의 선호 트렌드 리포트를 분석해 보세요.
+            5개 카드로 인지도를 확인하고 설명이 이해에 도움이 되는지도 알려주세요.
           </p>
         </div>
         <Link 
