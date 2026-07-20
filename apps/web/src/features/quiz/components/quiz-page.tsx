@@ -60,6 +60,7 @@ export function QuizPage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [statsError, setStatsError] = useState(false);
   const [runId, setRunId] = useState("");
+  const [showSwipeHint, setShowSwipeHint] = useState(true);
   const completedRuns = useRef(new Set<string>());
 
   const postLog = useCallback(async (payload: { cardId: string; cardType: QuizCardData["type"]; response: QuizResponse; runId: string; step?: number; destination?: string }) => {
@@ -90,6 +91,7 @@ export function QuizPage() {
       setRunId(nextRunId);
       setCurrentIndex(0);
       setResponses({});
+      setShowSwipeHint(true);
       if (fetchedCards[0]) void postLog({ cardId: "quiz", cardType: fetchedCards[0].type, response: "start", runId: nextRunId, step: 0 });
     } catch (cause) {
       setCards([]);
@@ -108,6 +110,7 @@ export function QuizPage() {
   const handleSwipe = (direction: "left" | "right") => {
     const card = cards[currentIndex];
     if (!card) return;
+    setShowSwipeHint(false);
     const answer = direction === "right" ? "know" : "dont_know";
     setResponses((current) => ({ ...current, [card.id]: answer }));
     void sendLog(card, answer, { step: currentIndex + 1 });
@@ -200,6 +203,8 @@ export function QuizPage() {
                 card={card}
                 active={index === currentIndex}
                 onSwipe={handleSwipe}
+                onInteraction={() => setShowSwipeHint(false)}
+                showSwipeHint={showSwipeHint && currentIndex === 0}
                 onViewDetail={() => {
                   setSelectedCard(card);
                   void sendLog(card, "view_media", { destination: memeHref(card.slug), step: currentIndex + 1 });

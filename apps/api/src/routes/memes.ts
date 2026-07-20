@@ -17,8 +17,11 @@ export function registerMemeRoutes(
       pageSize?: string;
       kind?: string;
       tag?: string;
+      tags?: string;
       category?: string;
+      categories?: string;
       query?: string;
+      verification?: "all" | "verified" | "open";
       year?: string;
       fromYear?: string;
       toYear?: string;
@@ -34,9 +37,18 @@ export function registerMemeRoutes(
       memeStore.list(),
       categoryStore.list(),
     ]);
-    const requestedCategoryId = query.category
-      ? await categoryStore.resolveId(query.category)
-      : null;
+    const categoryReferences = [query.category, ...(query.categories?.split(",") ?? [])]
+      .map((value) => value?.trim())
+      .filter((value): value is string => Boolean(value));
+    const requestedCategoryIds = new Set(
+      (await Promise.all(categoryReferences.map((value) => categoryStore.resolveId(value))))
+        .filter((value): value is string => Boolean(value)),
+    );
+    const requestedTags = new Set(
+      [query.tag, ...(query.tags?.split(",") ?? [])]
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    );
     const categoryById = new Map(categories.map((category) => [category.id, category]));
     const itemsWithLifecycle = allItems.map((item) => ({
       ...item,
@@ -44,10 +56,12 @@ export function registerMemeRoutes(
     }));
     const baseFilteredItems = itemsWithLifecycle.filter((item) => {
       if (query.kind && item.kind !== query.kind) return false;
-      if (query.tag && !item.tags.includes(query.tag)) return false;
-      if (query.category && (!requestedCategoryId || !item.categoryIds.includes(requestedCategoryId))) {
+      if (requestedTags.size && !item.tags.some((tag) => requestedTags.has(tag))) return false;
+      if (categoryReferences.length && !item.categoryIds.some((id) => requestedCategoryIds.has(id))) {
         return false;
       }
+      if (query.verification === "verified" && item.origin.status !== "verified") return false;
+      if (query.verification === "open" && item.origin.status === "verified") return false;
       if (
         search &&
         ![item.title, ...item.aliases, ...item.tags]
@@ -107,6 +121,13 @@ export function registerMemeRoutes(
       facets: {
         years: [...yearCounts.entries()]
           .sort(([a], [b]) => b - a)
+          .map(([value, count]) => ({ value, count })),
+        tags: [...allItems.reduce((counts, item) => {
+          for (const tag of item.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+          return counts;
+        }, new Map<string, number>())]
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 40)
           .map(([value, count]) => ({ value, count })),
       },
     };

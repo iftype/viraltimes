@@ -7,3 +7,5 @@
 - 한계: TikTok과 Instagram은 삭제, 비공개, 지역, 로그인 및 작성자의 임베드 설정에 따라 재생이 제한될 수 있다. X와 알 수 없는 플랫폼은 링크 카드로 표시한다.
 - 바이럴 목록은 최대 10개를 desktop 세로 목록/mobile 가로 rail로 탐색하며 선택된 영상 하나만 embed한다.
 - 참여·관련 영상은 embed하지 않고 2행 horizontal grid의 외부 링크 카드로 렌더링해 개수가 늘어도 iframe 비용이 증가하지 않게 한다.
+- 홈 feed는 원본 영상 또는 대표 사용 자료 한 개를 카드마다 lazy embed한다. 화면에서 800px 안으로 들어온 카드만 iframe을 만든다.
+- Instagram iframe 내부의 scroll 끝은 cross-origin 경계 때문에 부모가 감지할 수 없다. 기본 상태에서는 부모의 세로 swipe를 우선하고 사용자가 `재생·조작`을 명시적으로 켜며, 조작 중에도 좌우·하단 scroll rail과 `피드 스크롤` 전환 버튼을 제공한다.

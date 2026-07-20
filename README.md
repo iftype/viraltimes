@@ -70,7 +70,7 @@ pnpm build
 | --- | --- | --- |
 | `GET` | `/api/v1/health` | 서비스 상태·버전 |
 | `GET` | `/api/v1/categories` | 서버에서 관리하는 활성 카테고리 목록 |
-| `GET` | `/api/v1/memes?page=1&pageSize=24&category=&year=&sort=latest` | 공개 사전 목록·연도 facet, 최대 48개 |
+| `GET` | `/api/v1/memes?page=1&pageSize=24&categories=&tags=&fromYear=&toYear=&verification=&sort=latest` | 공개 사전 목록·복수 필터·연도/tag facet, 최대 48개 |
 | `GET` | `/api/v1/memes/:slug` | 공개된 사전 상세와 댓글·제안 수 |
 | `GET` | `/api/v1/memes/:slug/trends?from=&to=&source=&metric=&limit=400` | 일별 트렌드 스냅샷, 최대 1,000개 |
 | `GET/POST` | `/api/v1/memes/:id/participation?type=comment|proposal` | 비회원 댓글과 수정 제안 |
@@ -128,6 +128,15 @@ import { Badge, Button, Card, Field, buttonClassName } from "@origin/ui";
 외부 게시물·영상·음원·이미지의 권리는 각 원저작자와 권리자에게 있습니다. ViralOrigin은 출처와 확산 맥락을 기록하며 권리 침해·삭제 요청은 사이트 문의 폼 또는 `iftype@naver.com`으로 받습니다.
 
 개인정보처리방침은 `/privacy`에 공개되어 있습니다. 운영 클라이언트는 Vercel Web Analytics로 페이지 방문의 집계 정보만 확인하며 댓글·제보 본문이나 이메일을 분석 이벤트로 전송하지 않습니다.
+
+### Microsoft Clarity 준비
+
+1. Clarity에서 프로젝트를 만든 뒤 Settings → Setup에서 Project ID를 확인합니다.
+2. Clarity 프로젝트의 Consent Mode를 켜고 strict masking 설정을 확인합니다.
+3. Vercel의 `viralorigin` 프로젝트에 `NEXT_PUBLIC_CLARITY_PROJECT_ID`를 등록합니다. 운영만 먼저 보려면 Production 환경에만 넣습니다.
+4. 재배포 뒤 동의 전에는 Clarity 스크립트와 `_clck`·`_clsk` 쿠키가 없고, 동의 뒤에만 `clarity.ms/tag/:id`가 로드되는지 확인합니다.
+
+환경값이 비어 있으면 관련 배너와 스크립트는 모두 빠집니다. Clarity 공식 정책상 18세 미만을 대상으로 하는 서비스에는 사용하면 안 되므로 실제 활성화 전에 서비스 대상 연령을 확인해야 합니다. 사용자 이름·이메일·퀴즈 session ID를 Clarity Identify API로 보내지 않습니다.
 
 ## Search indexing
 

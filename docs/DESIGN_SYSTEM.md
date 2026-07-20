@@ -35,7 +35,7 @@
 
 - 헤더: 브랜드 → 검색 → 문의/제보 행동. mobile은 첫 화면에서 검색을 둘째 줄에 두고 스크롤 시 상단 중앙 compact 검색으로 전환한다.
 - 데스크톱 검색은 헤더 오른쪽에 두고, 모바일 입력은 iOS 확대 방지를 위해 실제 글자 크기 16px을 유지한 채 padding과 높이로 시각 크기를 조절한다.
-- 홈: 짧은 feed title → 원본 확인 상태 → 최신/연도 → thumbnail cards. category tabs는 현재 공개 홈에서 숨긴다.
+- 홈: 짧은 feed title → 단일 filter button → 원본/대표 사용 자료 embed feed. 모바일 카드는 Instagram처럼 viewport 좌우에 붙고 desktop에서는 중앙 단일 열을 유지한다.
 - 상세: 제목 → 원본 영상·게시글 → 뜻 설명 → 사용 영상·자료 TOP3 → 접힌 주요 확산 → compact 댓글 → 연결 밈 → 신규 밈 요청
 - 관리자: 전역 상태 → tabs → 한 가지 작업 surface. 사전 탭 안에서는 검색/필터 → 일괄 도구 → 항목 카드 순서를 유지한다.
 - 모바일 퀴즈처럼 한 화면에서 판단이 끝나는 도구는 `100dvh` 안에 조작부를 모두 배치하고 전역 header/footer를 숨겨 문서 스크롤을 만들지 않는다. 카드는 수평 drag만 허용하며 완료 목록도 같은 화면 안에 맞춘다. 데스크톱에서는 일반 page shell로 복귀한다.
@@ -51,6 +51,7 @@
 - 커뮤니티 밈도 가능하면 원문 캡처·공식 기사·대표 게시물 thumbnail을 사용한다.
 - 다른 사전 항목도 텍스트 박스가 아니라 실제 thumbnail, 검토 상태와 제안 수를 함께 미리 본다.
 - 여러 사용 자료는 대표 1개만 재생하고 최대 3개의 thumbnail selector를 둔다. 게시글은 screenshot thumbnail과 원문 링크를 사용한다.
+- 홈 피드 iframe은 viewport 근처에서만 생성한다. cross-origin Instagram은 기본적으로 페이지 scroll을 우선하고 사용자가 조작 모드를 켜며, 조작 중에는 피드로 빠져나오는 명시적 버튼과 scroll rail을 둔다.
 
 ## Forms
 

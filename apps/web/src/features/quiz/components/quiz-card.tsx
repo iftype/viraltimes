@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from "react";
-import { Play, Check, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Play, Check, X } from "lucide-react";
 import { Card } from "@origin/ui";
 
 interface QuizCardData {
@@ -26,9 +26,11 @@ interface QuizCardProps {
   active: boolean;
   onSwipe: (direction: "left" | "right") => void;
   onViewDetail: () => void;
+  onInteraction?: () => void;
+  showSwipeHint?: boolean;
 }
 
-export function QuizCard({ card, active, onSwipe, onViewDetail }: QuizCardProps) {
+export function QuizCard({ card, active, onSwipe, onViewDetail, onInteraction, showSwipeHint = false }: QuizCardProps) {
   const [dragState, setDragState] = useState({
     isDragging: false,
     startX: 0,
@@ -41,6 +43,7 @@ export function QuizCard({ card, active, onSwipe, onViewDetail }: QuizCardProps)
 
   const handleStart = (clientX: number) => {
     if (!active || fledDirection) return;
+    onInteraction?.();
     setDragState({
       isDragging: true,
       startX: clientX,
@@ -189,6 +192,14 @@ export function QuizCard({ card, active, onSwipe, onViewDetail }: QuizCardProps)
               className="absolute top-8 left-6 border-4 border-rose-500 text-rose-500 font-black text-3xl px-3 py-1 rounded-lg uppercase tracking-wider -rotate-12 pointer-events-none flex items-center gap-1 bg-white/90  shadow-md"
             >
               <X size={28} className="stroke-[3]" /> NO
+            </div>
+          )}
+
+          {showSwipeHint && !isDragging && (
+            <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between rounded-2xl bg-black/78 px-3 py-2.5 text-white shadow-lg backdrop-blur-sm">
+              <span className="flex items-center gap-1 text-[0.68rem] font-black text-white/75"><ArrowLeft className="size-3.5 animate-pulse" />몰라요</span>
+              <span className="text-xs font-black">카드를 좌우로 밀어보세요</span>
+              <span className="flex items-center gap-1 text-[0.68rem] font-black text-white/75">알아요<ArrowRight className="size-3.5 animate-pulse" /></span>
             </div>
           )}
         </div>

@@ -24,7 +24,7 @@ const sections = [
   },
   {
     title: "4. 방문 분석",
-    body: "서비스 개선을 위해 Vercel Web Analytics로 방문 시각, 페이지 경로, 유입 경로, 국가·지역 수준의 위치, 기기·운영체제·브라우저 종류 같은 집계 정보를 처리합니다. 밈 인지도 퀴즈는 브라우저에 생성한 무작위 세션 ID, 테스트마다 생성한 실행 ID, 카드 순서와 응답(알아요·몰라요), 영상 modal 열람, 완료 여부, 밈 상세·서비스 이동 경로를 저장합니다. 이를 통해 어느 단계에서 테스트를 중단했는지와 어떤 사전 항목으로 이동했는지 집계하며 이름, 이메일, 계정 정보와 연결하지 않습니다. 댓글·제보 본문이나 이메일 주소를 분석 이벤트에 넣지 않습니다.",
+    body: "서비스 개선을 위해 Vercel Web Analytics로 방문 시각, 페이지 경로, 유입 경로, 국가·지역 수준의 위치, 기기·운영체제·브라우저 종류 같은 집계 정보를 처리합니다. Microsoft Clarity는 프로젝트 ID가 설정된 경우에만 동의 배너를 표시하고, 사용자가 동의한 뒤에만 스크립트를 불러 클릭·스크롤·화면 이용 흐름과 세션 재생 정보를 처리합니다. Clarity 동의 선택은 브라우저 localStorage에 보관하며 브라우저 사이트 데이터 삭제로 초기화할 수 있습니다. 밈 인지도 퀴즈는 브라우저에 생성한 무작위 세션 ID, 테스트마다 생성한 실행 ID, 카드 순서와 응답(알아요·몰라요), 영상 modal 열람, 완료 여부, 밈 상세·서비스 이동 경로를 저장합니다. 이를 통해 어느 단계에서 테스트를 중단했는지와 어떤 사전 항목으로 이동했는지 집계하며 이름, 이메일, 계정 정보와 연결하지 않습니다. 댓글·제보 본문이나 이메일 주소를 분석 이벤트에 넣지 않습니다.",
   },
   {
     title: "5. AI 보조 편집",
@@ -43,7 +43,7 @@ export default function PrivacyPage() {
         <Link className="inline-flex items-center gap-1.5 text-sm font-bold text-black/45 hover:text-black" href="/"><ArrowLeft className="size-4" />돌아가기</Link>
         <p className="mt-8 text-xs font-black text-[#fe2c55]">PRIVACY</p>
         <h1 className="mt-2 text-4xl font-black tracking-[-0.055em]">개인정보처리방침</h1>
-        <p className="mt-3 text-sm leading-6 text-black/45">시행일 2026년 7월 16일 · 현재 프로토타입의 실제 데이터 흐름을 기준으로 작성했습니다.</p>
+        <p className="mt-3 text-sm leading-6 text-black/45">시행일 2026년 7월 20일 · 현재 프로토타입의 실제 데이터 흐름을 기준으로 작성했습니다.</p>
         <div className="mt-7 space-y-3">
           {sections.map((section) => (
             <Card className="p-5 shadow-none sm:p-6" key={section.title}>
