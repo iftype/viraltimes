@@ -13,7 +13,7 @@ import { VideoThumbnail } from "./video-thumbnail";
 type VideoFilter = Platform | "all";
 
 export function ViralVideoGallery({ videos }: { videos: Video[] }) {
-  const rankedVideos = useMemo(() => videos.slice(0, 10), [videos]);
+  const rankedVideos = useMemo(() => videos.slice(0, 3), [videos]);
   const platforms = useMemo(() => [...new Set(rankedVideos.map((video) => video.platform))], [rankedVideos]);
   const [activePlatform, setActivePlatform] = useState<VideoFilter>("all");
   const [activeVideoId, setActiveVideoId] = useState(rankedVideos[0]?.id ?? "");
@@ -29,7 +29,7 @@ export function ViralVideoGallery({ videos }: { videos: Video[] }) {
   return (
     <div>
       {platforms.length > 1 && (
-        <div className="hide-scrollbar mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="바이럴 영상 플랫폼">
+        <div className="hide-scrollbar mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="사용 자료 플랫폼">
           {tabs.map((tab) => (
             <button
               aria-selected={activePlatform === tab.id}

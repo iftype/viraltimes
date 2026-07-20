@@ -18,6 +18,7 @@ jobs:
   verify:
     name: Verify
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,3 +42,85 @@ jobs:
 
       - name: Build all apps
         run: pnpm build
+
+      - name: Resolve short SHA
+        if: github.event_name == 'push'
+        id: vars
+        shell: bash
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Assemble deployment artifact
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          mkdir -p .deploy/apps/web .deploy/apps/api .deploy/apps/admin
+          cp -R apps/web/out .deploy/apps/web/out
+          cp -R apps/admin/out .deploy/apps/admin/out
+          cp -R apps/api/dist .deploy/apps/api/dist
+          cp apps/api/package.json .deploy/apps/api/package.json
+          cp package.json pnpm-lock.yaml pnpm-workspace.yaml .deploy/
+          echo "APP_VERSION=dev-${{ steps.vars.outputs.sha_short }}" > .deploy/release.env
+
+      - name: Configure SSH
+        if: github.event_name == 'push'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_SSH_PORT: ${{ secrets.ORACLE_SSH_PORT }}
+        shell: bash
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$ORACLE_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -p "${ORACLE_SSH_PORT:-22}" "$ORACLE_HOST" >> "$HOME/.ssh/known_hosts"
+
+      - name: Upload release
+        if: github.event_name == 'push'
+        env:
+          ORACLE_DEPLOY_PATH: ${{ secrets.ORACLE_DEPLOY_PATH }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_PORT: ${{ secrets.ORACLE_SSH_PORT }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+        shell: bash
+        run: |
+          test -n "$ORACLE_DEPLOY_PATH"
+          test -n "$ORACLE_USER"
+          SSH_TARGET="$ORACLE_USER@$ORACLE_HOST"
+          SSH_PORT="${ORACLE_SSH_PORT:-22}"
+          ssh -p "$SSH_PORT" "$SSH_TARGET" "mkdir -p '$ORACLE_DEPLOY_PATH'"
+          rsync -az --delete --no-owner --no-group --exclude 'shared/' -e "ssh -p $SSH_PORT" .deploy/ "$SSH_TARGET:$ORACLE_DEPLOY_PATH/"
+          ssh -p "$SSH_PORT" "$SSH_TARGET" \
+            "cd '$ORACLE_DEPLOY_PATH' && corepack enable && pnpm install --prod --frozen-lockfile --filter @origin/api... && systemctl --user restart origin-api"
+
+      - name: Configure admin SSH
+        if: github.event_name == 'push' && vars.ADMIN_DEPLOY_ENABLED == 'true'
+        env:
+          ADMIN_ORACLE_HOST: ${{ secrets.ADMIN_ORACLE_HOST }}
+          ADMIN_ORACLE_SSH_KEY: ${{ secrets.ADMIN_ORACLE_SSH_KEY }}
+          ADMIN_ORACLE_SSH_PORT: ${{ secrets.ADMIN_ORACLE_SSH_PORT }}
+        shell: bash
+        run: |
+          test -n "$ADMIN_ORACLE_HOST"
+          test -n "$ADMIN_ORACLE_SSH_KEY"
+          printf '%s\n' "$ADMIN_ORACLE_SSH_KEY" > "$HOME/.ssh/id_admin_ed25519"
+          chmod 600 "$HOME/.ssh/id_admin_ed25519"
+          ssh-keyscan -p "${ADMIN_ORACLE_SSH_PORT:-22}" "$ADMIN_ORACLE_HOST" >> "$HOME/.ssh/known_hosts"
+
+      - name: Upload develop admin to iftype.store
+        if: github.event_name == 'push' && vars.ADMIN_DEPLOY_ENABLED == 'true'
+        env:
+          ADMIN_ORACLE_DEPLOY_PATH: ${{ secrets.ADMIN_ORACLE_DEPLOY_PATH }}
+          ADMIN_ORACLE_HOST: ${{ secrets.ADMIN_ORACLE_HOST }}
+          ADMIN_ORACLE_SSH_PORT: ${{ secrets.ADMIN_ORACLE_SSH_PORT }}
+          ADMIN_ORACLE_USER: ${{ secrets.ADMIN_ORACLE_USER }}
+        shell: bash
+        run: |
+          test -n "$ADMIN_ORACLE_DEPLOY_PATH"
+          test -n "$ADMIN_ORACLE_USER"
+          SSH_TARGET="$ADMIN_ORACLE_USER@$ADMIN_ORACLE_HOST"
+          SSH_PORT="${ADMIN_ORACLE_SSH_PORT:-22}"
+          ssh -i "$HOME/.ssh/id_admin_ed25519" -p "$SSH_PORT" "$SSH_TARGET" "mkdir -p '$ADMIN_ORACLE_DEPLOY_PATH'"
+          rsync -az --delete --no-owner --no-group -e "ssh -i $HOME/.ssh/id_admin_ed25519 -p $SSH_PORT" \
+            .deploy/apps/admin/out/ "$SSH_TARGET:$ADMIN_ORACLE_DEPLOY_PATH/"

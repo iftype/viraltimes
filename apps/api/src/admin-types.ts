@@ -19,6 +19,7 @@ export type InboxItem = {
   author: string;
   description: string;
   sourceUrl?: string;
+  originUrl?: string;
   subjectId?: string;
   createdAt: string;
   updatedAt: string;

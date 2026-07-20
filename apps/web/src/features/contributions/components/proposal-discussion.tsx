@@ -40,7 +40,7 @@ export function ProposalDiscussion({ memeId }: { memeId: string }) {
           <div>
             <p className="text-xs font-black text-[#8b5cf6]">REVISION BOARD</p>
             <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">수정 제안 토론</h2>
-            <p className="mt-2 text-sm leading-6 text-black/45">설명 수정, 원본 후보, 영상 추가와 타임라인 보완에 관한 글만 모아봅니다.</p>
+            <p className="mt-2 text-sm leading-6 text-black/45">설명 수정, 원본 후보, 사용 자료, 연결된 밈과 타임라인 보완을 한곳에서 토론합니다.</p>
           </div>
           <span className="rounded-full bg-[#f4efff] px-3 py-1.5 text-xs font-black text-[#7047a5]">토론 중 {items.length}</span>
         </div>
@@ -64,7 +64,7 @@ export function ProposalDiscussion({ memeId }: { memeId: string }) {
           <div className="mt-6 rounded-2xl border border-dashed border-black/10 bg-[#f7f7f8] px-6 py-10 text-center">
             <MessageSquareText className="mx-auto size-6 text-black/25" />
             <p className="mt-3 text-sm font-black">아직 열린 수정 제안이 없어요.</p>
-            <p className="mt-1 text-xs leading-5 text-black/40">각 영역의 제안 버튼에서 설명 수정이나 영상 추가 토론을 시작할 수 있어요.</p>
+            <p className="mt-1 text-xs leading-5 text-black/40">위 제안 버튼에서 필요한 수정 토론을 시작할 수 있어요.</p>
           </div>
         )}
       </div></div>

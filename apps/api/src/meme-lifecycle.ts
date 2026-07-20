@@ -25,7 +25,7 @@ export function resolveOriginYear(meme: Meme) {
   return (
     yearFromText(originEvent?.dateLabel) ??
     yearFromText(meme.lifecycle?.firstSeenAt) ??
-    yearFromText(meme.origin.video.uploadedAt)
+    yearFromText(meme.origin.video?.uploadedAt)
   );
 }
 
@@ -41,8 +41,8 @@ export function enrichLifecycle(meme: Meme): MemeLifecycle & {
     originYear,
     firstSeenAt:
       meme.lifecycle?.firstSeenAt ??
-      (/^\d{4}-\d{2}-\d{2}$/.test(meme.origin.video.uploadedAt ?? "")
-        ? meme.origin.video.uploadedAt
+      (/^\d{4}-\d{2}-\d{2}$/.test(meme.origin.video?.uploadedAt ?? "")
+        ? meme.origin.video?.uploadedAt
         : undefined),
     ageYears: originYear === undefined ? undefined : Math.max(0, new Date().getFullYear() - originYear),
     daysSinceLastObserved: Number.isFinite(lastObservedTimestamp)

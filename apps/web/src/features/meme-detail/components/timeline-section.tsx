@@ -1,14 +1,16 @@
-import { ProposalButton } from "@/features/contributions/components/proposal-button";
 import { OriginTimeline } from "@/features/timeline/components/origin-timeline";
 import type { Meme } from "@/types/meme";
 
 export function TimelineSection({ meme }: { meme: Meme }) {
+  if (!meme.timeline || meme.timeline.length === 0) return null;
+
   return (
-    <section className="border-y border-black/5 bg-white py-14 sm:py-20">
+    <section className="border-y border-black/5 bg-white py-4 sm:py-6">
       <div className="page-shell"><div className="mx-auto max-w-3xl">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-black text-[#25a9a4]">TIMELINE</p><h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">시작부터 유행까지</h2></div><ProposalButton className="w-full sm:w-auto" memeId={meme.id} memeTitle={meme.title} section="timeline" /></div>
-        <p className="mt-2 text-sm text-black/45">각 단계의 링크를 열어 근거와 확산 흐름을 함께 확인해 보세요.</p>
-        <div className="mt-8"><OriginTimeline events={meme.timeline} /></div>
+        <details className="group rounded-2xl border border-black/5 bg-[#fafafa] p-3 sm:p-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3"><span><span className="text-[0.65rem] font-black text-[#25a9a4]">TIMELINE · {meme.timeline.length}단계</span><span className="mt-0.5 block text-base font-black tracking-[-0.03em]">확산 과정 펼쳐보기</span></span><span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-black/45 group-open:hidden">열기</span><span className="hidden rounded-full bg-white px-3 py-1.5 text-xs font-black text-black/45 group-open:block">접기</span></summary>
+          <div className="mt-5 border-t border-black/5 pt-5"><p className="mb-5 text-xs leading-5 text-black/40">모든 확산을 추적한 기록이 아니라, 확인된 주요 장면만 간단히 정리했습니다.</p><OriginTimeline events={meme.timeline} /></div>
+        </details>
       </div></div>
     </section>
   );

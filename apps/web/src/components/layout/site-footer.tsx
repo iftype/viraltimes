@@ -1,7 +1,13 @@
+"use client";
+
 import { GitFork, Mail, MessageCircleMore } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function SiteFooter() {
+  const pathname = usePathname();
+  if (pathname === "/quiz") return null;
+
   return (
     <footer className="mt-10 border-t border-black/5 bg-white py-5 sm:mt-16 sm:py-10">
       <div className="page-shell grid gap-4 text-sm sm:grid-cols-[1fr_auto] sm:gap-8">

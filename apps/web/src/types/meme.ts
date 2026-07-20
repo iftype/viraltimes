@@ -6,7 +6,7 @@ export type Platform =
   | "unknown";
 
 export type OriginStatus = "verified" | "likely" | "needs-review";
-export type MemeKind = "challenge" | "video-meme" | "community-meme";
+export type MemeKind = "challenge" | "video-meme" | "community-meme" | "minor-meme";
 
 export type MemeCategory = {
   id: string;
@@ -36,10 +36,17 @@ export type Evidence = {
 
 export type OriginClaim = {
   status: OriginStatus;
-  video: Video;
+  video?: Video;
   summary: string;
   evidence: Evidence[];
   lastReviewedAt: string;
+};
+
+export type SourceLink = {
+  id: string;
+  title: string;
+  url: string;
+  siteName?: string;
 };
 
 export type TimelineEventKind =
@@ -65,7 +72,7 @@ export type Meme = {
   slug: string;
   title: string;
   kind: MemeKind;
-  thumbnailUrl: string;
+  thumbnailUrl?: string;
   thumbnailFit?: "cover" | "contain";
   aliases: string[];
   summary: string;
@@ -73,6 +80,8 @@ export type Meme = {
   timeline: TimelineEvent[];
   trendingVideos: Video[];
   relatedVideos: Video[];
+  relatedMemeIds?: string[];
+  sourceLinks?: SourceLink[];
   lifecycle?: {
     originYear?: number;
     firstSeenAt?: string;

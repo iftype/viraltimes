@@ -5,16 +5,21 @@ import { AdminAuth } from "./admin-auth.js";
 import { AdminInboxStore } from "./admin-store.js";
 import { CategoryStore } from "./category-store.js";
 import { MemeStore } from "./meme-store.js";
+import { MemePulseStore } from "./meme-pulse-store.js";
+import { MetadataSuggestionService } from "./metadata-suggestion.js";
 import { ParticipationStore } from "./participation-store.js";
 import { TrendStore } from "./trend-store.js";
+import { QuizStore } from "./quiz-store.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 import { registerCategoryRoutes } from "./routes/categories.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerIntakeRoutes } from "./routes/intake.js";
 import { registerMemeRoutes } from "./routes/memes.js";
+import { registerMemePulseRoutes } from "./routes/meme-pulse.js";
 import { registerParticipationRoutes } from "./routes/participation.js";
 import { registerSeoRoutes } from "./routes/seo.js";
 import { registerTrendRoutes } from "./routes/trends.js";
+import { registerQuizRoutes } from "./routes/quiz.js";
 
 const app = Fastify({ logger: true, trustProxy: true });
 const host = process.env.HOST ?? "127.0.0.1";
@@ -32,6 +37,9 @@ const inboxStore = new AdminInboxStore(
 const memeStore = new MemeStore(
   process.env.MEME_DATA_FILE ?? "/opt/origin/shared/memes.json",
 );
+const pulseStore = new MemePulseStore(
+  process.env.MEME_PULSE_FILE ?? "/opt/origin/shared/meme-pulse.json",
+);
 const categoryStore = new CategoryStore(
   process.env.CATEGORY_DATA_FILE ?? "/opt/origin/shared/categories.json",
 );
@@ -41,6 +49,16 @@ const participationStore = new ParticipationStore(
 const trendStore = new TrendStore(
   process.env.TREND_DATA_FILE ?? "/opt/origin/shared/trend-snapshots.json",
 );
+const quizStore = new QuizStore(
+  process.env.QUIZ_LOG_FILE ?? "./.data/quiz-logs.json",
+);
+const metadataSuggestionService = new MetadataSuggestionService(
+  process.env.GEMMA_API_KEY ?? "",
+  process.env.GEMMA_MODEL ?? "gemma-4-26b-a4b-it",
+  process.env.METADATA_ALLOWED_HOSTS ?? "",
+);
+
+await categoryStore.ensureDefaults();
 
 await app.register(cors, {
   origin:
@@ -52,6 +70,7 @@ await app.register(cors, {
 registerHealthRoutes(app);
 registerCategoryRoutes(app, categoryStore);
 registerMemeRoutes(app, memeStore, categoryStore, participationStore);
+registerMemePulseRoutes(app, memeStore, pulseStore);
 registerIntakeRoutes(app, inboxStore);
 registerParticipationRoutes(app, { inboxStore, memeStore, participationStore });
 registerSeoRoutes(app, memeStore);
@@ -60,7 +79,16 @@ registerTrendRoutes(app, {
   memeStore,
   trendStore,
 });
-registerAdminRoutes(app, { adminAuth, adminOrigin, categoryStore, inboxStore, memeStore });
+registerQuizRoutes(app, quizStore, memeStore);
+registerAdminRoutes(app, {
+  adminAuth,
+  adminOrigin,
+  categoryStore,
+  inboxStore,
+  memeStore,
+  metadataSuggestionService,
+  quizStore,
+});
 
 const stop = async (signal: string) => {
   app.log.info({ signal }, "shutting down");

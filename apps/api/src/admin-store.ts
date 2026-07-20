@@ -26,6 +26,7 @@ export class AdminInboxStore {
     author: string;
     description: string;
     sourceUrl?: string;
+    originUrl?: string;
     subjectId?: string;
   }): Promise<InboxItem> {
     const now = new Date().toISOString();

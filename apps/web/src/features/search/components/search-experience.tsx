@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleHelp, Sparkles } from "lucide-react";
+import { CircleHelp, Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -9,7 +9,6 @@ import { Badge, EmptyState, buttonClassName } from "@origin/ui";
 import { sampleMemes } from "@/data/sample-memes";
 import type { Meme, MemeCategory } from "@/types/meme";
 
-import { CategoryTabs } from "./category-tabs";
 import { MemeCard } from "./meme-card";
 import { VerificationTabs, type VerificationFilter } from "./verification-tabs";
 import { YearTabs, type YearFilter } from "./year-tabs";
@@ -19,7 +18,6 @@ export function SearchExperience() {
   const query = useSearchParams().get("q")?.trim() ?? "";
   const [memes, setMemes] = useState<Meme[]>([]);
   const [categories, setCategories] = useState<MemeCategory[]>([]);
-  const [activeCategory, setActiveCategory] = useState("all");
   const [verificationFilter, setVerificationFilter] = useState<VerificationFilter>("all");
   const [yearFilter, setYearFilter] = useState<YearFilter>("all");
   const [isLoading, setIsLoading] = useState(true);
@@ -99,20 +97,9 @@ export function SearchExperience() {
     [newestYear, statusFilteredMemes, yearFilter],
   );
 
-  const counts = useMemo(
-    () =>
-      Object.fromEntries(
-        [["all", yearFilteredMemes.length], ...categories.map((category) => [
-          category.id,
-          yearFilteredMemes.filter((meme) => meme.categoryIds.includes(category.id)).length,
-        ])],
-      ) as Record<string, number>,
-    [categories, yearFilteredMemes],
-  );
-
   const visibleMemes = useMemo(
-    () => filterMemes(yearFilteredMemes, activeCategory, query),
-    [activeCategory, query, yearFilteredMemes],
+    () => filterMemes(yearFilteredMemes, "all", query),
+    [query, yearFilteredMemes],
   );
 
   return (
@@ -122,7 +109,7 @@ export function SearchExperience() {
           <Badge className="bg-[#fff0f3] text-[#d91d46]">
             <Sparkles className="size-3.5" aria-hidden="true" /> ORIGIN FEED
           </Badge>
-          <h1 className="mt-3 text-3xl font-black tracking-[-0.055em] sm:text-4xl">
+          <h1 className="mt-3 text-2xl font-black leading-tight tracking-[-0.045em] sm:text-4xl sm:tracking-[-0.055em]">
             {query ? `“${query}” 검색 결과` : "밈, 챌린지의 원본을 살펴보세요"}
           </h1>
           <p className="mt-2 text-sm text-black/45">
@@ -135,21 +122,33 @@ export function SearchExperience() {
         </div>
       </section>
 
+      {/* 퀴즈 테스트 유도 배너 */}
+      <div className="mt-6 p-5 rounded-[var(--vo-radius-lg)] bg-gradient-to-r from-[var(--vo-color-brand)] via-[#ff5436] to-[#fe792c] text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg border border-red-500/10">
+        <div className="space-y-1">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-white/20 text-white">
+            HOT MATCH TEST
+          </span>
+          <h2 className="text-lg font-black tracking-tight leading-snug">
+            마이너 밈, 얼마나 알고 있나요?
+          </h2>
+          <p className="text-xs text-white/80 font-medium">
+            5개 카드로 인지도를 확인하고 설명이 이해에 도움이 되는지도 알려주세요.
+          </p>
+        </div>
+        <Link 
+          href="/quiz" 
+          className="shrink-0 inline-flex items-center gap-2 bg-white text-neutral-900 font-extrabold text-sm px-5 py-3 rounded-[var(--vo-radius-md)] hover:bg-neutral-50 active:scale-[0.98] transition-all duration-200 shadow-md"
+        >
+          테스트 시작하기 <ArrowRight size={16} />
+        </Link>
+      </div>
+
       <div className="mt-6">
-        <VerificationTabs active={verificationFilter} counts={verificationCounts} onChange={(filter) => { setVerificationFilter(filter); setActiveCategory("all"); }} />
+        <VerificationTabs active={verificationFilter} counts={verificationCounts} onChange={setVerificationFilter} />
       </div>
 
       <div className="mt-3">
-        <YearTabs active={yearFilter} counts={yearCounts} onChange={(filter) => { setYearFilter(filter); setActiveCategory("all"); }} years={years} />
-      </div>
-
-      <div className="mt-1">
-        <CategoryTabs
-          active={activeCategory}
-          categories={categories}
-          counts={counts}
-          onChange={setActiveCategory}
-        />
+        <YearTabs active={yearFilter} counts={yearCounts} onChange={setYearFilter} years={years} />
       </div>
 
       <section className="mt-4" aria-busy={isLoading} aria-live="polite">
@@ -177,7 +176,7 @@ export function SearchExperience() {
           <EmptyState
             icon="🫥"
             title="아직 기록이 없어요"
-            description="검색어나 카테고리를 바꿔보거나, 찾는 밈을 운영자에게 알려주세요."
+            description="검색어나 확인 상태를 바꿔보거나, 찾는 밈을 운영자에게 알려주세요."
             action={
               <Link
                 className={buttonClassName({ variant: "secondary" })}

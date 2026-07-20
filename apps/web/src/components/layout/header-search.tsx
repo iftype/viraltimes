@@ -2,17 +2,35 @@
 
 import { ArrowRight, Search } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, useRef } from "react";
 
 import { Badge, cn } from "@origin/ui";
 import { memeHref } from "@/lib/meme-href";
 import type { Meme } from "@/types/meme";
 
-export function HeaderSearch({ className, compact = false }: { className?: string; compact?: boolean }) {
+export function HeaderSearch({
+  className,
+  expanded = false,
+  onExpandedChange
+}: {
+  className?: string;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+}) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Meme[]>([]);
   const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // 오직 포커스 상태와 검색어 유무만 추적 (호버 락 버그 제거)
+  const [isFocused, setIsFocused] = useState(false);
+
+  // 이벤트 발생 시점에 동기적으로 부모 상태 갱신
+  const updateExpanded = (focused: boolean, text: string) => {
+    const nextExpanded = focused || text.trim().length > 0;
+    onExpandedChange?.(nextExpanded);
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -46,25 +64,47 @@ export function HeaderSearch({ className, compact = false }: { className?: strin
   return (
     <form
       action={`${basePath}/`}
-      className={cn("relative min-w-0", className)}
+      className={cn("relative min-w-0 w-auto md:w-full", className)}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setOpen(false);
+          setIsFocused(false);
+          updateExpanded(false, query);
+        }
       }}
       onSubmit={submit}
       role="search"
     >
-      <div className={cn("flex min-w-0 items-center gap-2 rounded-full border border-black/8 bg-[#f3f3f5] px-3.5 transition-all duration-200 focus-within:border-black/25 focus-within:bg-white md:py-2", compact ? "py-1.5" : "py-2")}>
-        <Search className="size-4 shrink-0 text-black/35" aria-hidden="true" />
+      <div
+        className={cn(
+          "flex min-w-0 items-center gap-1.5 rounded-full border border-black/8 bg-white/70 transition-all duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:border-black/25 focus-within:bg-white cursor-pointer px-2.5 md:!w-full md:!h-10 md:!px-4 md:!py-2 md:gap-2.5",
+          expanded ? "w-[220px] h-9" : "w-9 h-9"
+        )}
+        onClick={() => {
+          inputRef.current?.focus();
+        }}
+      >
+        <Search className="size-4 shrink-0 text-black/35 md:size-4.5" aria-hidden="true" />
         <input
+          ref={inputRef}
           aria-label="밈 사전 검색"
           autoComplete="off"
-          className="min-w-0 flex-1 bg-transparent text-base font-bold leading-none outline-none placeholder:font-medium placeholder:text-black/30 md:text-sm"
+          className={cn(
+            "min-w-0 flex-1 bg-transparent text-base font-bold leading-none outline-none placeholder:font-medium placeholder:text-black/30 md:text-sm transition-all duration-200",
+            expanded ? "opacity-100 pointer-events-auto ml-1 w-full" : "opacity-0 pointer-events-none w-0 ml-0 md:!opacity-100 md:!pointer-events-auto md:!w-full md:!ml-2"
+          )}
           name="q"
           onChange={(event) => {
-            setQuery(event.target.value);
+            const val = event.target.value;
+            setQuery(val);
             setOpen(true);
+            updateExpanded(isFocused, val);
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setOpen(true);
+            setIsFocused(true);
+            updateExpanded(true, query);
+          }}
           placeholder="밈·챌린지 검색"
           type="search"
           value={query}

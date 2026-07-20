@@ -1,4 +1,4 @@
-export const memeKinds = ["challenge", "video-meme", "community-meme"] as const;
+export const memeKinds = ["challenge", "video-meme", "community-meme", "minor-meme"] as const;
 export const originStatuses = ["verified", "likely", "needs-review"] as const;
 export const platforms = ["youtube", "tiktok", "instagram", "x", "unknown"] as const;
 export const timelineKinds = ["origin", "spread", "variation", "mainstream", "remix"] as const;
@@ -27,18 +27,25 @@ export type MemeLifecycle = {
   lastObservedAt?: string;
 };
 
+export type SourceLink = {
+  id: string;
+  title: string;
+  url: string;
+  siteName?: string;
+};
+
 export type Meme = {
   id: string;
   slug: string;
   title: string;
   kind: MemeKind;
-  thumbnailUrl: string;
+  thumbnailUrl?: string;
   thumbnailFit?: "cover" | "contain";
   aliases: string[];
   summary: string;
   origin: {
     status: OriginStatus;
-    video: Video;
+    video?: Video;
     summary: string;
     evidence: Array<{ title: string; detail: string; url?: string }>;
     lastReviewedAt: string;
@@ -55,6 +62,8 @@ export type Meme = {
   }>;
   trendingVideos: Video[];
   relatedVideos: Video[];
+  relatedMemeIds?: string[];
+  sourceLinks?: SourceLink[];
   lifecycle?: MemeLifecycle;
   categoryIds: string[];
   tags: string[];
