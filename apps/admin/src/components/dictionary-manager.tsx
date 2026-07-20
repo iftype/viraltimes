@@ -68,7 +68,7 @@ export type AdminMeme = {
   updatedAt?: string;
 };
 
-type BulkAction = "publish" | "draft" | "archive" | "add-category" | "remove-category" | "delete";
+type BulkAction = "publish" | "draft" | "archive" | "add-category" | "remove-category";
 type MetadataSuggestion = {
   title?: string;
   description?: string;
@@ -133,6 +133,7 @@ export function DictionaryManager({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkAction>("publish");
   const [bulkCategoryId, setBulkCategoryId] = useState(categories[0]?.id ?? "");
+  const [draftSlug, setDraftSlug] = useState("");
 
   const formOpen = creating || Boolean(editing);
   const visibleItems = useMemo(() => {
@@ -147,6 +148,14 @@ export function DictionaryManager({
 
   function closeForm() {
     setCreating(false);
+    setEditing(null);
+    setError("");
+    setNotice("");
+  }
+
+  function openCreate() {
+    setDraftSlug(`meme-${Date.now().toString(36)}`);
+    setCreating(true);
     setEditing(null);
     setError("");
     setNotice("");
@@ -294,7 +303,7 @@ export function DictionaryManager({
   }
 
   async function deleteItem(item: AdminMeme) {
-    if (!confirm(`"${item.title}" 항목을 완전히 삭제하시겠습니까?`)) return;
+    if (item.publicationStatus === "published" && !confirm(`공개 중인 "${item.title}" 항목을 완전히 삭제하시겠습니까?`)) return;
     setSaving(true);
     setError("");
     try {
@@ -302,6 +311,7 @@ export function DictionaryManager({
       if (!response.ok) throw new Error(await readError(response));
       onChange(items.filter((candidate) => candidate.id !== item.id));
       setSelectedIds((current) => { const next = new Set(current); next.delete(item.id); return next; });
+      setNotice(`"${item.title}" 항목을 삭제했습니다.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "삭제하지 못했습니다.");
     } finally {
@@ -312,12 +322,9 @@ export function DictionaryManager({
   async function runBulkAction() {
     const ids = [...selectedIds];
     if (!ids.length) return;
-    if (bulkAction === "delete" && !confirm(`${ids.length}개 항목을 완전히 삭제하시겠습니까? 되돌릴 수 없습니다.`)) return;
     const payload = bulkAction === "publish" || bulkAction === "draft" || bulkAction === "archive"
       ? { ids, action: "status", publicationStatus: bulkAction === "publish" ? "published" : bulkAction }
-      : bulkAction === "delete"
-        ? { ids, action: "delete" }
-        : { ids, action: bulkAction, categoryId: bulkCategoryId };
+      : { ids, action: bulkAction, categoryId: bulkCategoryId };
     setSaving(true);
     setError("");
     setNotice("");
@@ -341,6 +348,33 @@ export function DictionaryManager({
     }
   }
 
+  async function deleteSelected() {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    const publishedCount = items.filter((item) => selectedIds.has(item.id) && item.publicationStatus === "published").length;
+    if (publishedCount > 0 && !confirm(`선택한 ${ids.length}개 중 공개 항목 ${publishedCount}개가 포함되어 있습니다. 완전히 삭제하시겠습니까?`)) return;
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch(`${apiBase}/admin/memes/bulk`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, action: "delete" }),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      const data = (await response.json()) as { deletedIds: string[]; missingIds: string[] };
+      const deleted = new Set(data.deletedIds);
+      onChange(items.filter((item) => !deleted.has(item.id)));
+      setSelectedIds(new Set());
+      setNotice(`${data.deletedIds.length}개 항목을 삭제했습니다.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "선택 항목을 삭제하지 못했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <section className="mt-5">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-black p-5 text-white sm:p-6">
@@ -349,7 +383,7 @@ export function DictionaryManager({
           <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">사전 항목 관리</h2>
           <p className="mt-1 text-xs leading-5 text-white/50">수정·삭제·공개 상태·카테고리를 목록에서 한 번에 관리합니다.</p>
         </div>
-        <button className="flex cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2.5 text-xs font-black text-black" onClick={() => { setCreating(true); setEditing(null); setError(""); }} type="button"><Plus className="size-4" />새 항목</button>
+        <button className="flex cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2.5 text-xs font-black text-black" onClick={openCreate} type="button"><Plus className="size-4" />새 항목</button>
       </div>
 
       {error && <p className="mt-3 rounded-xl bg-[#fff0f3] px-4 py-3 text-xs font-bold text-[#d91d46]">{error}</p>}
@@ -368,12 +402,12 @@ export function DictionaryManager({
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Field label="제목"><input name="title" required defaultValue={editing?.title} /></Field>
-            <Field label="slug"><input name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="meme-slug" defaultValue={editing?.slug} /></Field>
+            <Field label="slug"><input name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="meme-slug" defaultValue={editing?.slug ?? draftSlug} /></Field>
             <Field label="종류"><select name="kind" defaultValue={editing?.kind ?? "minor-meme"}><option value="minor-meme">코리아 마이너 밈</option><option value="community-meme">커뮤니티 밈</option><option value="video-meme">영상 밈</option><option value="challenge">챌린지</option></select></Field>
             <Field label="공개 상태"><select name="publicationStatus" defaultValue={editing?.publicationStatus ?? "draft"}><option value="draft">작성 중</option><option value="published">바로 공개</option><option value="archived">보관</option></select></Field>
             <Field label="별칭 · 쉼표 구분"><input name="aliases" defaultValue={editing?.aliases.join(", ")} /></Field>
             <Field label="태그 · 작은 검색 키워드"><input name="tags" placeholder="유행어, 디시, 2026" defaultValue={editing?.tags.join(", ")} /></Field>
-            <Field label="카테고리" wide><div className="grid gap-2 rounded-2xl bg-[#f7f7f8] p-3 sm:grid-cols-2">{categories.filter((category) => category.isActive || editing?.categoryIds.includes(category.id)).map((category) => <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm font-bold" key={category.id}><input className="size-4 accent-black" defaultChecked={editing?.categoryIds.includes(category.id)} name="categoryIds" type="checkbox" value={category.id} />{category.label}</label>)}</div></Field>
+            <Field label="카테고리" wide><div className="grid gap-2 rounded-2xl bg-[#f7f7f8] p-3 sm:grid-cols-2">{categories.filter((category) => category.isActive || editing?.categoryIds.includes(category.id)).map((category) => <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm font-bold" key={category.id}><input className="size-4 accent-black" defaultChecked={editing ? editing.categoryIds.includes(category.id) : category.slug === "korea-minor-meme"} name="categoryIds" type="checkbox" value={category.id} />{category.label}</label>)}</div></Field>
             <Field label="한 줄 설명 · 선택" wide><textarea name="summary" placeholder="비워도 저장할 수 있으며 나중에 제안이나 AI 초안으로 보완할 수 있습니다." defaultValue={editing?.summary} /></Field>
             <Field label="관련 커뮤니티 링크 · 한 줄에 하나" wide><textarea name="sourceLinks" placeholder={'링크 제목 | https://example.com/post\nhttps://example.com/another'} defaultValue={(editing?.sourceLinks ?? []).map((link) => `${link.title} | ${link.url}`).join("\n")} /></Field>
             <Field label="썸네일 URL · 선택" wide><input name="thumbnailUrl" type="url" placeholder="비우면 YouTube 또는 링크 메타데이터 후보를 사용합니다" defaultValue={editing?.thumbnailUrl} /></Field>
@@ -415,9 +449,11 @@ export function DictionaryManager({
           <label className="flex cursor-pointer items-center gap-2 text-xs font-black"><input checked={allVisibleSelected} className="size-4 accent-black" onChange={() => setSelectedIds((current) => { const next = new Set(current); visibleItems.forEach((item) => allVisibleSelected ? next.delete(item.id) : next.add(item.id)); return next; })} type="checkbox" />현재 목록 전체 선택</label>
           <span className="text-xs font-bold text-black/35">{selectedIds.size}개 선택</span>
           <div className="ml-auto flex flex-wrap gap-2">
-            <select aria-label="일괄 작업" className="cursor-pointer rounded-xl bg-[#f7f7f8] px-3 py-2 text-xs font-black" onChange={(event) => setBulkAction(event.target.value as BulkAction)} value={bulkAction}><option value="publish">공개</option><option value="draft">작성 중</option><option value="archive">보관</option><option value="add-category">카테고리 추가</option><option value="remove-category">카테고리 제거</option><option value="delete">완전 삭제</option></select>
+            {selectedIds.size > 0 && <button className="cursor-pointer rounded-xl px-3 py-2 text-xs font-black text-black/40 hover:bg-black/5" onClick={() => setSelectedIds(new Set())} type="button">선택 해제</button>}
+            <select aria-label="일괄 작업" className="cursor-pointer rounded-xl bg-[#f7f7f8] px-3 py-2 text-xs font-black" onChange={(event) => setBulkAction(event.target.value as BulkAction)} value={bulkAction}><option value="publish">공개</option><option value="draft">작성 중</option><option value="archive">보관</option><option value="add-category">카테고리 추가</option><option value="remove-category">카테고리 제거</option></select>
             {(bulkAction === "add-category" || bulkAction === "remove-category") && <select aria-label="일괄 카테고리" className="cursor-pointer rounded-xl bg-[#f7f7f8] px-3 py-2 text-xs font-black" onChange={(event) => setBulkCategoryId(event.target.value)} value={bulkCategoryId}>{categories.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}</select>}
             <button className="cursor-pointer rounded-xl bg-black px-4 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-35" disabled={!selectedIds.size || saving || ((bulkAction === "add-category" || bulkAction === "remove-category") && !bulkCategoryId)} onClick={() => void runBulkAction()} type="button">선택 항목 적용</button>
+            <button className="flex cursor-pointer items-center gap-1.5 rounded-xl bg-[#fff0f3] px-4 py-2 text-xs font-black text-[#d91d46] disabled:cursor-not-allowed disabled:opacity-35" disabled={!selectedIds.size || saving} onClick={() => void deleteSelected()} type="button"><Trash2 className="size-3.5" />선택 삭제</button>
           </div>
         </div>
       </div>

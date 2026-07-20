@@ -6,7 +6,6 @@ import {
   BookOpenText,
   Check,
   ChevronRight,
-  CircleHelp,
   ExternalLink,
   FileCheck2,
   Flag,
@@ -21,7 +20,6 @@ import {
   Video,
   X,
   BarChart3,
-  Download,
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { BrandMark } from "@origin/ui";
@@ -34,6 +32,7 @@ import {
   CategoryManager,
   type AdminCategory,
 } from "@/components/category-manager";
+import { QuizLogManager, type QuizLog } from "@/components/quiz-log-manager";
 
 type Category = "meme_request" | "origin_tip" | "feedback" | "proposal" | "report";
 type Status = "new" | "review" | "resolved" | "rejected";
@@ -52,19 +51,10 @@ type InboxItem = {
   updatedAt: string;
 };
 
-type QuizLog = {
-  id: string;
-  sessionId: string;
-  cardId: string;
-  cardType: "minor" | "origin";
-  response: "know" | "dont_know" | "view_detail" | "helpful" | "not_helpful";
-  timestamp: string;
-};
-
 const apiBase = "/viral/api/v1";
 
 const categoryMeta: Record<Category, { label: string; className: string }> = {
-  meme_request: { label: "밈 추가 요청", className: "bg-[#e8fffe] text-[#087b77]" },
+  meme_request: { label: "영상 제보", className: "bg-[#e8fffe] text-[#087b77]" },
   origin_tip: { label: "원본 영상", className: "bg-[#fff0f3] text-[#d91d46]" },
   feedback: { label: "피드백", className: "bg-[#f1edff] text-[#6941c6]" },
   proposal: { label: "수정 제안", className: "bg-[#fff7df] text-[#9a6200]" },
@@ -76,7 +66,7 @@ const tabs: { id: Tab; label: string; icon: typeof Bell }[] = [
   { id: "dictionary", label: "사전 관리", icon: BookOpenText },
   { id: "categories", label: "카테고리", icon: Tags },
   { id: "quiz_logs", label: "매치 로그", icon: BarChart3 },
-  { id: "meme_request", label: "밈 추가 요청", icon: CircleHelp },
+  { id: "meme_request", label: "영상 제보", icon: Video },
   { id: "origin_tip", label: "원본 영상", icon: Video },
   { id: "feedback", label: "피드백", icon: MessageSquareText },
   { id: "proposal", label: "수정 제안", icon: FileCheck2 },
@@ -235,55 +225,9 @@ export default function AdminPage() {
     if (tab === "all") return openItems.length;
     if (tab === "dictionary") return memes.filter((meme) => meme.publicationStatus === "published").length;
     if (tab === "categories") return categories.filter((category) => category.isActive).length;
-    if (tab === "quiz_logs") return quizLogs.length;
+    if (tab === "quiz_logs") return new Set(quizLogs.map((log) => log.sessionId)).size;
     if (tab === "final_review") return items.filter((item) => item.status === "review").length;
     return openItems.filter((item) => item.category === tab).length;
-  };
-
-  const quizStats = useMemo(() => {
-    const total = quizLogs.length;
-    const stats: Record<string, { know: number; dont_know: number; view_detail: number; helpful: number; not_helpful: number; total: number; feedbackTotal: number }> = {
-      minor: { know: 0, dont_know: 0, view_detail: 0, helpful: 0, not_helpful: 0, total: 0, feedbackTotal: 0 },
-      origin: { know: 0, dont_know: 0, view_detail: 0, helpful: 0, not_helpful: 0, total: 0, feedbackTotal: 0 }
-    };
-    quizLogs.forEach(log => {
-      const type = log.cardType;
-      if (type && stats[type]) {
-        if (log.response === "know") { stats[type].know++; stats[type].total++; }
-        else if (log.response === "dont_know") { stats[type].dont_know++; stats[type].total++; }
-        else if (log.response === "view_detail") stats[type].view_detail++;
-        else if (log.response === "helpful") { stats[type].helpful++; stats[type].feedbackTotal++; }
-        else if (log.response === "not_helpful") { stats[type].not_helpful++; stats[type].feedbackTotal++; }
-      }
-    });
-    return { total, stats };
-  }, [quizLogs]);
-
-  const downloadCSV = () => {
-    if (!quizLogs.length) return;
-    const headers = ["ID", "Session ID", "Card ID", "Card Type", "Response", "Timestamp"];
-    const rows = quizLogs.map(log => [
-      log.id,
-      log.sessionId,
-      log.cardId,
-      log.cardType,
-      log.response,
-      log.timestamp
-    ]);
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(val => `"${val}"`).join(","))
-    ].join("\n");
-    
-    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `quiz_match_logs_${new Date().toISOString().split("T")[0]}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   async function updateStatus(item: InboxItem, status: Status) {
@@ -358,104 +302,7 @@ export default function AdminPage() {
         ) : activeTab === "categories" ? (
           <CategoryManager items={categories} onChange={setCategories} />
         ) : activeTab === "quiz_logs" ? (
-          <section className="space-y-6">
-            {/* 요약 카드 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-3xl border border-black/5 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
-                <p className="text-xs font-bold text-black/40">총 플레이 로그 수</p>
-                <p className="mt-2 text-2xl font-black">{quizStats.total}건</p>
-              </div>
-              <div className="bg-white rounded-3xl border border-black/5 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
-                <p className="text-xs font-bold text-[#7047a5]">설명 이해 도움률</p>
-                <p className="mt-2 text-2xl font-black">{quizStats.stats.minor.feedbackTotal + quizStats.stats.origin.feedbackTotal > 0 ? `${Math.round(((quizStats.stats.minor.helpful + quizStats.stats.origin.helpful) / (quizStats.stats.minor.feedbackTotal + quizStats.stats.origin.feedbackTotal)) * 100)}%` : "집계 전"}</p>
-                <p className="mt-1 text-[0.68rem] text-black/35">상세 열람 후 효과 응답</p>
-              </div>
-              <div className="bg-white rounded-3xl border border-black/5 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
-                <p className="text-xs font-bold text-[#fe2c55]">마이너 밈 인지도 (KNOW)</p>
-                <p className="mt-2 text-2xl font-black">
-                  {quizStats.stats.minor.total > 0 
-                    ? `${Math.round((quizStats.stats.minor.know / quizStats.stats.minor.total) * 100)}%` 
-                    : "0%"}
-                  <span className="text-xs font-medium text-black/35 ml-1">({quizStats.stats.minor.know}/{quizStats.stats.minor.total})</span>
-                </p>
-              </div>
-              <div className="bg-white rounded-3xl border border-black/5 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
-                <p className="text-xs font-bold text-[#087b77]">원조 챌린지 인지도 (KNOW)</p>
-                <p className="mt-2 text-2xl font-black">
-                  {quizStats.stats.origin.total > 0 
-                    ? `${Math.round((quizStats.stats.origin.know / quizStats.stats.origin.total) * 100)}%` 
-                    : "0%"}
-                  <span className="text-xs font-medium text-black/35 ml-1">({quizStats.stats.origin.know}/{quizStats.stats.origin.total})</span>
-                </p>
-              </div>
-            </div>
-
-            {/* 조작 패널 */}
-            <div className="flex justify-between items-center bg-white rounded-3xl border border-black/5 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
-              <div>
-                <h3 className="font-extrabold text-sm text-neutral-900">원시 매치 로그 목록</h3>
-                <p className="text-xs text-black/35 mt-0.5">사용자들의 스와이프 행위 로그 원시 데이터 목록입니다.</p>
-              </div>
-              <button 
-                onClick={downloadCSV}
-                className="flex items-center gap-1.5 rounded-full bg-black px-4 py-2.5 text-xs font-black text-white hover:bg-neutral-800 transition"
-              >
-                <Download className="size-3.5" /> 로그 CSV 저장
-              </button>
-            </div>
-
-            {/* 로그 테이블 */}
-            <div className="bg-white rounded-3xl border border-black/5 shadow-[0_8px_28px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-neutral-50 border-b border-black/5 text-black/40 font-bold">
-                      <th className="p-4 font-black">시간</th>
-                      <th className="p-4 font-black">세션 ID</th>
-                      <th className="p-4 font-black">카드 ID</th>
-                      <th className="p-4 font-black">카드 종류</th>
-                      <th className="p-4 font-black">반응</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/5 font-semibold text-black/75">
-                    {quizLogs.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="p-8 text-center text-black/30 font-medium">적재된 로그가 없습니다.</td>
-                      </tr>
-                    ) : (
-                      quizLogs.map((log) => (
-                        <tr key={log.id} className="hover:bg-neutral-50/50">
-                          <td className="p-4 whitespace-nowrap text-black/40">{new Date(log.timestamp).toLocaleString("ko-KR")}</td>
-                          <td className="p-4 font-mono select-all text-black/50">{log.sessionId}</td>
-                          <td className="p-4 font-bold">{log.cardId}</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                              log.cardType === "minor" 
-                                ? "bg-rose-50 text-rose-600" 
-                                : "bg-emerald-50 text-emerald-600"
-                            }`}>
-                              {log.cardType === "minor" ? "마이너 밈" : "원조 챌린지"}
-                            </span>
-                          </td>
-                          <td className="p-4">
-                            <span className={`font-black ${
-                              log.response === "know" || log.response === "helpful"
-                                ? "text-emerald-600" 
-                                : log.response === "dont_know" || log.response === "not_helpful"
-                                ? "text-rose-500" 
-                                : "text-amber-500"
-                            }`}>
-                              {log.response === "know" ? "KNOW" : log.response === "dont_know" ? "DONT_KNOW" : log.response === "view_detail" ? "VIEW_DETAIL" : log.response === "helpful" ? "HELPFUL" : "NOT_HELPFUL"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
+          <QuizLogManager logs={quizLogs} memes={memes} />
         ) : <section className="mt-4 space-y-3" aria-live="polite">
           {loading ? <div className="flex min-h-56 items-center justify-center rounded-3xl border border-black/5 bg-white"><LoaderCircle className="size-6 animate-spin text-black/25" /></div> : visibleItems.length === 0 ? <div className="flex min-h-64 flex-col items-center justify-center rounded-3xl border border-dashed border-black/10 bg-white px-6 text-center"><span className="flex size-12 items-center justify-center rounded-2xl bg-[#e8fffe] text-[#087b77]"><Check className="size-6" /></span><h2 className="mt-4 text-lg font-black">여기는 다 확인했어요</h2><p className="mt-1 text-sm leading-6 text-black/40">새로운 알림이 들어오면 이 탭에 바로 표시됩니다.</p></div> : visibleItems.map((item) => {
             const meta = categoryMeta[item.category];

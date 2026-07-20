@@ -80,12 +80,25 @@ export function registerQuizRoutes(
 
   app.get("/api/v1/quiz/stats", async (_request, reply) => {
     const logs = await quizStore.getLogs();
+    const recognitionByParticipantCard = new Map<string, QuizLog>();
+    const detailByParticipantCard = new Map<string, QuizLog>();
+    const feedbackByParticipantCard = new Map<string, QuizLog>();
+    const participants = new Set<string>();
+
+    for (const log of logs) {
+      participants.add(log.sessionId);
+      const key = `${log.sessionId}:${log.cardId}`;
+      if (log.response === "know" || log.response === "dont_know") recognitionByParticipantCard.set(key, log);
+      else if (log.response === "view_detail") detailByParticipantCard.set(key, log);
+      else feedbackByParticipantCard.set(key, log);
+    }
+
     const byType = {
       minor: { know: 0, dont_know: 0, view_detail: 0, helpful: 0, not_helpful: 0, total: 0, feedbackTotal: 0 },
       origin: { know: 0, dont_know: 0, view_detail: 0, helpful: 0, not_helpful: 0, total: 0, feedbackTotal: 0 },
     };
 
-    for (const log of logs) {
+    for (const log of recognitionByParticipantCard.values()) {
       const stats = byType[log.cardType];
       if (log.response === "know") {
         stats.know += 1;
@@ -93,9 +106,12 @@ export function registerQuizRoutes(
       } else if (log.response === "dont_know") {
         stats.dont_know += 1;
         stats.total += 1;
-      } else if (log.response === "view_detail") {
-        stats.view_detail += 1;
-      } else if (log.response === "helpful") {
+      }
+    }
+    for (const log of detailByParticipantCard.values()) byType[log.cardType].view_detail += 1;
+    for (const log of feedbackByParticipantCard.values()) {
+      const stats = byType[log.cardType];
+      if (log.response === "helpful") {
         stats.helpful += 1;
         stats.feedbackTotal += 1;
       } else if (log.response === "not_helpful") {
@@ -105,6 +121,6 @@ export function registerQuizRoutes(
     }
 
     reply.header("Cache-Control", "no-store");
-    return { totalLogs: logs.length, stats: byType };
+    return { totalLogs: logs.length, uniqueParticipants: participants.size, stats: byType };
   });
 }

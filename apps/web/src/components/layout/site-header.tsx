@@ -50,12 +50,12 @@ export function SiteHeader() {
               <span className="hidden sm:inline">사이트 피드백</span>
             </Link>
             <Link
-              aria-label="없는 밈 제보"
+              aria-label="영상 제보"
               className={buttonClassName({ size: "sm", className: "max-sm:size-9 max-sm:px-0" })}
               href="/submit?type=request"
             >
               <Plus className="size-4" aria-hidden="true" />
-              <span className="hidden sm:inline">없는 밈 제보</span>
+              <span className="hidden sm:inline">영상 제보</span>
             </Link>
           </nav>
         </div>

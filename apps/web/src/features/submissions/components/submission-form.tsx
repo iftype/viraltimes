@@ -1,43 +1,33 @@
 "use client";
 
-import { Check, HelpCircle, Lightbulb } from "lucide-react";
+import { Check, Link2, Send } from "lucide-react";
 import { FormEvent, useState } from "react";
-import { useSearchParams } from "next/navigation";
-
-type SubmissionType = "request" | "origin";
 
 type Submission = {
   id: string;
-  type: SubmissionType;
   title: string;
   author: string;
-  sourceUrl?: string;
-  description: string;
+  sourceUrl: string;
   createdAt: string;
 };
 
-const submissionStorageKey = "origin-submissions-v1";
+const submissionStorageKey = "origin-submissions-v2";
 
 export function SubmissionForm() {
-  const searchParams = useSearchParams();
-  const requestedType = searchParams.get("type");
-  const [activeType, setActiveType] = useState<SubmissionType>(
-    requestedType === "origin" ? "origin" : "request",
-  );
   const [submitted, setSubmitted] = useState<"server" | "local" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
+    setSubmitted(null);
     const form = new FormData(event.currentTarget);
+    const title = String(form.get("title") ?? "").trim();
     const submission: Submission = {
       id: `submission-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      type: activeType,
-      title: String(form.get("title") ?? "").trim(),
-      author: String(form.get("author") ?? "익명").trim() || "익명",
-      sourceUrl: String(form.get("sourceUrl") ?? "").trim() || undefined,
-      description: String(form.get("description") ?? "").trim(),
+      title,
+      author: String(form.get("author") ?? "익명 제보자").trim() || "익명 제보자",
+      sourceUrl: String(form.get("sourceUrl") ?? "").trim(),
       createdAt: new Date().toISOString(),
     };
 
@@ -47,11 +37,10 @@ export function SubmissionForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          category: activeType === "origin" ? "origin_tip" : "meme_request",
+          category: "meme_request",
           title: submission.title,
           author: submission.author,
           sourceUrl: submission.sourceUrl,
-          description: submission.description,
         }),
       });
       if (!response.ok) throw new Error("submission failed");
@@ -59,133 +48,70 @@ export function SubmissionForm() {
       result = "local";
       let submissions: Submission[] = [];
       try {
-        submissions = JSON.parse(
-          window.localStorage.getItem(submissionStorageKey) ?? "[]",
-        ) as Submission[];
+        submissions = JSON.parse(window.localStorage.getItem(submissionStorageKey) ?? "[]") as Submission[];
       } catch {
         submissions = [];
       }
-      window.localStorage.setItem(
-        submissionStorageKey,
-        JSON.stringify([...submissions, submission]),
-      );
+      window.localStorage.setItem(submissionStorageKey, JSON.stringify([...submissions, submission]));
     }
 
     event.currentTarget.reset();
+    const authorInput = event.currentTarget.elements.namedItem("author") as HTMLInputElement | null;
+    if (authorInput) authorInput.value = "익명 제보자";
     setSubmitted(result);
     setIsSubmitting(false);
   }
 
-  const isOrigin = activeType === "origin";
-
   return (
-    <div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <button
-          className={`rounded-2xl border p-5 text-left transition-colors ${
-            !isOrigin
-              ? "border-black bg-black text-white"
-              : "border-black/5 bg-white hover:border-black/20"
-          }`}
-          type="button"
-          onClick={() => {
-            setActiveType("request");
-            setSubmitted(null);
-          }}
-        >
-          <HelpCircle className="size-5" aria-hidden="true" />
-          <span className="mt-4 block text-lg font-black">알고 싶은 밈·챌린지</span>
-          <span className={`mt-1 block text-sm ${!isOrigin ? "text-white/60" : "text-black/45"}`}>
-            이름만 알아도 등록할 수 있어요.
-          </span>
-        </button>
-        <button
-          className={`rounded-2xl border p-5 text-left transition-colors ${
-            isOrigin
-              ? "border-[#fe2c55] bg-[#fe2c55] text-white"
-              : "border-black/5 bg-white hover:border-black/20"
-          }`}
-          type="button"
-          onClick={() => {
-            setActiveType("origin");
-            setSubmitted(null);
-          }}
-        >
-          <Lightbulb className="size-5" aria-hidden="true" />
-          <span className="mt-4 block text-lg font-black">원본을 아는 밈·챌린지</span>
-          <span className={`mt-1 block text-sm ${isOrigin ? "text-white/70" : "text-black/45"}`}>
-            원본 링크나 초기 사용례를 알려주세요.
-          </span>
-        </button>
+    <form className="rounded-3xl bg-white p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] sm:p-8" onSubmit={handleSubmit}>
+      <div className="rounded-2xl bg-black p-5 text-white">
+        <Link2 className="size-5 text-[#25f4ee]" aria-hidden="true" />
+        <h2 className="mt-3 text-xl font-black">영상 링크만 보내주세요</h2>
+        <p className="mt-1 text-sm leading-6 text-white/55">제보된 링크를 운영자가 확인한 뒤 사전 항목으로 직접 정리합니다.</p>
       </div>
 
-      <form
-        className="mt-5 rounded-3xl bg-white p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] sm:p-8"
-        onSubmit={handleSubmit}
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block text-sm font-bold sm:col-span-2">
-            밈·챌린지 이름
-            <input
-              className="mt-2 w-full rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 outline-none focus:border-black"
-              name="title"
-              placeholder="예: 꿍싯꿍싯"
-              required
-            />
-          </label>
-          <label className="block text-sm font-bold">
-            닉네임
-            <input
-              className="mt-2 w-full rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 outline-none focus:border-black"
-              name="author"
-              placeholder="익명"
-            />
-          </label>
-          <label className="block text-sm font-bold">
-            {isOrigin ? "원본 또는 근거 링크" : "알고 있는 링크"}
-            <input
-              className="mt-2 w-full rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 outline-none focus:border-black"
-              name="sourceUrl"
-              type="url"
-              placeholder="https://"
-              required={isOrigin}
-            />
-          </label>
-          <label className="block text-sm font-bold sm:col-span-2">
-            {isOrigin ? "원본이라고 생각하는 이유" : <>알고 있는 설명 <span className="font-medium text-black/35">선택</span></>}
-            <textarea
-              className="mt-2 min-h-36 w-full resize-y rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 leading-6 outline-none focus:border-black"
-              name="description"
-              placeholder={
-                isOrigin
-                  ? "더 오래된 게시물인지, 어떤 흐름으로 퍼졌는지 적어주세요."
-                  : "비워도 등록할 수 있어요. 의미나 사용처를 알고 있다면 적어주세요."
-              }
-              required={isOrigin}
-            />
-          </label>
-        </div>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <label className="block text-sm font-bold sm:col-span-2">
+          영상 링크 <span className="text-[#fe2c55]">필수</span>
+          <input
+            className="mt-2 w-full rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 text-base outline-none focus:border-black"
+            name="sourceUrl"
+            placeholder="YouTube, TikTok, Instagram 등의 영상 주소"
+            required
+            type="url"
+          />
+        </label>
+        <label className="block text-sm font-bold">
+          밈·챌린지 이름 <span className="font-medium text-black/35">선택</span>
+          <input
+            className="mt-2 w-full rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 text-base outline-none focus:border-black"
+            name="title"
+            placeholder="몰라도 비워두세요"
+          />
+        </label>
+        <label className="block text-sm font-bold">
+          닉네임
+          <input
+            className="mt-2 w-full rounded-xl border border-black/10 bg-[#f7f7f8] px-4 py-3 text-base outline-none focus:border-black"
+            defaultValue="익명 제보자"
+            maxLength={60}
+            name="author"
+          />
+        </label>
+      </div>
 
-        <button
-          className="mt-5 w-full rounded-full bg-black px-5 py-3.5 text-sm font-black text-white"
-          disabled={isSubmitting}
-          type="submit"
-        >
-          {isSubmitting ? "등록 중..." : isOrigin ? "원본 정보 등록" : "알고 싶은 항목 등록"}
-        </button>
+      <button className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#fe2c55] px-5 py-3.5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50" disabled={isSubmitting} type="submit">
+        <Send className="size-4" aria-hidden="true" />
+        {isSubmitting ? "보내는 중..." : "영상 제보하기"}
+      </button>
 
-        {submitted && (
-          <p className="mt-4 flex items-center justify-center gap-2 text-sm font-black text-[#14804a]">
-            <Check className="size-4" aria-hidden="true" />
-            {submitted === "server"
-              ? "등록됐어요. 운영자 검토 목록에 추가했어요."
-              : "연결이 불안정해 이 브라우저에 임시 저장했어요."}
-          </p>
-        )}
-        <p className="mt-3 text-center text-[0.7rem] leading-5 text-black/35">
-          등록 내용은 운영자 검토 후 사전에 반영됩니다.
+      {submitted && (
+        <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm font-black text-[#14804a]">
+          <Check className="size-4" aria-hidden="true" />
+          {submitted === "server" ? "제보됐어요. 운영자가 직접 확인할게요." : "연결이 불안정해 이 브라우저에 임시 저장했어요."}
         </p>
-      </form>
-    </div>
+      )}
+      <p className="mt-3 text-center text-[0.7rem] leading-5 text-black/35">영상은 재업로드하지 않으며 링크와 공개 메타데이터만 검토합니다.</p>
+    </form>
   );
 }

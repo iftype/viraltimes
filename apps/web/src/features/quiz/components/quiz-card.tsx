@@ -154,14 +154,14 @@ export function QuizCard({ card, active, onSwipe, onViewDetail }: QuizCardProps)
         touchAction: "none",
         zIndex: active ? 10 : 1,
       }}
-      className={`absolute w-full max-w-[340px] aspect-[3/4.5] select-none cursor-grab active:cursor-grabbing ${
+      className={`absolute h-full w-full max-w-[340px] select-none cursor-grab active:cursor-grabbing sm:aspect-[3/4.5] sm:h-auto ${
         !active ? "pointer-events-none opacity-40 scale-95" : ""
       }`}
     >
-      <Card className="w-full h-full p-0 overflow-hidden flex flex-col border border-neutral-200/60  bg-white  shadow-xl rounded-[var(--vo-radius-lg)]">
+      <Card className="flex h-full w-full flex-col overflow-hidden rounded-[var(--vo-radius-lg)] border border-neutral-200/60 bg-white p-0 shadow-xl">
 
         {/* 카드 미디어/썸네일 영역 */}
-        <div className="relative w-full aspect-[4/3] bg-neutral-100  overflow-hidden border-b border-neutral-100 ">
+        <div className="relative h-[39%] w-full shrink-0 overflow-hidden border-b border-neutral-100 bg-neutral-100 sm:h-auto sm:aspect-[4/3]">
           {card.thumbnailUrl ? <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={card.thumbnailUrl} alt={`${card.title} 대표 장면`} className="w-full h-full object-cover pointer-events-none" />
@@ -198,24 +198,24 @@ export function QuizCard({ card, active, onSwipe, onViewDetail }: QuizCardProps)
         </div>
 
         {/* 설명 및 콘텐츠 영역 */}
-        <div className="flex-1 p-5 flex flex-col justify-between">
+        <div className="flex min-h-0 flex-1 flex-col justify-between p-4 sm:p-5">
           <div className="space-y-2.5">
-            <h2 className="text-xl font-extrabold text-neutral-900  tracking-tight leading-snug">
+            <h2 className="text-lg font-extrabold leading-snug tracking-tight text-neutral-900 sm:text-xl">
               {card.title}
             </h2>
-            <p className="text-sm font-medium text-neutral-500  leading-relaxed line-clamp-3">
+            <p className="line-clamp-2 text-sm font-medium leading-relaxed text-neutral-500 sm:line-clamp-3">
               {card.summary}
             </p>
           </div>
 
           {/* 아래 버튼 (상세 정보 보기) */}
-          <div className="pt-4 mt-auto">
+          <div className="mt-auto pt-2 sm:pt-4">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onViewDetail();
               }}
-              className="w-full py-3.5 px-4 bg-neutral-50  hover:bg-neutral-100  text-neutral-800  rounded-[var(--vo-radius-md)] text-sm font-bold border border-neutral-200/50  flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--vo-radius-md)] border border-neutral-200/50 bg-neutral-50 px-4 py-2.5 text-sm font-bold text-neutral-800 transition-all duration-200 hover:scale-[1.01] hover:bg-neutral-100 active:scale-[0.99] sm:py-3.5"
             >
               <Info size={16} />
               궁금해요! 상세 정보 보기
