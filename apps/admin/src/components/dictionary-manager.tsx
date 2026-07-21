@@ -331,19 +331,19 @@ export function DictionaryManager({
   return (
     <section className="mt-5 space-y-4">
       {/* 어드민 상단 헤더 */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-zinc-900 px-6 py-5 text-white shadow-md">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl bg-zinc-900 px-4 py-3.5 text-white shadow-md sm:px-6 sm:py-5">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="inline-block size-2 rounded-full bg-emerald-400 animate-pulse" />
-            <p className="text-[0.7rem] font-extrabold uppercase tracking-wider text-emerald-400">MEME MANAGEMENT</p>
+            <p className="text-[0.65rem] font-extrabold uppercase tracking-wider text-emerald-400">MEME MANAGEMENT</p>
           </div>
-          <h2 className="mt-1 text-2xl font-black tracking-tight">사전 항목 관리</h2>
-          <p className="mt-0.5 text-xs text-zinc-400">
+          <h2 className="mt-0.5 text-lg sm:text-2xl font-black tracking-tight">사전 항목 관리</h2>
+          <p className="mt-0.5 text-[0.7rem] sm:text-xs text-zinc-400">
             실시간 사전 데이터를 등록, 수정, 삭제하거나 상태를 일괄 변경할 수 있습니다.
           </p>
         </div>
         <button
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-xs font-black text-zinc-900 shadow transition hover:bg-zinc-100 active:scale-95"
+          className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-white px-3 py-2 text-xs font-black text-zinc-900 shadow transition hover:bg-zinc-100 active:scale-95 sm:px-4 sm:py-2.5"
           onClick={() => {
             setCreating(true);
             setEditing(null);
@@ -351,7 +351,7 @@ export function DictionaryManager({
           }}
           type="button"
         >
-          <Plus className="size-4" /> 사전 항목 등록
+          <Plus className="size-3.5 sm:size-4" /> 사전 항목 등록
         </button>
       </div>
 
