@@ -18,45 +18,48 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-black/5 bg-white/92 backdrop-blur-xl">
       <div className="page-shell py-2 sm:py-2.5">
-        <div className="relative flex items-center justify-between gap-2.5 md:grid md:grid-cols-[auto_1fr_minmax(14rem,24rem)_auto] md:gap-3">
-          <Link className="flex shrink-0 items-center gap-2 font-black" href="/">
+        <div className="relative flex items-center justify-between gap-2 md:grid md:grid-cols-[auto_1fr_minmax(14rem,24rem)_auto] md:gap-3">
+          <Link className="flex shrink-0 items-center gap-1.5 font-black" href="/">
             <BrandMark />
             <span
               className={cn(
-                "tracking-[-0.04em] transition-all duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] md:inline overflow-hidden whitespace-nowrap",
-                searchExpanded ? "max-sm:w-0 max-sm:opacity-0 max-sm:mr-0" : "max-sm:w-24 max-sm:opacity-100 max-sm:mr-2"
+                "tracking-[-0.04em] transition-all duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] md:inline overflow-hidden whitespace-nowrap text-sm sm:text-base",
+                searchExpanded ? "max-sm:w-0 max-sm:opacity-0 max-sm:mr-0" : "max-sm:w-20 max-sm:opacity-100 max-sm:mr-1"
               )}
             >
               VIRALORIGIN
             </span>
           </Link>
 
-          <div className="hidden sm:flex items-center gap-1 ml-2 text-xs font-black">
-            <Link
-              href="/feed"
-              className={cn(
-                "rounded-full px-3 py-1.5 transition",
-                pathname === "/feed"
-                  ? "bg-black text-white"
-                  : "text-black/50 hover:bg-black/5 hover:text-black"
-              )}
-            >
-              🔥 피드
-            </Link>
-            <Link
-              href="/"
-              className={cn(
-                "rounded-full px-3 py-1.5 transition",
-                pathname === "/" || pathname.startsWith("/memes/")
-                  ? "bg-black text-white"
-                  : "text-black/50 hover:bg-black/5 hover:text-black"
-              )}
-            >
-              📚 사전
-            </Link>
+          {/* 화면 상단 정중앙에 위치하는 깔끔한 [ 피드 | 사전 ] 세그먼트 토글 스위치 (이모지 완전 제거) */}
+          <div className="flex items-center justify-center min-w-0 mx-auto">
+            <div className="flex items-center gap-0.5 rounded-full bg-black/5 p-1 text-xs font-black shadow-inner">
+              <Link
+                href="/feed"
+                className={cn(
+                  "rounded-full px-3.5 py-1.5 transition-all duration-200 text-xs",
+                  pathname === "/feed"
+                    ? "bg-black text-white shadow-md font-black"
+                    : "text-black/50 hover:text-black"
+                )}
+              >
+                피드
+              </Link>
+              <Link
+                href="/"
+                className={cn(
+                  "rounded-full px-3.5 py-1.5 transition-all duration-200 text-xs",
+                  pathname === "/" || pathname.startsWith("/memes/")
+                    ? "bg-black text-white shadow-md font-black"
+                    : "text-black/50 hover:text-black"
+                )}
+              >
+                사전
+              </Link>
+            </div>
           </div>
 
-          {/* 우측에 붙어 있다가 왼쪽으로 쓱 늘어나는 가변형 검색창 */}
+          {/* 우측 검색창 */}
           <div className="min-w-0 flex-1 md:col-start-3 md:row-start-1 md:w-full flex justify-end items-center ml-auto">
             <HeaderSearch
               className="w-auto md:w-full"

@@ -3,7 +3,6 @@ import { Analytics } from "@vercel/analytics/next";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
-import { BottomNav } from "@/components/layout/bottom-nav";
 import { ClarityConsent } from "@/components/analytics/clarity-consent";
 
 import "./globals.css";
@@ -26,9 +25,8 @@ export default function RootLayout({
     <html lang="ko">
       <body>
         <SiteHeader />
-        <main className="pb-16 sm:pb-0">{children}</main>
+        <main>{children}</main>
         <SiteFooter />
-        <BottomNav />
         <Analytics />
         <ClarityConsent />
       </body>

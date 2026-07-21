@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 
 export function SiteFooter() {
   const pathname = usePathname();
-  if (pathname === "/quiz") return null;
+  if (pathname === "/quiz" || pathname === "/feed") return null;
 
   return (
     <footer className="mt-10 border-t border-black/5 bg-white py-5 sm:mt-16 sm:py-10">
@@ -30,12 +30,12 @@ export function SiteFooter() {
           <Link className="inline-flex shrink-0 items-center gap-1.5 hover:text-black" href="/privacy">개인정보처리방침</Link>
           <a className="inline-flex shrink-0 items-center gap-1.5 hover:text-black" href="mailto:iftype@naver.com"><Mail className="size-3.5" />이메일</a>
           <a
-          className="inline-flex shrink-0 items-center gap-1.5 hover:text-black"
-          href="https://github.com/iftype/viralorigin"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <GitFork className="size-4" aria-hidden="true" />
+            className="inline-flex shrink-0 items-center gap-1.5 hover:text-black"
+            href="https://github.com/iftype/viralorigin"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <GitFork className="size-4" aria-hidden="true" />
             GitHub
           </a>
         </nav>

@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   Flame,
   LoaderCircle,
   ExternalLink,
-  BookOpen,
   Sparkles,
   Share2,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Badge } from "@origin/ui";
 import { VideoEmbed } from "@/features/video-embed/components/video-embed";
@@ -21,7 +22,11 @@ export function FeedExperience() {
   const [memes, setMemes] = useState<Meme[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -47,7 +52,37 @@ export function FeedExperience() {
     };
   }, []);
 
-  const handleShare = async (meme: Meme) => {
+  // 네이티브 GPU 최적화 IntersectionObserver
+  useEffect(() => {
+    if (!memes.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = Number(entry.target.getAttribute("data-index"));
+            if (!isNaN(index)) {
+              setActiveIndex((prev) => (prev !== index ? index : prev));
+            }
+          }
+        });
+      },
+      {
+        root: containerRef.current,
+        threshold: 0.6,
+      }
+    );
+
+    itemRefs.current.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [memes]);
+
+  const handleShare = useCallback(async (meme: Meme) => {
     const url = `${window.location.origin}${memeHref(meme.slug)}`;
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
@@ -58,7 +93,7 @@ export function FeedExperience() {
         });
         return;
       } catch {
-        // fallback to clipboard
+        // fallback
       }
     }
     if (typeof navigator !== "undefined" && navigator.clipboard) {
@@ -66,134 +101,169 @@ export function FeedExperience() {
       setCopiedId(meme.id);
       setTimeout(() => setCopiedId(null), 2000);
     }
-  };
+  }, []);
+
+  const scrollToNext = useCallback(() => {
+    if (activeIndex < memes.length - 1) {
+      itemRefs.current[activeIndex + 1]?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [activeIndex, memes.length]);
+
+  const scrollToPrev = useCallback(() => {
+    if (activeIndex > 0) {
+      itemRefs.current[activeIndex - 1]?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [activeIndex]);
 
   return (
-    <div className="page-shell max-w-2xl py-6 sm:py-10">
-      {/* 피드 상단 헤더 Banner */}
-      <section className="mb-6 rounded-3xl bg-black p-6 text-white shadow-xl">
-        <div className="flex items-center gap-2 text-xs font-black text-[#fe2c55]">
-          <Flame className="size-4 animate-bounce" />
-          <span>TRENDING VIRAL FEED</span>
-        </div>
-        <h1 className="mt-2 text-2xl font-black tracking-[-0.04em] sm:text-3xl">
-          실시간 유행 밈 & 챌린지 피드
-        </h1>
-        <p className="mt-1.5 text-xs text-white/60 leading-relaxed sm:text-sm">
-          지금 인터넷을 뜨겁게 달구는 원본 영상과 챌린지를 인스타그램·틱톡 스타일 피드로 만나보세요.
-        </p>
-      </section>
-
-      {/* 로딩 & 에러 상태 */}
+    <div className="relative h-[calc(100dvh-3.5rem)] w-full overflow-hidden bg-black text-white">
       {loading ? (
-        <div className="flex min-h-[50vh] items-center justify-center">
-          <LoaderCircle className="size-8 animate-spin text-black/30" />
+        <div className="flex size-full items-center justify-center">
+          <LoaderCircle className="size-8 animate-spin text-white/40" />
         </div>
       ) : error ? (
-        <div className="rounded-3xl border border-dashed border-red-200 bg-red-50 p-8 text-center text-sm font-bold text-red-600">
+        <div className="flex size-full items-center justify-center p-6 text-center text-sm font-bold text-rose-400">
           {error}
         </div>
       ) : memes.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-black/10 bg-white p-12 text-center text-sm font-bold text-black/40">
+        <div className="flex size-full items-center justify-center p-6 text-center text-sm font-bold text-white/40">
           등록된 유행 피드가 없습니다.
         </div>
       ) : (
-        /* 숏폼 / 바이럴 피드 카드 스크롤 스트림 */
-        <div className="space-y-6">
-          {memes.map((meme) => {
+        /* 네이티브 모바일 뷰포트 100% 꽉 채움 Strict Snap Container */
+        <div
+          ref={containerRef}
+          className="h-full w-full overflow-y-scroll snap-y snap-mandatory overscroll-y-contain scroll-smooth no-scrollbar"
+        >
+          {memes.map((meme, index) => {
             const video = meme.origin?.video;
             if (!video) return null;
 
             const platform = video.platform;
             const platformName = platformLabels[platform] ?? platform;
+            const isActive = index === activeIndex;
 
             return (
-              <article
+              <div
                 key={meme.id}
-                className="overflow-hidden rounded-3xl border border-black/8 bg-white shadow-[0_12px_40px_rgba(0,0,0,0.06)] transition-all hover:shadow-[0_16px_50px_rgba(0,0,0,0.1)]"
+                data-index={index}
+                ref={(el) => {
+                  itemRefs.current[index] = el;
+                }}
+                className="relative flex h-full w-full snap-start snap-always shrink-0 flex-col items-center justify-center bg-black overflow-hidden"
               >
-                {/* 카드 프로필 Header */}
-                <div className="flex items-center justify-between border-b border-black/5 p-4 sm:p-5">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="flex size-10 shrink-0 items-center justify-center rounded-2xl font-black text-white shadow-sm"
-                      style={{ backgroundColor: meme.accent || "#fe2c55" }}
-                    >
-                      <Sparkles className="size-5" />
+                {/* 100% 모바일 뷰포트 꽉 찬 비디오 구역 */}
+                <div className="relative size-full max-w-[480px] flex flex-col justify-center">
+                  <VideoEmbed video={video} autoPlayOnScroll={isActive} feedMode={true} />
+
+                  {/* 틱톡 오버레이 상단 바 */}
+                  <div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+                    <div className="flex items-center gap-1.5 text-xs font-black text-rose-500 pointer-events-auto">
+                      <Flame className="size-4" />
+                      <span className="tracking-wider uppercase">VIRAL SHORTS</span>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-base font-black tracking-tight text-black">
-                          {meme.title}
-                        </span>
-                        <Badge className="text-[0.65rem] font-black">
-                          {platformName}
-                        </Badge>
-                      </div>
-                      <p className="mt-0.5 font-mono text-xs font-bold text-black/35">
-                        /{meme.slug} {meme.lifecycle?.originYear ? `· ${meme.lifecycle.originYear}년` : ""}
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleShare(meme)}
-                    className="flex size-9 items-center justify-center rounded-full bg-black/5 text-black/60 transition hover:bg-black/10 hover:text-black"
-                    title="공유하기"
-                  >
-                    {copiedId === meme.id ? (
-                      <CheckCircle2 className="size-4 text-emerald-600" />
-                    ) : (
-                      <Share2 className="size-4" />
-                    )}
-                  </button>
-                </div>
-
-                {/* 임베드 미디어 영역 */}
-                <div className="bg-black">
-                  <VideoEmbed video={video} />
-                </div>
-
-                {/* 카드 본문 & 하단 릴레이션 */}
-                <div className="p-5 sm:p-6">
-                  <p className="text-sm font-medium leading-relaxed text-black/80 sm:text-base">
-                    {meme.summary}
-                  </p>
-
-                  {/* 태그 해시태그 */}
-                  {meme.tags.length > 0 && (
-                    <div className="mt-3.5 flex flex-wrap gap-1.5">
-                      {meme.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full bg-black/5 px-2.5 py-1 text-xs font-bold text-black/50"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* 사전 링크 이동 CTA 버튼 */}
-                  <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
-                    <span className="text-xs font-bold text-black/40">
-                      원조 크리에이터: {video.creator || "확인 중"}
+                    <span className="rounded-full bg-black/50 px-3 py-1 text-[0.68rem] font-bold text-white/80 backdrop-blur-md pointer-events-auto">
+                      {index + 1} / {memes.length}
                     </span>
+                  </div>
 
-                    <Link
-                      href={memeHref(meme.slug)}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-black px-4 py-2 text-xs font-black text-white shadow transition hover:bg-black/80 hover:scale-105 active:scale-95"
+                  {/* 틱톡 오버레이 우측 아이콘 액션 바 */}
+                  <div className="absolute right-3 bottom-20 z-20 flex flex-col items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleShare(meme)}
+                      className="flex size-11 flex-col items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:scale-110 active:scale-95"
+                      title="공유하기"
                     >
-                      <BookOpen className="size-3.5" />
-                      <span>사전 항목 보기</span>
-                      <ExternalLink className="size-3" />
-                    </Link>
+                      {copiedId === meme.id ? (
+                        <CheckCircle2 className="size-5 text-emerald-400" />
+                      ) : (
+                        <Share2 className="size-5" />
+                      )}
+                      <span className="text-[0.6rem] font-bold mt-0.5">공유</span>
+                    </button>
+                  </div>
+
+                  {/* 틱톡 오버레이 하단 정보 구역 */}
+                  <div className="absolute left-0 right-0 bottom-0 z-20 p-4 sm:p-5 bg-gradient-to-t from-black/95 via-black/70 to-transparent">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="flex size-7 items-center justify-center rounded-xl font-black text-white text-xs shadow-sm"
+                        style={{ backgroundColor: meme.accent || "#fe2c55" }}
+                      >
+                        <Sparkles className="size-3.5" />
+                      </span>
+                      <span className="text-sm font-black text-white tracking-tight">
+                        @{video.creator || "viral_origin"}
+                      </span>
+                      <Badge className="bg-white/20 text-white text-[0.65rem] font-bold backdrop-blur-md">
+                        {platformName}
+                      </Badge>
+                    </div>
+
+                    <h2 className="mt-2 text-base sm:text-lg font-black leading-snug text-white">
+                      {meme.title}
+                    </h2>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/80 font-medium">
+                      {meme.summary}
+                    </p>
+
+                    {/* 태그 해시태그 */}
+                    {meme.tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {meme.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-white/15 px-2.5 py-0.5 text-[0.68rem] font-bold text-white/90 backdrop-blur-md"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 사전 상세 CTA 버튼 */}
+                    <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-2.5">
+                      <span className="text-[0.68rem] font-bold text-white/50">
+                        {meme.lifecycle?.originYear ? `${meme.lifecycle.originYear}년 유행` : "바이럴 밈"}
+                      </span>
+                      <Link
+                        href={memeHref(meme.slug)}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-xs font-black text-black shadow transition hover:bg-zinc-200"
+                      >
+                        <span>원조 맥락 보기</span>
+                        <ExternalLink className="size-3" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </article>
+              </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 데스크톱 상/하 컨트롤러 화살표 (PC 조작 편의성) */}
+      {memes.length > 0 && !loading && (
+        <div className="hidden sm:flex fixed right-6 top-1/2 z-30 -translate-y-1/2 flex-col gap-3">
+          <button
+            type="button"
+            onClick={scrollToPrev}
+            disabled={activeIndex === 0}
+            className="flex size-10 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition hover:bg-white/40 disabled:opacity-35"
+            title="이전 영상 (위로)"
+          >
+            <ChevronUp className="size-6" />
+          </button>
+          <button
+            type="button"
+            onClick={scrollToNext}
+            disabled={activeIndex === memes.length - 1}
+            className="flex size-10 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition hover:bg-white/40 disabled:opacity-35"
+            title="다음 영상 (아래로)"
+          >
+            <ChevronDown className="size-6" />
+          </button>
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { FeedExperience } from "@/features/feed/components/feed-experience";
+import { Suspense } from "react";
+import { SwipeFeedDictionary } from "@/features/main-tabs/components/swipe-feed-dictionary";
 
 export const metadata: Metadata = {
   title: "유행 피드",
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function FeedPage() {
-  return <FeedExperience />;
+  return (
+    <Suspense fallback={<div className="h-[70vh] w-full bg-black" />}>
+      <SwipeFeedDictionary initialTab="feed" />
+    </Suspense>
+  );
 }

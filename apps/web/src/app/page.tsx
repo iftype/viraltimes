@@ -1,10 +1,10 @@
-import { SearchExperience } from "@/features/search/components/search-experience";
 import { Suspense } from "react";
+import { SwipeFeedDictionary } from "@/features/main-tabs/components/swipe-feed-dictionary";
 
 export default function Home() {
   return (
-    <Suspense fallback={<div className="page-shell min-h-[70vh] py-8" />}>
-      <SearchExperience />
+    <Suspense fallback={<div className="h-[70vh] w-full bg-black" />}>
+      <SwipeFeedDictionary initialTab="dictionary" />
     </Suspense>
   );
 }
