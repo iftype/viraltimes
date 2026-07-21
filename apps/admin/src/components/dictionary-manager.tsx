@@ -126,10 +126,12 @@ export function DictionaryManager({
   const formOpen = creating || Boolean(editing);
 
   const visibleItems = items.filter((item) => {
+    const title = item.title ?? "";
+    const slug = item.slug ?? "";
     const matchesQuery =
       !query.trim() ||
-      item.title.toLowerCase().includes(query.toLowerCase()) ||
-      item.slug.toLowerCase().includes(query.toLowerCase()) ||
+      title.toLowerCase().includes(query.toLowerCase()) ||
+      slug.toLowerCase().includes(query.toLowerCase()) ||
       (item.tags ?? []).some((tag) => tag.toLowerCase().includes(query.toLowerCase()));
     const matchesStatus = statusFilter === "all" || item.publicationStatus === statusFilter;
     const matchesKind = kindFilter === "all" || item.kind === kindFilter;
@@ -519,7 +521,8 @@ export function DictionaryManager({
       ) : viewMode === "grid" ? (
         <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visibleItems.map((item) => {
-            const meta = statusMeta[item.publicationStatus];
+            const meta = statusMeta[item.publicationStatus] ?? statusMeta.draft;
+            const kindLabel = kindLabels[item.kind] ?? item.kind ?? "미지정";
             const isSelected = selectedIds.has(item.id);
             return (
               <article
@@ -532,7 +535,7 @@ export function DictionaryManager({
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <input
-                        aria-label={`${item.title} 선택`}
+                        aria-label={`${item.title ?? ""} 선택`}
                         checked={isSelected}
                         className="size-4 cursor-pointer accent-rose-600 shrink-0"
                         onChange={() =>
@@ -549,14 +552,14 @@ export function DictionaryManager({
                         {meta.label}
                       </span>
                       <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[0.62rem] font-bold text-zinc-600 truncate">
-                        {kindLabels[item.kind]}
+                        {kindLabel}
                       </span>
                     </div>
                     {item.publicationStatus === "published" && (
                       <a
                         className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 shrink-0"
                         aria-label="공개 페이지 보기"
-                        href={`https://viralorigin.vercel.app/memes/${encodeURIComponent(item.slug)}`}
+                        href={`/memes/${encodeURIComponent(item.slug ?? "")}`}
                         rel="noreferrer"
                         target="_blank"
                       >
@@ -592,7 +595,7 @@ export function DictionaryManager({
                   <div className="flex items-center justify-between gap-1 text-xs">
                     <div className="flex items-center gap-1">
                       <a
-                        href={`https://viralorigin.vercel.app/memes/${item.slug}`}
+                        href={`/memes/${encodeURIComponent(item.slug ?? "")}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1.5 font-bold text-zinc-700 hover:bg-black hover:text-white transition"
@@ -655,13 +658,14 @@ export function DictionaryManager({
               </thead>
               <tbody className="divide-y divide-zinc-100 font-medium text-zinc-800">
                 {visibleItems.map((item) => {
-                  const meta = statusMeta[item.publicationStatus];
+                  const meta = statusMeta[item.publicationStatus] ?? statusMeta.draft;
+                  const kindLabel = kindLabels[item.kind] ?? item.kind ?? "미지정";
                   const isSelected = selectedIds.has(item.id);
                   return (
                     <tr className={`hover:bg-zinc-50/80 transition ${isSelected ? "bg-rose-50/30" : ""}`} key={item.id}>
                       <td className="p-3.5 text-center">
                         <input
-                          aria-label={`${item.title} 선택`}
+                          aria-label={`${item.title ?? ""} 선택`}
                           checked={isSelected}
                           className="size-4 cursor-pointer accent-rose-600"
                           onChange={() =>
@@ -687,7 +691,7 @@ export function DictionaryManager({
                         </div>
                       </td>
                       <td className="p-3.5 whitespace-nowrap text-zinc-500">
-                        {kindLabels[item.kind]}
+                        {kindLabel}
                       </td>
                       <td className="p-3.5 max-w-xs truncate text-zinc-500">
                         {item.summary || "설명 미등록"}
@@ -698,7 +702,7 @@ export function DictionaryManager({
                       <td className="p-3.5 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
                           <a
-                            href={`https://viralorigin.vercel.app/memes/${item.slug}`}
+                            href={`/memes/${encodeURIComponent(item.slug ?? "")}`}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-bold text-zinc-600 hover:bg-black hover:text-white transition"
@@ -822,7 +826,7 @@ function MemeEntryForm({
           </div>
           {editing?.slug && (
             <a
-              href={`https://viralorigin.vercel.app/memes/${editing.slug}`}
+              href={`/memes/${encodeURIComponent(editing.slug)}`}
               target="_blank"
               rel="noreferrer"
               className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-black px-3 py-1.5 text-xs font-black text-white shadow-sm hover:bg-zinc-800 transition"

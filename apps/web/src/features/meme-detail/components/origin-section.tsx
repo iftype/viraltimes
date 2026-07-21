@@ -6,8 +6,8 @@ import { VideoEmbed } from "@/features/video-embed/components/video-embed";
 import type { Meme } from "@/types/meme";
 
 export function OriginSection({ meme }: { meme: Meme }) {
-  const video = meme.origin.video;
-  const hasVideo = Boolean(video?.url.trim());
+  const video = meme.origin?.video;
+  const hasVideo = Boolean(video?.url?.trim());
   const isMinorMeme = meme.kind === "minor-meme";
   const sourceLinks = meme.sourceLinks ?? [];
   const primarySource = sourceLinks[0];
