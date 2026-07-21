@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import { DynamicMemeDetail } from "@/features/meme-detail/components/dynamic-meme-detail";
 import { sampleMemes } from "@/data/sample-memes";
 
+export const dynamicParams = true;
+
 export const metadata: Metadata = {
   title: "사전 항목",
   description: "ViralOrigin 사전 항목의 원본과 확산 과정을 확인하세요.",
@@ -14,8 +16,6 @@ export function generateStaticParams() {
   const params = sampleMemes.map((meme) => ({
     slug: meme.slug.toLowerCase(),
   }));
-  // 운영 canonical URL은 vercel.json이 /meme shell로 rewrite한다.
-  // sample fallback이 비어 있어도 static export가 동적 route 계약을 유지하도록 shell 하나를 만든다.
   return params.length ? params : [{ slug: "dictionary-shell" }];
 }
 

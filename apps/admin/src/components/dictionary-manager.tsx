@@ -1076,15 +1076,15 @@ function MemeEntryForm({
           />
         </Field>
 
-        {/* 2. 원본 영상 실시간 임베드 미리보기 (Video Embed Preview Player) */}
+        {/* 2. 원본 영상 실시간 콤팩트 미리보기 (1/4 크기) */}
         {originUrl && (
-          <div className="col-span-full rounded-2xl border border-zinc-200 bg-zinc-900 p-4 text-white">
+          <div className="col-span-full rounded-xl border border-zinc-200 bg-zinc-900 p-3 text-white">
             <div className="flex items-center gap-2 mb-2 text-xs font-bold text-rose-400">
-              <Video className="size-4 animate-pulse" />
-              <span>원본 영상 실시간 미리보기 (Live Video Embed)</span>
+              <Video className="size-3.5" />
+              <span>실시간 영상 미리보기 (1/4 콤팩트)</span>
             </div>
             {ytId ? (
-              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+              <div className="relative aspect-video w-full max-w-[260px] overflow-hidden rounded-xl bg-black border border-zinc-700 shadow-md">
                 <iframe
                   className="absolute inset-0 size-full border-0"
                   src={`https://www.youtube-nocookie.com/embed/${ytId}`}
@@ -1094,16 +1094,16 @@ function MemeEntryForm({
                 />
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-zinc-700 rounded-xl bg-zinc-800/50">
-                <Play className="size-8 text-zinc-400 mb-2" />
-                <p className="text-xs font-bold text-zinc-300 truncate max-w-full">{originUrl}</p>
+              <div className="flex flex-col items-center justify-center p-3 text-center border border-dashed border-zinc-700 rounded-xl bg-zinc-800/50 max-w-[260px]">
+                <Play className="size-6 text-zinc-400 mb-1" />
+                <p className="text-[0.68rem] font-bold text-zinc-300 truncate max-w-full">{originUrl}</p>
                 <a
                   href={originUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-2 inline-flex items-center gap-1 text-xs text-rose-400 hover:underline"
+                  className="mt-1 inline-flex items-center gap-1 text-[0.62rem] text-rose-400 hover:underline"
                 >
-                  새 창에서 원본 열기 <ExternalLink className="size-3" />
+                  <ExternalLink className="size-3" /> 외부 링크로 열기
                 </a>
               </div>
             )}
