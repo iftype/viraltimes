@@ -1,5 +1,7 @@
 "use client";
 
+const PUBLIC_WEB_BASE = "https://viralorigin.vercel.app";
+
 import {
   Check,
   ExternalLink,
@@ -559,7 +561,7 @@ export function DictionaryManager({
                       <a
                         className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 shrink-0"
                         aria-label="공개 페이지 보기"
-                        href={`/memes/${encodeURIComponent(item.slug ?? "")}`}
+                        href={`${PUBLIC_WEB_BASE}/memes/${encodeURIComponent(item.slug ?? "")}`}
                         rel="noreferrer"
                         target="_blank"
                       >
@@ -595,7 +597,7 @@ export function DictionaryManager({
                   <div className="flex items-center justify-between gap-1 text-xs">
                     <div className="flex items-center gap-1">
                       <a
-                        href={`/memes/${encodeURIComponent(item.slug ?? "")}`}
+                        href={`${PUBLIC_WEB_BASE}/memes/${encodeURIComponent(item.slug ?? "")}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1.5 font-bold text-zinc-700 hover:bg-black hover:text-white transition"
@@ -702,7 +704,7 @@ export function DictionaryManager({
                       <td className="p-3.5 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
                           <a
-                            href={`/memes/${encodeURIComponent(item.slug ?? "")}`}
+                            href={`${PUBLIC_WEB_BASE}/memes/${encodeURIComponent(item.slug ?? "")}`}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-bold text-zinc-600 hover:bg-black hover:text-white transition"
@@ -826,7 +828,7 @@ function MemeEntryForm({
           </div>
           {editing?.slug && (
             <a
-              href={`/memes/${encodeURIComponent(editing.slug)}`}
+              href={`${PUBLIC_WEB_BASE}/memes/${encodeURIComponent(editing.slug)}`}
               target="_blank"
               rel="noreferrer"
               className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-black px-3 py-1.5 text-xs font-black text-white shadow-sm hover:bg-zinc-800 transition"

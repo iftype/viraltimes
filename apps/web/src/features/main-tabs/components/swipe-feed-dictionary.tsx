@@ -128,8 +128,8 @@ function SwipeFeedDictionaryContent({ initialTab = "feed" }: { initialTab?: "fee
         </div>
 
         {/* 2. 오른쪽 뷰: 바이럴 사전 (Dictionary) */}
-        <div className="h-full w-1/2 shrink-0 overflow-y-auto bg-white">
-          <div className="py-3 px-2 sm:px-4">
+        <div className="h-full w-1/2 shrink-0 overflow-y-auto bg-white flex flex-col justify-between">
+          <div className="py-3 px-2 sm:px-4 flex-1">
             <SearchExperience />
           </div>
           <SiteFooter forceShow />
