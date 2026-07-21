@@ -4,9 +4,9 @@ import { GitFork, Mail, MessageCircleMore } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function SiteFooter() {
+export function SiteFooter({ forceShow = false }: { forceShow?: boolean }) {
   const pathname = usePathname();
-  if (pathname === "/quiz" || pathname === "/feed") return null;
+  if (!forceShow && (pathname === "/quiz" || pathname === "/feed" || pathname === "/")) return null;
 
   return (
     <footer className="mt-10 border-t border-black/5 bg-white py-5 sm:mt-16 sm:py-10">
