@@ -73,8 +73,8 @@ function SwipeFeedDictionaryContent({ initialTab = "feed" }: { initialTab?: "fee
         e.preventDefault();
       }
       let clampedDiff = diffX;
-      if (activeTab === "feed" && diffX > 0) clampedDiff = diffX * 0.2;
-      if (activeTab === "dictionary" && diffX < 0) clampedDiff = diffX * 0.2;
+      if (activeTab === "feed" && diffX > 0) clampedDiff = 0;
+      if (activeTab === "dictionary" && diffX < 0) clampedDiff = 0;
       setDragOffset(clampedDiff);
     }
   };

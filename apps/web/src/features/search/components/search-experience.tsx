@@ -103,59 +103,61 @@ export function SearchExperience() {
   );
 
   return (
-    <div className="page-shell pb-8 pt-6 sm:pt-8" id="explore">
-      <section className="flex flex-wrap items-end justify-between gap-4">
+    <div className="page-shell pb-6 pt-3 sm:pt-4" id="explore">
+      <section className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Badge className="bg-[#fff0f3] text-[#d91d46]">
-            <Sparkles className="size-3.5" aria-hidden="true" /> ORIGIN FEED
+          <Badge className="bg-[#fff0f3] text-[#d91d46] text-[0.65rem] px-2 py-0.5">
+            <Sparkles className="size-3" aria-hidden="true" /> ORIGIN FEED
           </Badge>
-          <h1 className="mt-3 text-2xl font-black leading-tight tracking-[-0.045em] sm:text-4xl sm:tracking-[-0.055em]">
-            {query ? `“${query}” 검색 결과` : "밈, 챌린지의 원본을 살펴보세요"}
+          <h1 className="mt-1.5 text-xl font-black leading-tight tracking-[-0.04em] sm:text-2xl">
+            {query ? `“${query}” 검색 결과` : "밈·챌린지 원본 사전"}
           </h1>
-          <p className="mt-2 text-sm text-black/45">
+          <p className="mt-1 text-xs text-black/45">
             원본과 확산 맥락이 확인된 항목을 골라보세요.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-bold text-black/35">
-          <span className={`size-2 rounded-full ${isFallback ? "bg-[#f59e0b]" : "bg-[#25c4bd]"}`} />
-          {isFallback ? "기본 사전 표시 중" : "검토 완료 데이터"}
+        <div className="flex items-center gap-1.5 text-[0.68rem] font-bold text-black/35">
+          <span className={`size-1.5 rounded-full ${isFallback ? "bg-[#f59e0b]" : "bg-[#25c4bd]"}`} />
+          {isFallback ? "기본 사전" : "검토 완료 데이터"}
         </div>
       </section>
 
-      {/* 퀴즈 테스트 유도 배너 */}
-      <div className="mt-6 p-5 rounded-[var(--vo-radius-lg)] bg-gradient-to-r from-[var(--vo-color-brand)] via-[#ff5436] to-[#fe792c] text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg border border-red-500/10">
-        <div className="space-y-1">
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-white/20 text-white">
-            HOT MATCH TEST
-          </span>
-          <h2 className="text-lg font-black tracking-tight leading-snug">
-            마이너 밈, 얼마나 알고 있나요?
-          </h2>
-          <p className="text-xs text-white/80 font-medium">
-            5개 카드로 인지도를 확인하고 설명이 이해에 도움이 되는지도 알려주세요.
+      {/* 퀴즈 테스트 유도 콤팩트 배너 */}
+      <div className="mt-3 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-[var(--vo-color-brand)] via-[#ff5436] to-[#fe792c] text-white flex items-center justify-between gap-3 shadow-md border border-red-500/10">
+        <div className="space-y-0.5 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase bg-white/20 text-white">
+              HOT MATCH TEST
+            </span>
+            <h2 className="text-xs sm:text-sm font-black tracking-tight truncate">
+              마이너 밈, 얼마나 알고 있나요?
+            </h2>
+          </div>
+          <p className="text-[0.68rem] text-white/80 font-medium truncate">
+            5개 카드로 인지도를 확인해보세요.
           </p>
         </div>
         <Link 
           href="/quiz" 
-          className="shrink-0 inline-flex items-center gap-2 bg-white text-neutral-900 font-extrabold text-sm px-5 py-3 rounded-[var(--vo-radius-md)] hover:bg-neutral-50 active:scale-[0.98] transition-all duration-200 shadow-md"
+          className="shrink-0 inline-flex items-center gap-1 bg-white text-neutral-900 font-extrabold text-xs px-3.5 py-2 rounded-lg hover:bg-neutral-50 active:scale-[0.98] transition-all shadow-sm"
         >
-          테스트 시작하기 <ArrowRight size={16} />
+          테스트 시작 <ArrowRight size={14} />
         </Link>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-3">
         <VerificationTabs active={verificationFilter} counts={verificationCounts} onChange={setVerificationFilter} />
       </div>
 
-      <div className="mt-3">
+      <div className="mt-2">
         <YearTabs active={yearFilter} counts={yearCounts} onChange={setYearFilter} years={years} />
       </div>
 
-      <section className="mt-4" aria-busy={isLoading} aria-live="polite">
+      <section className="mt-3" aria-busy={isLoading} aria-live="polite">
         {isLoading ? (
           <div className="grid gap-2.5 sm:gap-3.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {Array.from({ length: 10 }).map((_, index) => (
-              <div className="h-44 animate-pulse rounded-2xl bg-zinc-100" key={index} />
+              <div className="h-36 animate-pulse rounded-xl bg-zinc-100/70" key={index} />
             ))}
           </div>
         ) : visibleMemes.length ? (
@@ -190,14 +192,14 @@ export function SearchExperience() {
       </section>
 
       {!isLoading && visibleMemes.length > 0 && (
-        <aside className="mt-8 flex flex-col items-start justify-between gap-4 rounded-[var(--vo-radius-lg)] bg-black p-5 text-white sm:flex-row sm:items-center sm:p-6">
+        <aside className="mt-6 flex items-center justify-between gap-3 rounded-xl bg-zinc-900 p-3.5 sm:p-4 text-white">
           <div>
-            <p className="font-black">찾는 밈이나 챌린지가 없나요?</p>
-            <p className="mt-1 text-xs leading-5 text-white/50">
-              이름만 알아도 요청할 수 있고, 원본 링크를 알고 있다면 함께 제보할 수 있어요.
+            <p className="text-xs font-black">찾는 밈이나 챌린지가 없나요?</p>
+            <p className="mt-0.5 text-[0.68rem] text-white/50">
+              이름만 알아도 요청할 수 있고 원본 링크를 함께 제보할 수 있어요.
             </p>
           </div>
-          <Link className={buttonClassName({ variant: "secondary", className: "shrink-0 border-white/15 bg-white text-black" })} href="/submit?type=request">
+          <Link className={buttonClassName({ variant: "secondary", className: "shrink-0 border-white/15 bg-white text-black text-xs px-3 py-1.5 h-auto" })} href="/submit?type=request">
             추가 요청
           </Link>
         </aside>

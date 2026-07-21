@@ -30,6 +30,8 @@ export function FeedExperience() {
   // 전역 음소거 지속 상태 (다음 영상으로 넘어가도 소리 상태 유지)
   const [globalMuted, setGlobalMuted] = useState(true);
 
+  const rawMemesRef = useRef<Meme[]>([]);
+
   useEffect(() => {
     let active = true;
     fetch("/api/v1/memes?page=1&pageSize=30&sort=latest", { cache: "no-store" })
@@ -39,8 +41,9 @@ export function FeedExperience() {
       })
       .then((data) => {
         if (!active) return;
-        // 피드 영상 랜덤 셔플
-        const shuffled = [...(data.items || [])].sort(() => Math.random() - 0.5);
+        rawMemesRef.current = data.items || [];
+        // 피드 영상 첫 랜덤 셔플
+        const shuffled = [...rawMemesRef.current].sort(() => Math.random() - 0.5);
         setMemes(shuffled);
       })
       .catch((cause) => {
@@ -55,6 +58,14 @@ export function FeedExperience() {
       active = false;
     };
   }, []);
+
+  // 무한 랜덤 스크롤: 끝 3개 남았을 때 새로운 랜덤 배치 추가
+  useEffect(() => {
+    if (rawMemesRef.current.length > 0 && activeIndex >= memes.length - 3) {
+      const nextBatch = [...rawMemesRef.current].sort(() => Math.random() - 0.5);
+      setMemes((prev) => [...prev, ...nextBatch]);
+    }
+  }, [activeIndex, memes.length]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -155,7 +166,7 @@ export function FeedExperience() {
 
             return (
               <div
-                key={meme.id}
+                key={`${meme.id}-${index}`}
                 data-index={index}
                 ref={(el) => {
                   itemRefs.current[index] = el;
