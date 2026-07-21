@@ -14,8 +14,8 @@ const statusMeta: Record<OriginStatus, { label: string; icon: typeof Check }> = 
 };
 
 export function MemeFeedCard({ categoryLabel, meme, priority = false }: { categoryLabel?: string; meme: Meme; priority?: boolean }) {
-  const media = meme.origin.video ?? meme.trendingVideos[0];
-  const thumbnail = getMemeCardThumbnail(meme, process.env.NEXT_PUBLIC_BASE_PATH ?? "");
+  const media = meme.trendingVideos[0] ?? meme.origin.video;
+  const thumbnail = getMemeCardThumbnail(meme, process.env.NEXT_PUBLIC_BASE_PATH ?? "", media);
   const status = statusMeta[meme.origin.status];
   const StatusIcon = status.icon;
 

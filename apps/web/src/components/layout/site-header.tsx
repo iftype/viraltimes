@@ -31,6 +31,31 @@ export function SiteHeader() {
             </span>
           </Link>
 
+          <div className="hidden sm:flex items-center gap-1 ml-2 text-xs font-black">
+            <Link
+              href="/feed"
+              className={cn(
+                "rounded-full px-3 py-1.5 transition",
+                pathname === "/feed"
+                  ? "bg-black text-white"
+                  : "text-black/50 hover:bg-black/5 hover:text-black"
+              )}
+            >
+              🔥 피드
+            </Link>
+            <Link
+              href="/"
+              className={cn(
+                "rounded-full px-3 py-1.5 transition",
+                pathname === "/" || pathname.startsWith("/memes/")
+                  ? "bg-black text-white"
+                  : "text-black/50 hover:bg-black/5 hover:text-black"
+              )}
+            >
+              📚 사전
+            </Link>
+          </div>
+
           {/* 우측에 붙어 있다가 왼쪽으로 쓱 늘어나는 가변형 검색창 */}
           <div className="min-w-0 flex-1 md:col-start-3 md:row-start-1 md:w-full flex justify-end items-center ml-auto">
             <HeaderSearch

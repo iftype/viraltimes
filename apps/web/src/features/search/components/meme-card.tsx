@@ -61,14 +61,16 @@ export function MemeCard({
             platform={meme.origin.video?.platform}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/75" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/80" />
 
         <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 p-4">
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge className="bg-white/90 text-black">
               <StatusIcon className="size-3" aria-hidden="true" /> {status.label}
             </Badge>
-            <Badge className="bg-[#fff7df] text-[#9a6200]">제안 {meme.participation?.proposalCount ?? 0}</Badge>
+            {meme.participation?.proposalCount ? (
+              <Badge className="bg-[#fff7df] text-[#9a6200]">제안 {meme.participation.proposalCount}</Badge>
+            ) : null}
             {meme.origin.video && meme.origin.video.url && meme.origin.video.url.trim().length > 0 && (
               <Badge className="bg-[#fe2c55] text-white">
                 <Play className="size-3 fill-white" aria-hidden="true" /> 원본 영상

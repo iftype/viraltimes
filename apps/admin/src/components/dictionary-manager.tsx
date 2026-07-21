@@ -6,16 +6,18 @@ import {
   ExternalLink,
   FilePenLine,
   Filter,
+  Grid,
+  List,
   LoaderCircle,
   Plus,
   Save,
   Sparkles,
   Trash2,
   X,
+  Play,
 } from "lucide-react";
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useState } from "react";
 import { Field } from "@origin/ui";
-
 import type { AdminCategory } from "@/components/category-manager";
 
 type Video = {
@@ -29,20 +31,18 @@ type Video = {
   viewCountLabel?: string;
 };
 
-type SourceLink = { id: string; title: string; url: string; siteName?: string };
-
 export type AdminMeme = {
   id: string;
   slug: string;
   title: string;
-  kind: "challenge" | "video-meme" | "community-meme" | "minor-meme";
+  kind: "challenge" | "video-meme" | "community-meme";
   thumbnailUrl?: string;
   thumbnailFit?: "cover" | "contain";
   aliases: string[];
   summary: string;
   origin: {
     status: "verified" | "likely" | "needs-review";
-    video?: Video;
+    video: Video;
     summary: string;
     evidence: Array<{ title: string; detail: string; url?: string }>;
     lastReviewedAt: string;
@@ -58,9 +58,11 @@ export type AdminMeme = {
   }>;
   trendingVideos: Video[];
   relatedVideos: Video[];
-  relatedMemeIds?: string[];
-  sourceLinks?: SourceLink[];
-  lifecycle?: { originYear?: number; firstSeenAt?: string; lastObservedAt?: string };
+  lifecycle?: {
+    originYear?: number;
+    firstSeenAt?: string;
+    lastObservedAt?: string;
+  };
   categoryIds: string[];
   tags: string[];
   accent: string;
@@ -69,56 +71,35 @@ export type AdminMeme = {
   updatedAt?: string;
 };
 
-type BulkAction = "publish" | "draft" | "archive" | "add-category" | "remove-category";
-type MetadataSuggestion = {
-  title?: string;
-  description?: string;
-  thumbnailUrl?: string;
-  siteName?: string;
-  sourceUrl: string;
-  provider: "youtube-oembed" | "open-graph" | "url-only";
-  ai: { used: boolean; reason?: string };
+const apiBase = "/viral/api/v1";
+
+const statusMeta = {
+  draft: { label: "작성 중", className: "bg-amber-50 text-amber-700 border border-amber-200/60" },
+  published: { label: "공개", className: "bg-emerald-50 text-emerald-700 border border-emerald-200/60" },
+  archived: { label: "보관", className: "bg-zinc-100 text-zinc-500 border border-zinc-200/60" },
 };
 
-const apiBase = "/viral/api/v1";
-const statusMeta = {
-  draft: { label: "작성 중", className: "bg-[#fff6dc] text-[#9a6200]" },
-  published: { label: "공개", className: "bg-[#e8fffe] text-[#087b77]" },
-  archived: { label: "보관", className: "bg-black/5 text-black/40" },
-};
-const kindLabels: Record<AdminMeme["kind"], string> = {
-  challenge: "챌린지",
-  "video-meme": "영상 밈",
+const kindLabels = {
   "community-meme": "커뮤니티 밈",
-  "minor-meme": "코리아 마이너 밈",
+  "video-meme": "영상 밈",
+  challenge: "챌린지",
 };
 
 async function readError(response: Response) {
   try {
-    return ((await response.json()) as { error?: string }).error ?? "요청을 처리하지 못했습니다.";
+    return ((await response.json()) as { error?: string }).error ?? "저장하지 못했습니다.";
   } catch {
-    return "요청을 처리하지 못했습니다.";
+    return "저장하지 못했습니다.";
   }
 }
 
 const csv = (value: FormDataEntryValue | null) =>
-  String(value ?? "").split(",").map((item) => item.trim()).filter(Boolean);
+  String(value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 
-const sourceLines = (value: FormDataEntryValue | null, slug: string): SourceLink[] =>
-  String(value ?? "").split("\n").map((line) => line.trim()).filter(Boolean).flatMap((line, index) => {
-    const separator = line.indexOf("|");
-    const title = separator >= 0 ? line.slice(0, separator).trim() : "관련 커뮤니티 링크";
-    const url = (separator >= 0 ? line.slice(separator + 1) : line).trim();
-    return url ? [{ id: `${slug}-source-${index + 1}`, title: title || "관련 커뮤니티 링크", url }] : [];
-  });
-
-const platformForUrl = (url: string): Video["platform"] => url.includes("youtu") ? "youtube" : url.includes("tiktok.com") ? "tiktok" : url.includes("instagram.com") ? "instagram" : url.includes("x.com") || url.includes("twitter.com") ? "x" : "unknown";
-const usageLines = (value: FormDataEntryValue | null, slug: string, existing: Video[]): Video[] => String(value ?? "").split("\n").map((line) => line.trim()).filter(Boolean).flatMap((line, index) => {
-  const [title, url, thumbnailUrl] = line.split("|").map((part) => part.trim());
-  if (!url) return [];
-  const previous = existing.find((video) => video.url === url);
-  return [{ ...previous, id: previous?.id ?? `${slug}-usage-${index + 1}`, platform: platformForUrl(url), title: title || "사용 자료", url, thumbnailUrl: thumbnailUrl || previous?.thumbnailUrl }];
-}).slice(0, 3);
+type BulkAction = "publish" | "draft" | "archive" | "add-category" | "remove-category";
 
 export function DictionaryManager({
   items,
@@ -129,85 +110,72 @@ export function DictionaryManager({
   categories: AdminCategory[];
   onChange: (items: AdminMeme[]) => void;
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
   const [editing, setEditing] = useState<AdminMeme | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [enriching, setEnriching] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | AdminMeme["publicationStatus"]>("all");
   const [kindFilter, setKindFilter] = useState<"all" | AdminMeme["kind"]>("all");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkAction>("publish");
   const [bulkCategoryId, setBulkCategoryId] = useState(categories[0]?.id ?? "");
-  const [draftSlug, setDraftSlug] = useState("");
 
   const formOpen = creating || Boolean(editing);
-  const visibleItems = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase("ko");
-    return items.filter((item) => {
-      if (statusFilter !== "all" && item.publicationStatus !== statusFilter) return false;
-      if (kindFilter !== "all" && item.kind !== kindFilter) return false;
-      return !needle || [item.title, item.slug, ...item.aliases, ...item.tags].join(" ").toLocaleLowerCase("ko").includes(needle);
-    });
-  }, [items, kindFilter, query, statusFilter]);
-  const allVisibleSelected = visibleItems.length > 0 && visibleItems.every((item) => selectedIds.has(item.id));
 
-  function closeForm() {
-    setCreating(false);
-    setEditing(null);
-    setError("");
-    setNotice("");
-  }
+  const visibleItems = items.filter((item) => {
+    const matchesQuery =
+      !query.trim() ||
+      item.title.toLowerCase().includes(query.toLowerCase()) ||
+      item.slug.toLowerCase().includes(query.toLowerCase()) ||
+      item.tags.some((tag) => tag.toLowerCase().includes(query.toLowerCase()));
+    const matchesStatus = statusFilter === "all" || item.publicationStatus === statusFilter;
+    const matchesKind = kindFilter === "all" || item.kind === kindFilter;
+    return matchesQuery && matchesStatus && matchesKind;
+  });
 
-  function openCreate() {
-    setDraftSlug(`meme-${Date.now().toString(36)}`);
-    setCreating(true);
-    setEditing(null);
-    setError("");
-    setNotice("");
-  }
+  const allVisibleSelected =
+    visibleItems.length > 0 && visibleItems.every((item) => selectedIds.has(item.id));
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     setError("");
-    setNotice("");
     const form = new FormData(event.currentTarget);
     const slug = String(form.get("slug") ?? "").trim().toLowerCase();
     const sourceUrl = String(form.get("sourceUrl") ?? "").trim();
-    const originUrl = String(form.get("originUrl") ?? "").trim();
-    const originTitle = String(form.get("originTitle") ?? "").trim();
     const base = editing;
-    const originVideo = originUrl && originTitle ? {
+    const originVideo: Video = {
       ...(base?.origin.video ?? { id: `${slug}-origin` }),
-      id: base?.origin.video?.id ?? `${slug}-origin`,
+      id: base?.origin.video.id ?? `${slug}-origin`,
       platform: String(form.get("originPlatform")) as Video["platform"],
-      url: originUrl,
-      title: originTitle,
+      url: String(form.get("originUrl") ?? "").trim(),
+      title: String(form.get("originTitle") ?? "").trim(),
       creator: String(form.get("originCreator") ?? "").trim() || undefined,
       uploadedAt: String(form.get("originDate") ?? "").trim() || undefined,
       thumbnailUrl: String(form.get("thumbnailUrl") ?? "").trim() || undefined,
-    } : undefined;
-    const evidenceTitle = String(form.get("evidenceTitle") ?? "").trim();
-    const evidenceDetail = String(form.get("evidenceDetail") ?? "").trim();
-    const firstEvidence = evidenceTitle && evidenceDetail
-      ? [{ title: evidenceTitle, detail: evidenceDetail, url: sourceUrl || undefined }]
-      : [];
-    const timelineDate = String(form.get("timelineDate") ?? "").trim();
-    const timelineTitle = String(form.get("timelineTitle") ?? "").trim();
-    const timelineDescription = String(form.get("timelineDescription") ?? "").trim();
-    const firstTimeline = timelineDate && timelineTitle && timelineDescription ? [{
-      id: base?.timeline[0]?.id ?? `${slug}-timeline-1`,
-      dateLabel: timelineDate,
-      title: timelineTitle,
-      description: timelineDescription,
-      sourceUrl: sourceUrl || undefined,
-      sourceLabel: "관련 근거",
-      kind: "origin" as const,
-    }] : [];
+    };
+    const evidence = [
+      {
+        title: String(form.get("evidenceTitle") ?? "").trim() || "확인 근거",
+        detail: String(form.get("evidenceDetail") ?? "").trim(),
+        url: sourceUrl || undefined,
+      },
+      ...(base?.origin.evidence.slice(1) ?? []),
+    ];
+    const timeline = [
+      {
+        id: base?.timeline[0]?.id ?? `${slug}-timeline-1`,
+        dateLabel: String(form.get("timelineDate") ?? "").trim(),
+        title: String(form.get("timelineTitle") ?? "").trim(),
+        description: String(form.get("timelineDescription") ?? "").trim(),
+        sourceUrl: sourceUrl || undefined,
+        sourceLabel: "관련 근거",
+        kind: "origin" as const,
+      },
+      ...(base?.timeline.slice(1) ?? []),
+    ].filter((item) => item.dateLabel && item.title && item.description);
 
     const payload: AdminMeme = {
       ...(base ?? ({} as AdminMeme)),
@@ -227,14 +195,12 @@ export function DictionaryManager({
         status: String(form.get("originStatus")) as AdminMeme["origin"]["status"],
         video: originVideo,
         summary: String(form.get("originSummary") ?? "").trim(),
-        evidence: [...firstEvidence, ...(base?.origin.evidence.slice(1) ?? [])],
+        evidence,
         lastReviewedAt: new Date().toISOString().slice(0, 10),
       },
-      timeline: [...firstTimeline, ...(base?.timeline.slice(1) ?? [])],
-      trendingVideos: usageLines(form.get("usageMaterials"), slug, base?.trendingVideos ?? []),
+      timeline,
+      trendingVideos: base?.trendingVideos ?? [],
       relatedVideos: base?.relatedVideos ?? [],
-      relatedMemeIds: form.getAll("relatedMemeIds").map(String).filter((id) => id !== (base?.id ?? slug)),
-      sourceLinks: sourceLines(form.get("sourceLinks"), slug),
       lifecycle: {
         originYear: Number(form.get("originYear")) || undefined,
         firstSeenAt: String(form.get("firstSeenAt") ?? "").trim() || undefined,
@@ -243,53 +209,27 @@ export function DictionaryManager({
     };
 
     try {
-      const response = await fetch(editing ? `${apiBase}/admin/memes/${encodeURIComponent(editing.id)}` : `${apiBase}/admin/memes`, {
-        method: editing ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        editing ? `${apiBase}/admin/memes/${encodeURIComponent(editing.id)}` : `${apiBase}/admin/memes`,
+        {
+          method: editing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
       if (!response.ok) throw new Error(await readError(response));
       const data = (await response.json()) as { item: AdminMeme };
-      onChange(editing ? items.map((item) => item.id === editing.id ? data.item : item) : [data.item, ...items]);
-      closeForm();
+      onChange(
+        editing
+          ? items.map((item) => (item.id === editing.id ? data.item : item))
+          : [data.item, ...items],
+      );
+      setEditing(null);
+      setCreating(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "저장하지 못했습니다.");
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function enrichFromUrl() {
-    const form = formRef.current;
-    const sourceInput = form?.elements.namedItem("metadataUrl") as HTMLInputElement | null;
-    if (!form || !sourceInput?.value.trim()) {
-      setError("자동 채우기에 사용할 커뮤니티 또는 영상 링크를 입력해 주세요.");
-      return;
-    }
-    setEnriching(true);
-    setError("");
-    setNotice("");
-    try {
-      const response = await fetch(`${apiBase}/admin/metadata/preview`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: sourceInput.value.trim() }),
-      });
-      if (!response.ok) throw new Error(await readError(response));
-      const { suggestion } = (await response.json()) as { suggestion: MetadataSuggestion };
-      const setIfEmpty = (name: string, value?: string) => {
-        const control = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | null;
-        if (control && !control.value.trim() && value) control.value = value;
-      };
-      setIfEmpty("title", suggestion.title);
-      setIfEmpty("summary", suggestion.description);
-      setIfEmpty("thumbnailUrl", suggestion.thumbnailUrl);
-      setIfEmpty("sourceLinks", `${suggestion.title ?? suggestion.siteName ?? "관련 링크"} | ${suggestion.sourceUrl}`);
-      setNotice(`${suggestion.provider === "youtube-oembed" ? "YouTube" : "링크"} 정보를 불러왔습니다.${suggestion.ai.used ? " Gemma가 설명을 다듬었습니다." : " 설명은 직접 확인해 주세요."}`);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "링크 정보를 불러오지 못했습니다.");
-    } finally {
-      setEnriching(false);
     }
   }
 
@@ -304,7 +244,7 @@ export function DictionaryManager({
       });
       if (!response.ok) throw new Error(await readError(response));
       const data = (await response.json()) as { item: AdminMeme };
-      onChange(items.map((candidate) => candidate.id === item.id ? data.item : candidate));
+      onChange(items.map((candidate) => (candidate.id === item.id ? data.item : candidate)));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "상태를 바꾸지 못했습니다.");
     } finally {
@@ -313,15 +253,20 @@ export function DictionaryManager({
   }
 
   async function deleteItem(item: AdminMeme) {
-    if (item.publicationStatus === "published" && !confirm(`공개 중인 "${item.title}" 항목을 완전히 삭제하시겠습니까?`)) return;
+    if (!confirm(`"${item.title}" 항목을 완전히 삭제하시겠습니까?`)) return;
     setSaving(true);
     setError("");
     try {
-      const response = await fetch(`${apiBase}/admin/memes/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+      const response = await fetch(`${apiBase}/admin/memes/${encodeURIComponent(item.id)}`, {
+        method: "DELETE",
+      });
       if (!response.ok) throw new Error(await readError(response));
       onChange(items.filter((candidate) => candidate.id !== item.id));
-      setSelectedIds((current) => { const next = new Set(current); next.delete(item.id); return next; });
-      setNotice(`"${item.title}" 항목을 삭제했습니다.`);
+      setSelectedIds((current) => {
+        const next = new Set(current);
+        next.delete(item.id);
+        return next;
+      });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "삭제하지 못했습니다.");
     } finally {
@@ -329,159 +274,522 @@ export function DictionaryManager({
     }
   }
 
-  async function runBulkAction() {
-    const ids = [...selectedIds];
-    if (!ids.length) return;
-    const payload = bulkAction === "publish" || bulkAction === "draft" || bulkAction === "archive"
-      ? { ids, action: "status", publicationStatus: bulkAction === "publish" ? "published" : bulkAction }
-      : { ids, action: bulkAction, categoryId: bulkCategoryId };
+  async function deleteSelected() {
+    if (!selectedIds.size) return;
+    if (!confirm(`선택한 ${selectedIds.size}개 항목을 삭제하시겠습니까?`)) return;
     setSaving(true);
     setError("");
-    setNotice("");
     try {
-      const response = await fetch(`${apiBase}/admin/memes/bulk`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) throw new Error(await readError(response));
-      const data = (await response.json()) as { items: AdminMeme[]; deletedIds: string[]; missingIds: string[] };
-      const updatedById = new Map(data.items.map((item) => [item.id, item]));
-      const deleted = new Set(data.deletedIds);
-      onChange(items.filter((item) => !deleted.has(item.id)).map((item) => updatedById.get(item.id) ?? item));
+      for (const id of selectedIds) {
+        await fetch(`${apiBase}/admin/memes/${encodeURIComponent(id)}`, { method: "DELETE" });
+      }
+      onChange(items.filter((item) => !selectedIds.has(item.id)));
       setSelectedIds(new Set());
-      setNotice(`${ids.length - data.missingIds.length}개 항목을 한 번에 처리했습니다.`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "일괄 작업을 처리하지 못했습니다.");
+      setError(cause instanceof Error ? cause.message : "일부 항목을 삭제하지 못했습니다.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function deleteSelected() {
-    const ids = [...selectedIds];
-    if (!ids.length) return;
-    const publishedCount = items.filter((item) => selectedIds.has(item.id) && item.publicationStatus === "published").length;
-    if (publishedCount > 0 && !confirm(`선택한 ${ids.length}개 중 공개 항목 ${publishedCount}개가 포함되어 있습니다. 완전히 삭제하시겠습니까?`)) return;
+  async function runBulkAction() {
+    if (!selectedIds.size) return;
     setSaving(true);
     setError("");
-    setNotice("");
     try {
-      const response = await fetch(`${apiBase}/admin/memes/bulk`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids, action: "delete" }),
-      });
-      if (!response.ok) throw new Error(await readError(response));
-      const data = (await response.json()) as { deletedIds: string[]; missingIds: string[] };
-      const deleted = new Set(data.deletedIds);
-      onChange(items.filter((item) => !deleted.has(item.id)));
+      const selectedMemes = items.filter((item) => selectedIds.has(item.id));
+      for (const meme of selectedMemes) {
+        let updated = { ...meme };
+        if (bulkAction === "publish") updated.publicationStatus = "published";
+        else if (bulkAction === "draft") updated.publicationStatus = "draft";
+        else if (bulkAction === "archive") updated.publicationStatus = "archived";
+        else if (bulkAction === "add-category" && bulkCategoryId) {
+          if (!updated.categoryIds.includes(bulkCategoryId)) {
+            updated.categoryIds = [...updated.categoryIds, bulkCategoryId];
+          }
+        } else if (bulkAction === "remove-category" && bulkCategoryId) {
+          updated.categoryIds = updated.categoryIds.filter((id) => id !== bulkCategoryId);
+        }
+
+        await fetch(`${apiBase}/admin/memes/${encodeURIComponent(meme.id)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updated),
+        });
+      }
+      // 리로드
+      const response = await fetch(`${apiBase}/admin/memes`, { cache: "no-store" });
+      if (response.ok) {
+        const data = (await response.json()) as { items: AdminMeme[] };
+        onChange(data.items);
+      }
       setSelectedIds(new Set());
-      setNotice(`${data.deletedIds.length}개 항목을 삭제했습니다.`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "선택 항목을 삭제하지 못했습니다.");
+      setError(cause instanceof Error ? cause.message : "일괄 처리를 실패했습니다.");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <section className="mt-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-black p-5 text-white sm:p-6">
+    <section className="mt-5 space-y-4">
+      {/* 어드민 상단 헤더 */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-zinc-900 px-6 py-5 text-white shadow-md">
         <div>
-          <p className="text-xs font-black text-[#25f4ee]">LIVE DICTIONARY</p>
-          <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">사전 항목 관리</h2>
-          <p className="mt-1 text-xs leading-5 text-white/50">수정·삭제·공개 상태·카테고리를 목록에서 한 번에 관리합니다.</p>
+          <div className="flex items-center gap-2">
+            <span className="inline-block size-2 rounded-full bg-emerald-400 animate-pulse" />
+            <p className="text-[0.7rem] font-extrabold uppercase tracking-wider text-emerald-400">MEME MANAGEMENT</p>
+          </div>
+          <h2 className="mt-1 text-2xl font-black tracking-tight">사전 항목 관리</h2>
+          <p className="mt-0.5 text-xs text-zinc-400">
+            실시간 사전 데이터를 등록, 수정, 삭제하거나 상태를 일괄 변경할 수 있습니다.
+          </p>
         </div>
-        <button className="flex cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2.5 text-xs font-black text-black" onClick={openCreate} type="button"><Plus className="size-4" />새 항목</button>
+        <button
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-xs font-black text-zinc-900 shadow transition hover:bg-zinc-100 active:scale-95"
+          onClick={() => {
+            setCreating(true);
+            setEditing(null);
+            setError("");
+          }}
+          type="button"
+        >
+          <Plus className="size-4" /> 사전 항목 등록
+        </button>
       </div>
 
-      {error && <p className="mt-3 rounded-xl bg-[#fff0f3] px-4 py-3 text-xs font-bold text-[#d91d46]">{error}</p>}
-      {notice && <p className="mt-3 rounded-xl bg-[#e8fffe] px-4 py-3 text-xs font-bold text-[#087b77]">{notice}</p>}
+      {error && (
+        <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-bold text-rose-600">
+          {error}
+        </p>
+      )}
 
+      {/* 폼 영역 (생성 / 수정) */}
       {formOpen && (
-        <form className="mt-4 rounded-3xl border border-black/5 bg-white p-5 shadow-sm sm:p-7" key={editing?.id ?? "new"} onSubmit={save} ref={formRef}>
-          <div className="flex items-center justify-between"><h3 className="text-lg font-black">{editing ? `${editing.title} 수정` : "새 사전 항목"}</h3><button className="cursor-pointer rounded-full bg-black/5 p-2 text-black/40" onClick={closeForm} type="button" aria-label="편집 닫기"><X className="size-4" /></button></div>
-          <div className="mt-5 rounded-2xl bg-[#f7f7f8] p-4">
-            <label className="text-xs font-black text-black/50" htmlFor="metadata-url">커뮤니티·영상 링크로 자동 채우기</label>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-              <input className="min-w-0 flex-1 rounded-xl border border-black/10 bg-white px-3 py-3 text-base outline-none" id="metadata-url" name="metadataUrl" placeholder="https://..." type="url" />
-              <button className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-black px-4 py-3 text-xs font-black text-white" disabled={enriching} onClick={() => void enrichFromUrl()} type="button">{enriching ? <LoaderCircle className="size-4 animate-spin" /> : <Sparkles className="size-4" />}{enriching ? "분석 중" : "정보 가져오기"}</button>
+        <form
+          className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg sm:p-7"
+          key={editing?.id ?? "new"}
+          onSubmit={save}
+        >
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+            <div>
+              <span className="text-[0.68rem] font-bold text-rose-500 uppercase tracking-wider">
+                {editing ? "Edit Entry" : "Create Entry"}
+              </span>
+              <h3 className="text-xl font-black text-zinc-900">
+                {editing ? `${editing.title} 수정` : "새 사전 항목 추가"}
+              </h3>
             </div>
-            <p className="mt-2 text-[0.68rem] leading-5 text-black/35">썸네일은 oEmbed/Open Graph에서 먼저 가져오고, 서버에 Gemma 키가 있으면 설명 초안만 다듬습니다. 저장 전 반드시 확인하세요.</p>
+            <button
+              className="cursor-pointer rounded-full bg-zinc-100 p-2 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700"
+              onClick={() => {
+                setCreating(false);
+                setEditing(null);
+              }}
+              type="button"
+              aria-label="닫기"
+            >
+              <X className="size-5" />
+            </button>
           </div>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <Field label="제목"><input name="title" required defaultValue={editing?.title} /></Field>
-            <Field label="slug"><input name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="meme-slug" defaultValue={editing?.slug ?? draftSlug} /></Field>
-            <Field label="종류"><select name="kind" defaultValue={editing?.kind ?? "minor-meme"}><option value="minor-meme">코리아 마이너 밈</option><option value="community-meme">커뮤니티 밈</option><option value="video-meme">영상 밈</option><option value="challenge">챌린지</option></select></Field>
-            <Field label="공개 상태"><select name="publicationStatus" defaultValue={editing?.publicationStatus ?? "draft"}><option value="draft">작성 중</option><option value="published">바로 공개</option><option value="archived">보관</option></select></Field>
-            <Field label="별칭 · 쉼표 구분"><input name="aliases" defaultValue={editing?.aliases.join(", ")} /></Field>
-            <Field label="태그 · 작은 검색 키워드"><input name="tags" placeholder="유행어, 디시, 2026" defaultValue={editing?.tags.join(", ")} /></Field>
-            <Field label="카테고리" wide><div className="grid gap-2 rounded-2xl bg-[#f7f7f8] p-3 sm:grid-cols-2">{categories.filter((category) => category.isActive || editing?.categoryIds.includes(category.id)).map((category) => <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm font-bold" key={category.id}><input className="size-4 accent-black" defaultChecked={editing ? editing.categoryIds.includes(category.id) : category.slug === "korea-minor-meme"} name="categoryIds" type="checkbox" value={category.id} />{category.label}</label>)}</div></Field>
-            <Field label="연결·파생 밈" wide><div className="grid max-h-52 gap-2 overflow-y-auto rounded-2xl bg-[#f7f7f8] p-3 sm:grid-cols-2">{items.filter((item) => item.id !== editing?.id).map((item) => <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm font-bold" key={item.id}><input className="size-4 accent-black" defaultChecked={editing?.relatedMemeIds?.includes(item.id)} name="relatedMemeIds" type="checkbox" value={item.id} /><span className="min-w-0 truncate">{item.title}</span></label>)}{items.filter((item) => item.id !== editing?.id).length === 0 && <p className="text-xs font-bold text-black/35">연결할 다른 밈이 없습니다.</p>}</div></Field>
-            <Field label="한 줄 설명 · 선택" wide><textarea name="summary" placeholder="비워도 저장할 수 있으며 나중에 제안이나 AI 초안으로 보완할 수 있습니다." defaultValue={editing?.summary} /></Field>
-            <Field label="관련 커뮤니티 링크 · 한 줄에 하나" wide><textarea name="sourceLinks" placeholder={'링크 제목 | https://example.com/post\nhttps://example.com/another'} defaultValue={(editing?.sourceLinks ?? []).map((link) => `${link.title} | ${link.url}`).join("\n")} /></Field>
-            <Field label="사용 영상·자료 TOP 3 · 제목 | 링크 | 썸네일 URL" wide><textarea name="usageMaterials" placeholder={'대표 사용 영상 | https://youtube.com/...\n커뮤니티 게시글 | https://example.com/post | https://example.com/screenshot.jpg'} defaultValue={(editing?.trendingVideos ?? []).slice(0, 3).map((video) => `${video.title} | ${video.url}${video.thumbnailUrl ? ` | ${video.thumbnailUrl}` : ""}`).join("\n")} /></Field>
-            <Field label="썸네일 URL · 선택" wide><input name="thumbnailUrl" type="url" placeholder="비우면 YouTube 또는 링크 메타데이터 후보를 사용합니다" defaultValue={editing?.thumbnailUrl} /></Field>
-            <Field label="포인트 색상"><input name="accent" type="color" defaultValue={editing?.accent ?? "#fe2c55"} /></Field>
-            <Field label="원본 판단"><select name="originStatus" defaultValue={editing?.origin.status ?? "needs-review"}><option value="verified">출처 확인</option><option value="likely">유력</option><option value="needs-review">검토 필요</option></select></Field>
-          </div>
-          <details className="mt-5 rounded-2xl border border-black/5 bg-[#fafafa] p-4">
-            <summary className="cursor-pointer text-sm font-black">원본·근거·타임라인 고급 편집</summary>
-            <p className="mt-2 text-xs leading-5 text-black/40">마이너 밈은 원본 영상과 타임라인을 비워도 됩니다.</p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Field label="유행 시작 연도"><input name="originYear" type="number" min="1900" max={new Date().getFullYear() + 1} placeholder="2026" defaultValue={editing?.lifecycle?.originYear} /></Field>
-              <Field label="최초 확인일"><input name="firstSeenAt" type="date" defaultValue={editing?.lifecycle?.firstSeenAt} /></Field>
-              <Field label="최근 사용 확인일"><input name="lastObservedAt" type="date" defaultValue={editing?.lifecycle?.lastObservedAt} /></Field>
-              <Field label="원본 플랫폼"><select name="originPlatform" defaultValue={editing?.origin.video?.platform ?? "unknown"}><option value="unknown">기타·없음</option><option value="youtube">YouTube</option><option value="tiktok">TikTok</option><option value="instagram">Instagram</option><option value="x">X</option></select></Field>
-              <Field label="원본/대표 영상 URL"><input name="originUrl" type="url" defaultValue={editing?.origin.video?.url} /></Field>
-              <Field label="영상 제목"><input name="originTitle" defaultValue={editing?.origin.video?.title} /></Field>
-              <Field label="업로더"><input name="originCreator" defaultValue={editing?.origin.video?.creator} /></Field>
-              <Field label="업로드 날짜"><input name="originDate" placeholder="YYYY-MM-DD 또는 확인 중" defaultValue={editing?.origin.video?.uploadedAt} /></Field>
-              <Field label="원본 설명 · 선택" wide><textarea name="originSummary" defaultValue={editing?.origin.summary} /></Field>
-              <Field label="근거 제목"><input name="evidenceTitle" defaultValue={editing?.origin.evidence[0]?.title} /></Field>
-              <Field label="근거 링크"><input name="sourceUrl" type="url" defaultValue={editing?.origin.evidence[0]?.url ?? editing?.timeline[0]?.sourceUrl} /></Field>
-              <Field label="근거 설명" wide><textarea name="evidenceDetail" defaultValue={editing?.origin.evidence[0]?.detail} /></Field>
-              <Field label="타임라인 시점"><input name="timelineDate" placeholder="2026. 02" defaultValue={editing?.timeline[0]?.dateLabel} /></Field>
-              <Field label="타임라인 제목"><input name="timelineTitle" defaultValue={editing?.timeline[0]?.title} /></Field>
-              <Field label="타임라인 설명" wide><textarea name="timelineDescription" defaultValue={editing?.timeline[0]?.description} /></Field>
+
+          <div className="mt-5 grid gap-4 text-xs sm:grid-cols-2">
+            <Field label="제목 (Title)"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-sm font-bold outline-none focus:border-zinc-900" name="title" required defaultValue={editing?.title} placeholder="예: 꿍싯꿍싯" /></Field>
+            <Field label="slug (URL 식별자)"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-sm font-mono outline-none focus:border-zinc-900" name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="kkungsit-kkungsit" defaultValue={editing?.slug} /></Field>
+            <Field label="종류 (Kind)">
+              <select className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2.5 font-bold outline-none focus:border-zinc-900" name="kind" defaultValue={editing?.kind ?? "community-meme"}>
+                <option value="community-meme">커뮤니티 밈</option>
+                <option value="video-meme">영상 밈</option>
+                <option value="challenge">챌린지</option>
+              </select>
+            </Field>
+            <Field label="공개 상태 (Publication Status)">
+              <select className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2.5 font-bold outline-none focus:border-zinc-900" name="publicationStatus" defaultValue={editing?.publicationStatus ?? "published"}>
+                <option value="published">공개 (Published)</option>
+                <option value="draft">작성 중 (Draft)</option>
+                <option value="archived">보관 (Archived)</option>
+              </select>
+            </Field>
+            <Field label="별칭 (Comma-separated aliases)"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="aliases" defaultValue={editing?.aliases.join(", ")} placeholder="다이죠부, 료 챌린지" /></Field>
+            <Field label="포인트 색상"><input className="h-10 w-full cursor-pointer rounded-xl border border-zinc-200 p-1" name="accent" type="color" defaultValue={editing?.accent ?? "#fe2c55"} /></Field>
+
+            <Field label="카테고리 선택" wide>
+              <div className="flex flex-wrap gap-2 rounded-xl bg-zinc-50 p-3">
+                {categories.filter((c) => c.isActive || editing?.categoryIds.includes(c.id)).map((category) => (
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 hover:border-zinc-400" key={category.id}>
+                    <input className="size-3.5 accent-zinc-900" defaultChecked={editing?.categoryIds.includes(category.id)} name="categoryIds" type="checkbox" value={category.id} />
+                    {category.label}
+                  </label>
+                ))}
+              </div>
+            </Field>
+
+            <Field label="태그 (Tags)"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="tags" placeholder="댄스, 역챌린지, 2026" defaultValue={editing?.tags.join(", ")} /></Field>
+            <Field label="한 줄 요약 (Summary)" wide><textarea className="w-full rounded-xl border border-zinc-200 p-3 text-xs leading-relaxed outline-none focus:border-zinc-900" name="summary" required rows={2} defaultValue={editing?.summary} placeholder="밈에 대한 명확하고 간결한 요약 설명" /></Field>
+            <Field label="썸네일 URL (선택사항 - 미입력 시 YouTube 등 자동 추론)" wide><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="thumbnailUrl" type="url" placeholder="https://... 또는 /thumbnails/..." defaultValue={editing?.thumbnailUrl} /></Field>
+
+            <div className="col-span-full my-2 border-t border-zinc-100 pt-3">
+              <p className="text-xs font-black text-zinc-400 uppercase tracking-wider">Origin & Video Meta</p>
             </div>
-          </details>
-          <button className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#fe2c55] px-5 py-3.5 text-sm font-black text-white" disabled={saving} type="submit">{saving ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}{saving ? "저장 중" : "사전 항목 저장"}</button>
+
+            <Field label="원본 검증 상태"><select className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2.5 font-bold outline-none focus:border-zinc-900" name="originStatus" defaultValue={editing?.origin.status ?? "verified"}><option value="verified">출처 확인 (Verified)</option><option value="likely">유력 (Likely)</option><option value="needs-review">검토 필요 (Needs Review)</option></select></Field>
+            <Field label="유행 시작 연도"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="originYear" type="number" min="1900" max={new Date().getFullYear() + 1} placeholder="2026" defaultValue={editing?.lifecycle?.originYear} /></Field>
+            <Field label="원본 플랫폼"><select className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2.5 font-bold outline-none focus:border-zinc-900" name="originPlatform" defaultValue={editing?.origin.video.platform ?? "youtube"}><option value="youtube">YouTube</option><option value="tiktok">TikTok</option><option value="instagram">Instagram</option><option value="x">X</option><option value="unknown">기타</option></select></Field>
+            <Field label="원본 영상 URL"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="originUrl" required type="url" defaultValue={editing?.origin.video.url} placeholder="https://www.youtube.com/watch?v=..." /></Field>
+            <Field label="영상 제목"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="originTitle" required defaultValue={editing?.origin.video.title} placeholder="영상 제목" /></Field>
+            <Field label="업로더 (Creator)"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="originCreator" defaultValue={editing?.origin.video.creator} placeholder="@ryo.cute" /></Field>
+            <Field label="원본 요약 설명" wide><textarea className="w-full rounded-xl border border-zinc-200 p-3 text-xs leading-relaxed outline-none focus:border-zinc-900" name="originSummary" required rows={2} defaultValue={editing?.origin.summary} placeholder="원본 영상 유래 및 확산 개요" /></Field>
+          </div>
+
+          <div className="mt-6 flex justify-end gap-2 border-t border-zinc-100 pt-4">
+            <button className="cursor-pointer rounded-full bg-zinc-100 px-5 py-2.5 text-xs font-bold text-zinc-600 hover:bg-zinc-200" onClick={() => { setCreating(false); setEditing(null); }} type="button">취소</button>
+            <button className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-rose-600 px-6 py-2.5 text-xs font-black text-white hover:bg-rose-700 disabled:opacity-50" disabled={saving} type="submit">{saving ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}{saving ? "저장 중" : "사전 항목 저장"}</button>
+          </div>
         </form>
       )}
 
-      <div className="mt-4 rounded-3xl border border-black/5 bg-white p-4 sm:p-5">
-        <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto]">
-          <label className="relative"><span className="sr-only">사전 항목 검색</span><Filter className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-black/30" /><input className="w-full rounded-xl bg-[#f7f7f8] py-3 pl-9 pr-3 text-base outline-none" onChange={(event) => setQuery(event.target.value)} placeholder="제목·slug·태그 검색" value={query} /></label>
-          <select aria-label="공개 상태 필터" className="cursor-pointer rounded-xl bg-[#f7f7f8] px-3 py-3 text-sm font-bold" onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} value={statusFilter}><option value="all">모든 상태</option><option value="published">공개</option><option value="draft">작성 중</option><option value="archived">보관</option></select>
-          <select aria-label="종류 필터" className="cursor-pointer rounded-xl bg-[#f7f7f8] px-3 py-3 text-sm font-bold" onChange={(event) => setKindFilter(event.target.value as typeof kindFilter)} value={kindFilter}><option value="all">모든 종류</option>{Object.entries(kindLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+      {/* 검색, 필터 및 뷰 모드 조작 바 */}
+      <div className="rounded-2xl border border-zinc-200 bg-white p-3.5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <div className="relative min-w-[200px] flex-1">
+              <Filter className="absolute left-3.5 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+              <input
+                className="w-full rounded-xl bg-zinc-100 py-2 pl-9 pr-3 text-xs font-medium outline-none focus:bg-zinc-50 focus:ring-2 focus:ring-zinc-900/10"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="제목, slug, 태그 검색..."
+                value={query}
+              />
+            </div>
+            <select
+              aria-label="공개 상태 필터"
+              className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 outline-none hover:border-zinc-400"
+              onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+              value={statusFilter}
+            >
+              <option value="all">모든 상태 ({items.length})</option>
+              <option value="published">공개만</option>
+              <option value="draft">작성 중만</option>
+              <option value="archived">보관만</option>
+            </select>
+            <select
+              aria-label="종류 필터"
+              className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 outline-none hover:border-zinc-400"
+              onChange={(event) => setKindFilter(event.target.value as typeof kindFilter)}
+              value={kindFilter}
+            >
+              <option value="all">모든 종류</option>
+              {Object.entries(kindLabels).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 뷰 모드 선택 (Grid vs Table) */}
+          <div className="flex items-center gap-1 rounded-xl bg-zinc-100 p-1">
+            <button
+              className={`flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${viewMode === "grid" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-900"}`}
+              onClick={() => setViewMode("grid")}
+              type="button"
+            >
+              <Grid className="size-3.5" /> 콤팩트 카드
+            </button>
+            <button
+              className={`flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${viewMode === "table" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-900"}`}
+              onClick={() => setViewMode("table")}
+              type="button"
+            >
+              <List className="size-3.5" /> 테이블 뷰
+            </button>
+          </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-black/5 pt-3">
-          <label className="flex cursor-pointer items-center gap-2 text-xs font-black"><input checked={allVisibleSelected} className="size-4 accent-black" onChange={() => setSelectedIds((current) => { const next = new Set(current); visibleItems.forEach((item) => allVisibleSelected ? next.delete(item.id) : next.add(item.id)); return next; })} type="checkbox" />현재 목록 전체 선택</label>
-          <span className="text-xs font-bold text-black/35">{selectedIds.size}개 선택</span>
-          <div className="ml-auto flex flex-wrap gap-2">
-            {selectedIds.size > 0 && <button className="cursor-pointer rounded-xl px-3 py-2 text-xs font-black text-black/40 hover:bg-black/5" onClick={() => setSelectedIds(new Set())} type="button">선택 해제</button>}
-            <select aria-label="일괄 작업" className="cursor-pointer rounded-xl bg-[#f7f7f8] px-3 py-2 text-xs font-black" onChange={(event) => setBulkAction(event.target.value as BulkAction)} value={bulkAction}><option value="publish">공개</option><option value="draft">작성 중</option><option value="archive">보관</option><option value="add-category">카테고리 추가</option><option value="remove-category">카테고리 제거</option></select>
-            {(bulkAction === "add-category" || bulkAction === "remove-category") && <select aria-label="일괄 카테고리" className="cursor-pointer rounded-xl bg-[#f7f7f8] px-3 py-2 text-xs font-black" onChange={(event) => setBulkCategoryId(event.target.value)} value={bulkCategoryId}>{categories.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}</select>}
-            <button className="cursor-pointer rounded-xl bg-black px-4 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-35" disabled={!selectedIds.size || saving || ((bulkAction === "add-category" || bulkAction === "remove-category") && !bulkCategoryId)} onClick={() => void runBulkAction()} type="button">선택 항목 적용</button>
-            <button className="flex cursor-pointer items-center gap-1.5 rounded-xl bg-[#fff0f3] px-4 py-2 text-xs font-black text-[#d91d46] disabled:cursor-not-allowed disabled:opacity-35" disabled={!selectedIds.size || saving} onClick={() => void deleteSelected()} type="button"><Trash2 className="size-3.5" />선택 삭제</button>
+
+        {/* 일괄 작업 도구 */}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-3 text-xs">
+          <div className="flex items-center gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-2 font-bold text-zinc-700">
+              <input
+                checked={allVisibleSelected}
+                className="size-4 accent-zinc-900"
+                onChange={() =>
+                  setSelectedIds((current) => {
+                    const next = new Set(current);
+                    visibleItems.forEach((item) =>
+                      allVisibleSelected ? next.delete(item.id) : next.add(item.id),
+                    );
+                    return next;
+                  })
+                }
+                type="checkbox"
+              />
+              전체 선택 ({visibleItems.length}개 중 {selectedIds.size}개)
+            </label>
+            {selectedIds.size > 0 && (
+              <button
+                className="cursor-pointer text-zinc-400 underline hover:text-zinc-700"
+                onClick={() => setSelectedIds(new Set())}
+                type="button"
+              >
+                선택 해제
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              aria-label="일괄 작업 선택"
+              className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-3 py-1.5 font-bold text-zinc-700"
+              onChange={(event) => setBulkAction(event.target.value as BulkAction)}
+              value={bulkAction}
+            >
+              <option value="publish">공개 상태로 변경</option>
+              <option value="draft">작성 중으로 변경</option>
+              <option value="archive">보관 상태로 변경</option>
+              <option value="add-category">카테고리 추가</option>
+              <option value="remove-category">카테고리 제거</option>
+            </select>
+            {(bulkAction === "add-category" || bulkAction === "remove-category") && (
+              <select
+                aria-label="카테고리 선택"
+                className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-3 py-1.5 font-bold text-zinc-700"
+                onChange={(event) => setBulkCategoryId(event.target.value)}
+                value={bulkCategoryId}
+              >
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
+            )}
+            <button
+              className="cursor-pointer rounded-xl bg-zinc-900 px-3.5 py-1.5 font-bold text-white transition hover:bg-zinc-800 disabled:opacity-35"
+              disabled={!selectedIds.size || saving}
+              onClick={() => void runBulkAction()}
+              type="button"
+            >
+              선택 항목 적용
+            </button>
+            <button
+              className="inline-flex cursor-pointer items-center gap-1 rounded-xl bg-rose-50 px-3.5 py-1.5 font-bold text-rose-600 border border-rose-200/60 hover:bg-rose-100 disabled:opacity-35"
+              disabled={!selectedIds.size || saving}
+              onClick={() => void deleteSelected()}
+              type="button"
+            >
+              <Trash2 className="size-3.5" /> 선택 삭제
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {visibleItems.map((item) => {
-          const meta = statusMeta[item.publicationStatus];
-          return <article className={`rounded-2xl border bg-white p-5 ${selectedIds.has(item.id) ? "border-[#fe2c55] ring-2 ring-[#fe2c55]/10" : "border-black/5"}`} key={item.id}>
-            <div className="flex items-start gap-3"><input aria-label={`${item.title} 선택`} checked={selectedIds.has(item.id)} className="mt-1 size-4 cursor-pointer accent-[#fe2c55]" onChange={() => setSelectedIds((current) => { const next = new Set(current); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next; })} type="checkbox" /><div className="min-w-0 flex-1"><div className="flex flex-wrap gap-1.5"><span className={`rounded-full px-2.5 py-1 text-[0.68rem] font-black ${meta.className}`}>{meta.label}</span><span className="rounded-full bg-black/5 px-2.5 py-1 text-[0.68rem] font-black text-black/50">{kindLabels[item.kind]}</span></div><h3 className="mt-3 truncate text-xl font-black">{item.title}</h3><p className="mt-1 text-xs font-bold text-black/30">/{item.slug} · {item.lifecycle?.originYear ? `${item.lifecycle.originYear}년 · ` : ""}{item.categoryIds.map((id) => categories.find((category) => category.id === id)?.label).filter(Boolean).join(" · ")}</p></div>{item.publicationStatus === "published" && <a className="cursor-pointer rounded-full bg-black/5 p-2 text-black/40" href={`https://viralorigin.vercel.app/memes/${encodeURIComponent(item.slug)}`} target="_blank" rel="noreferrer" aria-label={`${item.title} 공개 페이지 열기`}><ExternalLink className="size-4" /></a>}</div>
-            <p className="mt-3 line-clamp-2 text-sm leading-6 text-black/50">{item.summary || "설명 미등록 · 사용자 제안이나 AI 초안으로 보완 가능"}</p>
-            <p className="mt-2 text-[0.68rem] font-bold text-black/25">{item.tags.map((tag) => `#${tag}`).join(" ")}</p>
-            <div className="mt-4 flex flex-wrap gap-2 border-t border-black/5 pt-4"><button className="flex cursor-pointer items-center gap-1.5 rounded-full bg-black px-3 py-2 text-xs font-black text-white" onClick={() => { setEditing(item); setCreating(false); setError(""); window.scrollTo({ top: 0, behavior: "smooth" }); }} type="button"><FilePenLine className="size-3.5" />수정</button>{item.publicationStatus !== "published" && <button className="flex cursor-pointer items-center gap-1.5 rounded-full bg-[#e8fffe] px-3 py-2 text-xs font-black text-[#087b77]" disabled={saving} onClick={() => void changeStatus(item, "published")} type="button"><Check className="size-3.5" />공개</button>}{item.publicationStatus !== "archived" && <button className="flex cursor-pointer items-center gap-1.5 rounded-full bg-black/5 px-3 py-2 text-xs font-black text-black/45" disabled={saving} onClick={() => void changeStatus(item, "archived")} type="button"><Archive className="size-3.5" />보관</button>}<button className="ml-auto flex cursor-pointer items-center gap-1.5 rounded-full bg-[#fff0f3] px-3 py-2 text-xs font-black text-[#d91d46] hover:bg-[#ffe5e9]" disabled={saving} onClick={() => void deleteItem(item)} type="button"><Trash2 className="size-3.5" />삭제</button></div>
-          </article>;
-        })}
-      </div>
-      {!visibleItems.length && <p className="mt-4 rounded-2xl bg-white p-8 text-center text-sm font-bold text-black/35">조건에 맞는 사전 항목이 없습니다.</p>}
+      {/* 목록 렌더링 영역 */}
+      {!visibleItems.length ? (
+        <div className="rounded-2xl border border-dashed border-zinc-200 bg-white p-12 text-center">
+          <p className="text-sm font-bold text-zinc-400">조건에 일치하는 사전 항목이 없습니다.</p>
+        </div>
+      ) : viewMode === "grid" ? (
+        /* 콤팩트 카드 그리드 뷰 (3~4열로 공간 활용 극대화) */
+        <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {visibleItems.map((item) => {
+            const meta = statusMeta[item.publicationStatus];
+            const isSelected = selectedIds.has(item.id);
+            return (
+              <article
+                className={`group relative flex flex-col justify-between rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md ${
+                  isSelected ? "border-rose-500 ring-2 ring-rose-500/10" : "border-zinc-200/80 hover:border-zinc-300"
+                }`}
+                key={item.id}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <input
+                        aria-label={`${item.title} 선택`}
+                        checked={isSelected}
+                        className="size-4 cursor-pointer accent-rose-600 shrink-0"
+                        onChange={() =>
+                          setSelectedIds((current) => {
+                            const next = new Set(current);
+                            if (next.has(item.id)) next.delete(item.id);
+                            else next.add(item.id);
+                            return next;
+                          })
+                        }
+                        type="checkbox"
+                      />
+                      <span className={`rounded-md px-2 py-0.5 text-[0.62rem] font-black ${meta.className}`}>
+                        {meta.label}
+                      </span>
+                      <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[0.62rem] font-bold text-zinc-600 truncate">
+                        {kindLabels[item.kind]}
+                      </span>
+                    </div>
+                    {item.publicationStatus === "published" && (
+                      <a
+                        className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 shrink-0"
+                        aria-label="공개 페이지 보기"
+                        href={`https://viralorigin.vercel.app/memes/${encodeURIComponent(item.slug)}`}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        <ExternalLink className="size-3.5" />
+                      </a>
+                    )}
+                  </div>
+
+                  <h3 className="mt-3 truncate text-base font-black text-zinc-900 group-hover:text-rose-600">
+                    {item.title}
+                  </h3>
+                  <p className="mt-0.5 font-mono text-[0.68rem] font-bold text-zinc-400 truncate">
+                    /{item.slug} {item.lifecycle?.originYear ? `· ${item.lifecycle.originYear}년` : ""}
+                  </p>
+
+                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-zinc-600">
+                    {item.summary || "설명 미등록"}
+                  </p>
+                </div>
+
+                <div className="mt-4 border-t border-zinc-100 pt-3">
+                  <div className="mb-3 flex flex-wrap gap-1 min-h-[20px]">
+                    {item.tags.slice(0, 3).map((tag) => (
+                      <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[0.62rem] font-bold text-zinc-500" key={tag}>
+                        #{tag}
+                      </span>
+                    ))}
+                    {item.tags.length > 3 && (
+                      <span className="text-[0.62rem] font-bold text-zinc-400">+{item.tags.length - 3}</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-1 text-xs">
+                    <div className="flex items-center gap-1">
+                      <button
+                        className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-zinc-900 px-2.5 py-1.5 font-bold text-white hover:bg-zinc-800"
+                        onClick={() => {
+                          setEditing(item);
+                          setCreating(false);
+                          setError("");
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        type="button"
+                      >
+                        <FilePenLine className="size-3" /> 수정
+                      </button>
+                      {item.publicationStatus !== "published" && (
+                        <button
+                          className="inline-flex cursor-pointer items-center rounded-lg bg-emerald-50 px-2 py-1.5 font-bold text-emerald-700 hover:bg-emerald-100"
+                          disabled={saving}
+                          onClick={() => void changeStatus(item, "published")}
+                          type="button"
+                        >
+                          <Check className="size-3" /> 공개
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      className="inline-flex cursor-pointer items-center rounded-lg p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-600"
+                      disabled={saving}
+                      onClick={() => void deleteItem(item)}
+                      title="삭제"
+                      type="button"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        /* 테이블 뷰 (한눈에 수십 개 항목 파악 가능) */
+        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-zinc-200 bg-zinc-50 font-bold text-zinc-500">
+                  <th className="p-3.5 w-10 text-center">선택</th>
+                  <th className="p-3.5">상태</th>
+                  <th className="p-3.5">제목 / slug</th>
+                  <th className="p-3.5">종류</th>
+                  <th className="p-3.5">요약</th>
+                  <th className="p-3.5">태그</th>
+                  <th className="p-3.5 text-right">관리</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 font-medium text-zinc-800">
+                {visibleItems.map((item) => {
+                  const meta = statusMeta[item.publicationStatus];
+                  const isSelected = selectedIds.has(item.id);
+                  return (
+                    <tr className={`hover:bg-zinc-50/80 transition ${isSelected ? "bg-rose-50/30" : ""}`} key={item.id}>
+                      <td className="p-3.5 text-center">
+                        <input
+                          aria-label={`${item.title} 선택`}
+                          checked={isSelected}
+                          className="size-4 cursor-pointer accent-rose-600"
+                          onChange={() =>
+                            setSelectedIds((current) => {
+                              const next = new Set(current);
+                              if (next.has(item.id)) next.delete(item.id);
+                              else next.add(item.id);
+                              return next;
+                            })
+                          }
+                          type="checkbox"
+                        />
+                      </td>
+                      <td className="p-3.5 whitespace-nowrap">
+                        <span className={`rounded-md px-2 py-0.5 text-[0.62rem] font-black ${meta.className}`}>
+                          {meta.label}
+                        </span>
+                      </td>
+                      <td className="p-3.5 font-bold whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <span>{item.title}</span>
+                          <span className="font-mono text-[0.68rem] text-zinc-400">/{item.slug}</span>
+                        </div>
+                      </td>
+                      <td className="p-3.5 whitespace-nowrap text-zinc-500">
+                        {kindLabels[item.kind]}
+                      </td>
+                      <td className="p-3.5 max-w-xs truncate text-zinc-500">
+                        {item.summary || "설명 미등록"}
+                      </td>
+                      <td className="p-3.5 max-w-xs truncate text-zinc-400 font-mono text-[0.68rem]">
+                        {item.tags.map((t) => `#${t}`).join(" ")}
+                      </td>
+                      <td className="p-3.5 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            className="cursor-pointer rounded-lg bg-zinc-900 px-2.5 py-1 text-xs font-bold text-white hover:bg-zinc-800"
+                            onClick={() => {
+                              setEditing(item);
+                              setCreating(false);
+                              setError("");
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                            type="button"
+                          >
+                            수정
+                          </button>
+                          <button
+                            className="cursor-pointer rounded-lg border border-zinc-200 bg-white p-1 text-zinc-400 hover:border-rose-300 hover:text-rose-600"
+                            disabled={saving}
+                            onClick={() => void deleteItem(item)}
+                            title="삭제"
+                            type="button"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
