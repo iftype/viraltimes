@@ -65,7 +65,7 @@ export function getTikTokEmbedUrl(url: string) {
     const videoId = parsedUrl.pathname.match(/\/video\/(\d+)/)?.[1];
 
     return videoId
-      ? `https://www.tiktok.com/player/v1/${videoId}?autoplay=0&loop=0&rel=0`
+      ? `https://www.tiktok.com/player/v1/${videoId}?autoplay=1&mute=1&loop=1&music_info=0`
       : null;
   } catch {
     return null;

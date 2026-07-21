@@ -11,7 +11,7 @@ import { getInstagramEmbedUrl, getTikTokEmbedUrl, getYouTubeVideoId } from "../l
 function embedUrlFor(video: Video) {
   if (video.platform === "youtube") {
     const id = getYouTubeVideoId(video.url);
-    return id ? `https://www.youtube-nocookie.com/embed/${id}?playsinline=1&rel=0` : null;
+    return id ? `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1` : null;
   }
   if (video.platform === "instagram") return getInstagramEmbedUrl(video.url);
   if (video.platform === "tiktok") return getTikTokEmbedUrl(video.url);
@@ -21,7 +21,7 @@ function embedUrlFor(video: Video) {
 export function FeedMedia({ posterUrl, priority = false, video }: { posterUrl?: string | null; priority?: boolean; video?: Video }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [nearViewport, setNearViewport] = useState(priority);
-  const [instagramInteractive, setInstagramInteractive] = useState(false);
+  const [instagramInteractive, setInstagramInteractive] = useState(true);
   const embedUrl = useMemo(() => video ? embedUrlFor(video) : null, [video]);
   const isInstagram = video?.platform === "instagram";
   const isVertical = video?.platform === "instagram" || video?.platform === "tiktok" || video?.url.includes("/shorts/");
