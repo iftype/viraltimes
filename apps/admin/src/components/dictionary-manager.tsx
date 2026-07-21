@@ -12,12 +12,16 @@ import {
   Save,
   Trash2,
   X,
+  Play,
+  Search,
+  Tag as TagIcon,
+  Video,
 } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Field } from "@origin/ui";
 import type { AdminCategory } from "@/components/category-manager";
 
-type Video = {
+type VideoMeta = {
   id: string;
   platform: "youtube" | "tiktok" | "instagram" | "x" | "unknown";
   url: string;
@@ -39,7 +43,7 @@ export type AdminMeme = {
   summary: string;
   origin: {
     status: "verified" | "likely" | "needs-review";
-    video: Video;
+    video: VideoMeta;
     summary: string;
     evidence: Array<{ title: string; detail: string; url?: string }>;
     lastReviewedAt: string;
@@ -53,8 +57,8 @@ export type AdminMeme = {
     sourceLabel?: string;
     kind: "origin" | "spread" | "variation" | "mainstream" | "remix";
   }>;
-  trendingVideos: Video[];
-  relatedVideos: Video[];
+  trendingVideos: VideoMeta[];
+  relatedVideos: VideoMeta[];
   lifecycle?: {
     originYear?: number;
     firstSeenAt?: string;
@@ -143,16 +147,18 @@ export function DictionaryManager({
     const slug = String(form.get("slug") ?? "").trim().toLowerCase();
     const sourceUrl = String(form.get("sourceUrl") ?? "").trim();
     const base = editing;
-    const originVideo: Video = {
+
+    const originVideo: VideoMeta = {
       ...(base?.origin.video ?? { id: `${slug}-origin` }),
       id: base?.origin.video.id ?? `${slug}-origin`,
-      platform: String(form.get("originPlatform")) as Video["platform"],
+      platform: String(form.get("originPlatform")) as VideoMeta["platform"],
       url: String(form.get("originUrl") ?? "").trim(),
       title: String(form.get("originTitle") ?? "").trim(),
       creator: String(form.get("originCreator") ?? "").trim() || undefined,
       uploadedAt: String(form.get("originDate") ?? "").trim() || undefined,
       thumbnailUrl: String(form.get("thumbnailUrl") ?? "").trim() || undefined,
     };
+
     const evidence = [
       {
         title: String(form.get("evidenceTitle") ?? "").trim() || "확인 근거",
@@ -161,6 +167,7 @@ export function DictionaryManager({
       },
       ...(base?.origin.evidence.slice(1) ?? []),
     ];
+
     const timeline = [
       {
         id: base?.timeline[0]?.id ?? `${slug}-timeline-1`,
@@ -314,7 +321,6 @@ export function DictionaryManager({
           body: JSON.stringify(updated),
         });
       }
-      // 리로드
       const response = await fetch(`${apiBase}/admin/memes`, { cache: "no-store" });
       if (response.ok) {
         const data = (await response.json()) as { items: AdminMeme[] };
@@ -361,88 +367,18 @@ export function DictionaryManager({
         </p>
       )}
 
-      {/* 폼 영역 (생성 / 수정) */}
+      {/* 폼 영역 (개선된 인터랙티브 폼) */}
       {formOpen && (
-        <form
-          className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg sm:p-7"
-          key={editing?.id ?? "new"}
-          onSubmit={save}
-        >
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-            <div>
-              <span className="text-[0.68rem] font-bold text-rose-500 uppercase tracking-wider">
-                {editing ? "Edit Entry" : "Create Entry"}
-              </span>
-              <h3 className="text-xl font-black text-zinc-900">
-                {editing ? `${editing.title} 수정` : "새 사전 항목 추가"}
-              </h3>
-            </div>
-            <button
-              className="cursor-pointer rounded-full bg-zinc-100 p-2 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700"
-              onClick={() => {
-                setCreating(false);
-                setEditing(null);
-              }}
-              type="button"
-              aria-label="닫기"
-            >
-              <X className="size-5" />
-            </button>
-          </div>
-
-          <div className="mt-5 grid gap-4 text-xs sm:grid-cols-2">
-            <Field label="제목 (Title)"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-sm font-bold outline-none focus:border-zinc-900" name="title" required defaultValue={editing?.title} placeholder="예: 꿍싯꿍싯" /></Field>
-            <Field label="slug (URL 식별자)"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-sm font-mono outline-none focus:border-zinc-900" name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="kkungsit-kkungsit" defaultValue={editing?.slug} /></Field>
-            <Field label="종류 (Kind)">
-              <select className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2.5 font-bold outline-none focus:border-zinc-900" name="kind" defaultValue={editing?.kind ?? "community-meme"}>
-                <option value="community-meme">커뮤니티 밈</option>
-                <option value="video-meme">영상 밈</option>
-                <option value="challenge">챌린지</option>
-              </select>
-            </Field>
-            <Field label="공개 상태 (Publication Status)">
-              <select className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2.5 font-bold outline-none focus:border-zinc-900" name="publicationStatus" defaultValue={editing?.publicationStatus ?? "published"}>
-                <option value="published">공개 (Published)</option>
-                <option value="draft">작성 중 (Draft)</option>
-                <option value="archived">보관 (Archived)</option>
-              </select>
-            </Field>
-            <Field label="별칭 (Comma-separated aliases)"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="aliases" defaultValue={editing?.aliases.join(", ")} placeholder="다이죠부, 료 챌린지" /></Field>
-            <Field label="포인트 색상"><input className="h-10 w-full cursor-pointer rounded-xl border border-zinc-200 p-1" name="accent" type="color" defaultValue={editing?.accent ?? "#fe2c55"} /></Field>
-
-            <Field label="카테고리 선택" wide>
-              <div className="flex flex-wrap gap-2 rounded-xl bg-zinc-50 p-3">
-                {categories.filter((c) => c.isActive || editing?.categoryIds.includes(c.id)).map((category) => (
-                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 hover:border-zinc-400" key={category.id}>
-                    <input className="size-3.5 accent-zinc-900" defaultChecked={editing?.categoryIds.includes(category.id)} name="categoryIds" type="checkbox" value={category.id} />
-                    {category.label}
-                  </label>
-                ))}
-              </div>
-            </Field>
-
-            <Field label="태그 (Tags)"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="tags" placeholder="댄스, 역챌린지, 2026" defaultValue={editing?.tags.join(", ")} /></Field>
-            <Field label="한 줄 요약 (Summary)" wide><textarea className="w-full rounded-xl border border-zinc-200 p-3 text-xs leading-relaxed outline-none focus:border-zinc-900" name="summary" required rows={2} defaultValue={editing?.summary} placeholder="밈에 대한 명확하고 간결한 요약 설명" /></Field>
-            <Field label="썸네일 URL (선택사항 - 미입력 시 YouTube 등 자동 추론)" wide><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="thumbnailUrl" type="url" placeholder="https://... 또는 /thumbnails/..." defaultValue={editing?.thumbnailUrl} /></Field>
-
-            <div className="col-span-full my-2 border-t border-zinc-100 pt-3">
-              <p className="text-xs font-black text-zinc-400 uppercase tracking-wider">Origin & Video Meta</p>
-            </div>
-
-            <Field label="원본 검증 상태"><select className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2.5 font-bold outline-none focus:border-zinc-900" name="originStatus" defaultValue={editing?.origin.status ?? "verified"}><option value="verified">출처 확인 (Verified)</option><option value="likely">유력 (Likely)</option><option value="needs-review">검토 필요 (Needs Review)</option></select></Field>
-            <Field label="유행 시작 연도"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="originYear" type="number" min="1900" max={new Date().getFullYear() + 1} placeholder="2026" defaultValue={editing?.lifecycle?.originYear} /></Field>
-            <Field label="원본 플랫폼"><select className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2.5 font-bold outline-none focus:border-zinc-900" name="originPlatform" defaultValue={editing?.origin.video.platform ?? "youtube"}><option value="youtube">YouTube</option><option value="tiktok">TikTok</option><option value="instagram">Instagram</option><option value="x">X</option><option value="unknown">기타</option></select></Field>
-            <Field label="원본 영상 URL"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="originUrl" required type="url" defaultValue={editing?.origin.video.url} placeholder="https://www.youtube.com/watch?v=..." /></Field>
-            <Field label="영상 제목"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="originTitle" required defaultValue={editing?.origin.video.title} placeholder="영상 제목" /></Field>
-            <Field label="업로더 (Creator)"><input className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 outline-none focus:border-zinc-900" name="originCreator" defaultValue={editing?.origin.video.creator} placeholder="@ryo.cute" /></Field>
-            <Field label="원본 요약 설명" wide><textarea className="w-full rounded-xl border border-zinc-200 p-3 text-xs leading-relaxed outline-none focus:border-zinc-900" name="originSummary" required rows={2} defaultValue={editing?.origin.summary} placeholder="원본 영상 유래 및 확산 개요" /></Field>
-          </div>
-
-          <div className="mt-6 flex justify-end gap-2 border-t border-zinc-100 pt-4">
-            <button className="cursor-pointer rounded-full bg-zinc-100 px-5 py-2.5 text-xs font-bold text-zinc-600 hover:bg-zinc-200" onClick={() => { setCreating(false); setEditing(null); }} type="button">취소</button>
-            <button className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-rose-600 px-6 py-2.5 text-xs font-black text-white hover:bg-rose-700 disabled:opacity-50" disabled={saving} type="submit">{saving ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}{saving ? "저장 중" : "사전 항목 저장"}</button>
-          </div>
-        </form>
+        <MemeEntryForm
+          categories={categories}
+          editing={editing}
+          onCancel={() => {
+            setCreating(false);
+            setEditing(null);
+          }}
+          onSave={save}
+          saving={saving}
+        />
       )}
 
       {/* 검색, 필터 및 뷰 모드 조작 바 */}
@@ -482,7 +418,6 @@ export function DictionaryManager({
             </select>
           </div>
 
-          {/* 뷰 모드 선택 (Grid vs Table) */}
           <div className="flex items-center gap-1 rounded-xl bg-zinc-100 p-1">
             <button
               className={`flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${viewMode === "grid" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-900"}`}
@@ -501,7 +436,6 @@ export function DictionaryManager({
           </div>
         </div>
 
-        {/* 일괄 작업 도구 */}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-3 text-xs">
           <div className="flex items-center gap-3">
             <label className="inline-flex cursor-pointer items-center gap-2 font-bold text-zinc-700">
@@ -583,7 +517,6 @@ export function DictionaryManager({
           <p className="text-sm font-bold text-zinc-400">조건에 일치하는 사전 항목이 없습니다.</p>
         </div>
       ) : viewMode === "grid" ? (
-        /* 콤팩트 카드 그리드 뷰 (3~4열로 공간 활용 극대화) */
         <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visibleItems.map((item) => {
             const meta = statusMeta[item.publicationStatus];
@@ -697,7 +630,6 @@ export function DictionaryManager({
           })}
         </div>
       ) : (
-        /* 테이블 뷰 (한눈에 수십 개 항목 파악 가능) */
         <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
@@ -788,5 +720,412 @@ export function DictionaryManager({
         </div>
       )}
     </section>
+  );
+}
+
+/** 폼 영역 컴포넌트: 카테고리 검색 선택, 인터랙티브 태그 칩, 실시간 영상 임베드 미리보기 */
+function MemeEntryForm({
+  editing,
+  categories,
+  saving,
+  onSave,
+  onCancel,
+}: {
+  editing: AdminMeme | null;
+  categories: AdminCategory[];
+  saving: boolean;
+  onSave: (event: FormEvent<HTMLFormElement>) => void;
+  onCancel: () => void;
+}) {
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
+    editing?.categoryIds ?? []
+  );
+  const [categorySearch, setCategorySearch] = useState("");
+  const [tags, setTags] = useState<string[]>(editing?.tags ?? []);
+  const [tagInput, setTagInput] = useState("");
+  const [originUrl, setOriginUrl] = useState(editing?.origin.video.url ?? "");
+
+  const addTag = () => {
+    const trimmed = tagInput.trim().replace(/^#/, "");
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+      setTagInput("");
+    }
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag();
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter((t) => t !== tagToRemove));
+  };
+
+  const toggleCategory = (id: string) => {
+    setSelectedCategoryIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const getYouTubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
+  const ytId = getYouTubeId(originUrl);
+
+  const filteredCategories = categories.filter(
+    (c) =>
+      c.label.toLowerCase().includes(categorySearch.toLowerCase()) ||
+      c.id.toLowerCase().includes(categorySearch.toLowerCase())
+  );
+
+  return (
+    <form
+      className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-lg sm:p-6"
+      key={editing?.id ?? "new"}
+      onSubmit={onSave}
+    >
+      <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
+        <div>
+          <span className="text-[0.65rem] font-black text-rose-500 uppercase tracking-wider">
+            {editing ? "Edit Entry" : "Create Entry"}
+          </span>
+          <h3 className="text-lg font-black text-zinc-900 sm:text-xl">
+            {editing ? `${editing.title} 수정` : "새 사전 항목 추가"}
+          </h3>
+        </div>
+        <button
+          className="cursor-pointer rounded-full bg-zinc-100 p-2 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700"
+          onClick={onCancel}
+          type="button"
+          aria-label="닫기"
+        >
+          <X className="size-4 sm:size-5" />
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-4 text-xs sm:grid-cols-2">
+        <Field label="제목 (Title)">
+          <input
+            className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs font-bold outline-none focus:border-zinc-900"
+            name="title"
+            required
+            defaultValue={editing?.title}
+            placeholder="예: 꿍싯꿍싯"
+          />
+        </Field>
+        <Field label="slug (URL 식별자)">
+          <input
+            className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs font-mono outline-none focus:border-zinc-900"
+            name="slug"
+            required
+            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+            placeholder="kkungsit-kkungsit"
+            defaultValue={editing?.slug}
+          />
+        </Field>
+        <Field label="종류 (Kind)">
+          <select
+            className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2 font-bold outline-none focus:border-zinc-900"
+            name="kind"
+            defaultValue={editing?.kind ?? "community-meme"}
+          >
+            <option value="community-meme">커뮤니티 밈</option>
+            <option value="video-meme">영상 밈</option>
+            <option value="challenge">챌린지</option>
+          </select>
+        </Field>
+        <Field label="공개 상태 (Publication Status)">
+          <select
+            className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2 font-bold outline-none focus:border-zinc-900"
+            name="publicationStatus"
+            defaultValue={editing?.publicationStatus ?? "published"}
+          >
+            <option value="published">공개 (Published)</option>
+            <option value="draft">작성 중 (Draft)</option>
+            <option value="archived">보관 (Archived)</option>
+          </select>
+        </Field>
+        <Field label="별칭 (Comma-separated aliases)">
+          <input
+            className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs outline-none focus:border-zinc-900"
+            name="aliases"
+            defaultValue={editing?.aliases.join(", ")}
+            placeholder="다이죠부, 료 챌린지"
+          />
+        </Field>
+        <Field label="포인트 색상">
+          <input
+            className="h-9 w-full cursor-pointer rounded-xl border border-zinc-200 p-1"
+            name="accent"
+            type="color"
+            defaultValue={editing?.accent ?? "#fe2c55"}
+          />
+        </Field>
+
+        {/* 1. 카테고리 검색 & 콤팩트 태그 선택 UI */}
+        <div className="col-span-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <span className="text-xs font-bold text-zinc-700">카테고리 선택 (Search & Pick)</span>
+            <div className="relative min-w-[160px]">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+              <input
+                className="w-full rounded-lg border border-zinc-200 bg-white py-1 pl-8 pr-2 text-xs font-medium outline-none focus:border-zinc-900"
+                onChange={(e) => setCategorySearch(e.target.value)}
+                placeholder="카테고리 검색..."
+                value={categorySearch}
+              />
+            </div>
+          </div>
+
+          {/* 선택된 카테고리 칩 목록 */}
+          <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px]">
+            {selectedCategoryIds.map((id) => {
+              const cat = categories.find((c) => c.id === id);
+              return (
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1 rounded-lg bg-zinc-900 px-2.5 py-1 text-xs font-bold text-white"
+                >
+                  <input type="hidden" name="categoryIds" value={id} />
+                  {cat?.label ?? id}
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(id)}
+                    className="hover:text-rose-400 ml-0.5"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              );
+            })}
+            {selectedCategoryIds.length === 0 && (
+              <span className="text-xs text-zinc-400 font-medium py-1">선택된 카테고리가 없습니다.</span>
+            )}
+          </div>
+
+          {/* 카테고리 후보 콤팩트 리스트 */}
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto border-t border-zinc-200/60 pt-2">
+            {filteredCategories.map((category) => {
+              const isSelected = selectedCategoryIds.includes(category.id);
+              if (isSelected) return null;
+              return (
+                <button
+                  type="button"
+                  key={category.id}
+                  onClick={() => toggleCategory(category.id)}
+                  className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-bold text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 transition"
+                >
+                  + {category.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 3. 태그 인터랙티브 칩 개별 추가/삭제 UI */}
+        <div className="col-span-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5">
+          <input type="hidden" name="tags" value={tags.join(",")} />
+          <span className="text-xs font-bold text-zinc-700 block mb-2">태그 관리 (Tag Manager)</span>
+
+          <div className="flex items-center gap-2 mb-2.5">
+            <div className="relative flex-1">
+              <TagIcon className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+              <input
+                className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs font-bold outline-none focus:border-zinc-900"
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                placeholder="태그 입력 후 Enter 또는 추가 버튼..."
+                value={tagInput}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={addTag}
+              className="inline-flex items-center gap-1 rounded-xl bg-zinc-900 px-3.5 py-2 text-xs font-bold text-white hover:bg-zinc-800"
+            >
+              <Plus className="size-3.5" /> 추가
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5 min-h-[30px]">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-2.5 py-1 text-xs font-bold text-zinc-800 shadow-sm"
+              >
+                #{tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="rounded p-0.5 hover:bg-rose-50 hover:text-rose-600 transition"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            ))}
+            {tags.length === 0 && (
+              <span className="text-xs text-zinc-400 py-1">등록된 태그가 없습니다.</span>
+            )}
+          </div>
+        </div>
+
+        <Field label="한 줄 요약 (Summary)" wide>
+          <textarea
+            className="w-full rounded-xl border border-zinc-200 p-3 text-xs leading-relaxed outline-none focus:border-zinc-900"
+            name="summary"
+            required
+            rows={2}
+            defaultValue={editing?.summary}
+            placeholder="밈에 대한 명확하고 간결한 요약 설명"
+          />
+        </Field>
+        <Field label="썸네일 URL (선택사항 - 미입력 시 YouTube 등 자동 추론)" wide>
+          <input
+            className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs outline-none focus:border-zinc-900"
+            name="thumbnailUrl"
+            type="url"
+            placeholder="https://... 또는 /thumbnails/..."
+            defaultValue={editing?.thumbnailUrl}
+          />
+        </Field>
+
+        <div className="col-span-full my-1 border-t border-zinc-100 pt-3">
+          <p className="text-xs font-black text-zinc-400 uppercase tracking-wider">Origin & Video Meta</p>
+        </div>
+
+        <Field label="원본 검증 상태">
+          <select
+            className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2 font-bold outline-none focus:border-zinc-900"
+            name="originStatus"
+            defaultValue={editing?.origin.status ?? "verified"}
+          >
+            <option value="verified">출처 확인 (Verified)</option>
+            <option value="likely">유력 (Likely)</option>
+            <option value="needs-review">검토 필요 (Needs Review)</option>
+          </select>
+        </Field>
+        <Field label="유행 시작 연도">
+          <input
+            className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs outline-none focus:border-zinc-900"
+            name="originYear"
+            type="number"
+            min="1900"
+            max={new Date().getFullYear() + 1}
+            placeholder="2026"
+            defaultValue={editing?.lifecycle?.originYear}
+          />
+        </Field>
+        <Field label="원본 플랫폼">
+          <select
+            className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2 font-bold outline-none focus:border-zinc-900"
+            name="originPlatform"
+            defaultValue={editing?.origin.video.platform ?? "youtube"}
+          >
+            <option value="youtube">YouTube</option>
+            <option value="tiktok">TikTok</option>
+            <option value="instagram">Instagram</option>
+            <option value="x">X</option>
+            <option value="unknown">기타</option>
+          </select>
+        </Field>
+        <Field label="원본 영상 URL">
+          <input
+            className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs outline-none focus:border-zinc-900"
+            name="originUrl"
+            required
+            type="url"
+            value={originUrl}
+            onChange={(e) => setOriginUrl(e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=..."
+          />
+        </Field>
+
+        {/* 2. 원본 영상 실시간 임베드 미리보기 (Video Embed Preview Player) */}
+        {originUrl && (
+          <div className="col-span-full rounded-2xl border border-zinc-200 bg-zinc-900 p-4 text-white">
+            <div className="flex items-center gap-2 mb-2 text-xs font-bold text-rose-400">
+              <Video className="size-4 animate-pulse" />
+              <span>원본 영상 실시간 미리보기 (Live Video Embed)</span>
+            </div>
+            {ytId ? (
+              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+                <iframe
+                  className="absolute inset-0 size-full border-0"
+                  src={`https://www.youtube-nocookie.com/embed/${ytId}`}
+                  title="YouTube video player"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-zinc-700 rounded-xl bg-zinc-800/50">
+                <Play className="size-8 text-zinc-400 mb-2" />
+                <p className="text-xs font-bold text-zinc-300 truncate max-w-full">{originUrl}</p>
+                <a
+                  href={originUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex items-center gap-1 text-xs text-rose-400 hover:underline"
+                >
+                  새 창에서 원본 열기 <ExternalLink className="size-3" />
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        <Field label="영상 제목">
+          <input
+            className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs outline-none focus:border-zinc-900"
+            name="originTitle"
+            required
+            defaultValue={editing?.origin.video.title}
+            placeholder="영상 제목"
+          />
+        </Field>
+        <Field label="업로더 (Creator)">
+          <input
+            className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs outline-none focus:border-zinc-900"
+            name="originCreator"
+            defaultValue={editing?.origin.video.creator}
+            placeholder="@ryo.cute"
+          />
+        </Field>
+        <Field label="원본 요약 설명" wide>
+          <textarea
+            className="w-full rounded-xl border border-zinc-200 p-3 text-xs leading-relaxed outline-none focus:border-zinc-900"
+            name="originSummary"
+            required
+            rows={2}
+            defaultValue={editing?.origin.summary}
+            placeholder="원본 영상 유래 및 확산 개요"
+          />
+        </Field>
+      </div>
+
+      <div className="mt-5 flex justify-end gap-2 border-t border-zinc-100 pt-4">
+        <button
+          className="cursor-pointer rounded-full bg-zinc-100 px-5 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-200"
+          onClick={onCancel}
+          type="button"
+        >
+          취소
+        </button>
+        <button
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-rose-600 px-6 py-2 text-xs font-black text-white hover:bg-rose-700 disabled:opacity-50"
+          disabled={saving}
+          type="submit"
+        >
+          {saving ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
+          {saving ? "저장 중" : "사전 항목 저장"}
+        </button>
+      </div>
+    </form>
   );
 }
