@@ -126,6 +126,10 @@ jobs:
           test -n "$ADMIN_ORACLE_USER"
           SSH_TARGET="$ADMIN_ORACLE_USER@$ADMIN_ORACLE_HOST"
           SSH_PORT="${ADMIN_ORACLE_SSH_PORT:-22}"
-          ssh -i "$HOME/.ssh/id_admin_ed25519" -p "$SSH_PORT" "$SSH_TARGET" "mkdir -p '$ADMIN_ORACLE_DEPLOY_PATH'"
+          TARGET_DIR="${ADMIN_ORACLE_DEPLOY_PATH%/}"
+          if [[ "$TARGET_DIR" != */viral ]]; then
+            TARGET_DIR="$TARGET_DIR/viral"
+          fi
+          ssh -i "$HOME/.ssh/id_admin_ed25519" -p "$SSH_PORT" "$SSH_TARGET" "mkdir -p '$TARGET_DIR'"
           rsync -az --delete --no-owner --no-group -e "ssh -i $HOME/.ssh/id_admin_ed25519 -p $SSH_PORT" \
-            .deploy/apps/admin/out/ "$SSH_TARGET:$ADMIN_ORACLE_DEPLOY_PATH/"
+            apps/admin/out/ "$SSH_TARGET:$TARGET_DIR/"
