@@ -591,8 +591,17 @@ export function DictionaryManager({
 
                   <div className="flex items-center justify-between gap-1 text-xs">
                     <div className="flex items-center gap-1">
+                      <a
+                        href={`https://viralorigin.vercel.app/memes/${item.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1.5 font-bold text-zinc-700 hover:bg-black hover:text-white transition"
+                        title="웹사이트에서 보기"
+                      >
+                        <ExternalLink className="size-3" /> 웹에서 보기
+                      </a>
                       <button
-                        className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-zinc-900 px-2.5 py-1.5 font-bold text-white hover:bg-zinc-800"
+                        className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 font-bold text-zinc-700 hover:border-zinc-400"
                         onClick={() => {
                           setEditing(item);
                           setCreating(false);
@@ -688,6 +697,15 @@ export function DictionaryManager({
                       </td>
                       <td className="p-3.5 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
+                          <a
+                            href={`https://viralorigin.vercel.app/memes/${item.slug}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-bold text-zinc-600 hover:bg-black hover:text-white transition"
+                            title="웹사이트에서 보기"
+                          >
+                            <ExternalLink className="size-3" /> 웹 보기
+                          </a>
                           <button
                             className="cursor-pointer rounded-lg bg-zinc-900 px-2.5 py-1 text-xs font-bold text-white hover:bg-zinc-800"
                             onClick={() => {
@@ -791,13 +809,25 @@ function MemeEntryForm({
       onSubmit={onSave}
     >
       <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
-        <div>
-          <span className="text-[0.65rem] font-black text-rose-500 uppercase tracking-wider">
-            {editing ? "Edit Entry" : "Create Entry"}
-          </span>
-          <h3 className="text-lg font-black text-zinc-900 sm:text-xl">
-            {editing ? `${editing.title} 수정` : "새 사전 항목 추가"}
-          </h3>
+        <div className="flex items-center gap-3">
+          <div>
+            <span className="text-[0.65rem] font-black text-rose-500 uppercase tracking-wider">
+              {editing ? "Edit Entry" : "Create Entry"}
+            </span>
+            <h3 className="text-lg font-black text-zinc-900 sm:text-xl">
+              {editing ? `${editing.title} 수정` : "새 사전 항목 추가"}
+            </h3>
+          </div>
+          {editing?.slug && (
+            <a
+              href={`https://viralorigin.vercel.app/memes/${editing.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-black px-3 py-1.5 text-xs font-black text-white shadow-sm hover:bg-zinc-800 transition"
+            >
+              <ExternalLink className="size-3.5" /> 웹에서 보기 ↗
+            </a>
+          )}
         </div>
         <button
           className="cursor-pointer rounded-full bg-zinc-100 p-2 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700"
