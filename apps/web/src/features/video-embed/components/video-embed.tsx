@@ -18,6 +18,8 @@ type VideoEmbedProps = {
   priority?: boolean;
   autoPlayOnScroll?: boolean;
   feedMode?: boolean;
+  isMuted?: boolean;
+  onToggleMute?: () => void;
 };
 
 export function VideoEmbed({
@@ -25,12 +27,12 @@ export function VideoEmbed({
   priority = false,
   autoPlayOnScroll = true,
   feedMode = false,
+  isMuted = true,
+  onToggleMute,
 }: VideoEmbedProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
 
   const youtubeId =
     video.platform === "youtube" ? getYouTubeVideoId(video.url) : null;
@@ -54,6 +56,17 @@ export function VideoEmbed({
   const hasMedia = canEmbed || Boolean(imageUrl);
   const isShortForm =
     ["instagram", "tiktok"].includes(video.platform) || Boolean(imageUrl);
+
+  // 음소거 상태가 상위에서 변경될 때 iframe에 postMessage로 무음/소리 전송
+  useEffect(() => {
+    if (video.platform === "youtube" && iframeRef.current?.contentWindow) {
+      const command = isMuted ? "mute" : "unMute";
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: command, args: [] }),
+        "*"
+      );
+    }
+  }, [isMuted, video.platform]);
 
   // IntersectionObserver 기반 스크롤 자동 재생 및 이탈 시 자동 멈춤
   useEffect(() => {
@@ -86,26 +99,12 @@ export function VideoEmbed({
     };
   }, [autoPlayOnScroll, canEmbed, video.platform]);
 
-  // 음소거 토글
-  const toggleMute = () => {
-    const nextMuted = !isMuted;
-    setIsMuted(nextMuted);
-
-    if (video.platform === "youtube" && iframeRef.current?.contentWindow) {
-      const command = nextMuted ? "mute" : "unMute";
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ event: "command", func: command, args: [] }),
-        "*"
-      );
-    }
-  };
-
   return (
     <article
       ref={containerRef}
       className={
         feedMode
-          ? "relative size-full overflow-hidden bg-black flex items-center justify-center"
+          ? "relative size-full overflow-hidden bg-black flex items-center justify-center pointer-events-auto"
           : "group overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
       }
     >
@@ -151,10 +150,13 @@ export function VideoEmbed({
                 )}
               </div>
 
-              {/* 음소거 토글 버튼 */}
+              {/* 음소거 토글 버튼 (다음 영상으로 넘어가도 소리 상태 지속 유도) */}
               <button
                 type="button"
-                onClick={toggleMute}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleMute?.();
+                }}
                 className="absolute right-3 top-3 z-30 flex size-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/80"
                 title={isMuted ? "음소거 해제 (소리 켜기)" : "음소거 설정"}
               >

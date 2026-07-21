@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  ExternalLink,
+  BookOpen,
 } from "lucide-react";
 import { Badge } from "@origin/ui";
 import { VideoEmbed } from "@/features/video-embed/components/video-embed";
@@ -24,8 +26,8 @@ export function FeedExperience() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // 전역 음소거 지속 상태 (다음 영상으로 넘어가도 소리 상태 유지)
+  const [globalMuted, setGlobalMuted] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -36,7 +38,9 @@ export function FeedExperience() {
       })
       .then((data) => {
         if (!active) return;
-        setMemes(data.items || []);
+        // 피드 영상 랜덤 셔플
+        const shuffled = [...(data.items || [])].sort(() => Math.random() - 0.5);
+        setMemes(shuffled);
       })
       .catch((cause) => {
         if (!active) return;
@@ -50,6 +54,9 @@ export function FeedExperience() {
       active = false;
     };
   }, []);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // 네이티브 GPU 최적화 IntersectionObserver
   useEffect(() => {
@@ -153,7 +160,13 @@ export function FeedExperience() {
               >
                 {/* 100% 모바일 뷰포트 꽉 찬 비디오 구역 */}
                 <div className="relative size-full max-w-[480px] flex flex-col justify-center">
-                  <VideoEmbed video={video} autoPlayOnScroll={isActive} feedMode={true} />
+                  <VideoEmbed
+                    video={video}
+                    autoPlayOnScroll={isActive}
+                    feedMode={true}
+                    isMuted={globalMuted}
+                    onToggleMute={() => setGlobalMuted((prev) => !prev)}
+                  />
 
                   {/* 틱톡 오버레이 상단 바 */}
                   <div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
@@ -167,7 +180,7 @@ export function FeedExperience() {
                   </div>
 
                   {/* 틱톡 오버레이 우측 아이콘 액션 바 (공유 버튼) */}
-                  <div className="absolute right-3 bottom-14 z-20 flex flex-col items-center gap-3">
+                  <div className="absolute right-3 bottom-24 z-30 flex flex-col items-center gap-3">
                     <button
                       type="button"
                       onClick={() => handleShare(meme)}
@@ -183,48 +196,66 @@ export function FeedExperience() {
                     </button>
                   </div>
 
-                  {/* 틱톡 오버레이 최하단 밀착 정보 구역 (클릭 시 밈 상세 설명 페이지로 즉시 이동) */}
-                  <Link
-                    href={memeHref(meme.slug)}
-                    className="absolute left-0 right-0 bottom-0 z-20 block p-4 pb-3 pt-8 bg-gradient-to-t from-black/95 via-black/75 to-transparent text-left group transition hover:opacity-95"
-                    title={`${meme.title} 상세 사전 보기`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="flex size-7 items-center justify-center rounded-xl font-black text-white text-xs shadow-sm"
-                        style={{ backgroundColor: meme.accent || "#fe2c55" }}
-                      >
-                        <Sparkles className="size-3.5" />
-                      </span>
-                      <span className="text-sm font-black text-white tracking-tight group-hover:underline">
-                        @{video.creator || "viral_origin"}
-                      </span>
-                      <Badge className="bg-white/20 text-white text-[0.65rem] font-bold backdrop-blur-md">
-                        {platformName}
-                      </Badge>
-                    </div>
-
-                    <h2 className="mt-1.5 text-base sm:text-lg font-black leading-snug text-white group-hover:text-rose-400 transition">
-                      {meme.title}
-                    </h2>
-                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/85 font-medium">
-                      {meme.summary}
-                    </p>
-
-                    {/* 태그 해시태그 */}
-                    {meme.tags.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {meme.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-full bg-white/15 px-2.5 py-0.5 text-[0.68rem] font-bold text-white/90 backdrop-blur-md"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
+                  {/* 틱톡 오버레이 최하단 밀착 정보 구역 & 명확한 [사전 상세 ↗] 버튼 */}
+                  <div className="absolute left-0 right-0 bottom-0 z-20 p-4 sm:p-5 pb-3.5 pt-10 bg-gradient-to-t from-black/95 via-black/80 to-transparent text-left pointer-events-auto">
+                    <Link
+                      href={memeHref(meme.slug)}
+                      className="block group transition hover:opacity-95"
+                      title={`${meme.title} 상세 사전 보기`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="flex size-7 items-center justify-center rounded-xl font-black text-white text-xs shadow-sm"
+                          style={{ backgroundColor: meme.accent || "#fe2c55" }}
+                        >
+                          <Sparkles className="size-3.5" />
+                        </span>
+                        <span className="text-base font-black text-white tracking-tight group-hover:underline">
+                          @{video.creator || "viral_origin"}
+                        </span>
+                        <Badge className="bg-white/20 text-white text-[0.68rem] font-bold backdrop-blur-md">
+                          {platformName}
+                        </Badge>
                       </div>
-                    )}
-                  </Link>
+
+                      {/* 글씨 키움: 제목 & 요약 설명 */}
+                      <h2 className="mt-2 text-lg sm:text-xl font-black leading-snug text-white group-hover:text-rose-400 transition">
+                        {meme.title}
+                      </h2>
+                      <p className="mt-1 line-clamp-2 text-xs sm:text-sm leading-relaxed text-white/90 font-medium">
+                        {meme.summary}
+                      </p>
+
+                      {/* 태그 해시태그 */}
+                      {meme.tags.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {meme.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded-full bg-white/15 px-2.5 py-0.5 text-[0.68rem] font-bold text-white/90 backdrop-blur-md"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </Link>
+
+                    {/* 선명하게 띄워놓은 상세 페이지 이동 CTA 버튼 */}
+                    <div className="mt-3.5 flex items-center justify-between border-t border-white/15 pt-2.5">
+                      <span className="text-[0.68rem] font-bold text-white/60">
+                        {meme.lifecycle?.originYear ? `${meme.lifecycle.originYear}년 유행` : "바이럴 밈"}
+                      </span>
+                      <Link
+                        href={memeHref(meme.slug)}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-4 py-1.5 text-xs font-black text-white shadow-lg transition hover:bg-rose-700 active:scale-95"
+                      >
+                        <BookOpen className="size-3.5" />
+                        <span>사전 상세 보기</span>
+                        <ExternalLink className="size-3" />
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
