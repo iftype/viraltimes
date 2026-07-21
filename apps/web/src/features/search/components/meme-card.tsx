@@ -11,13 +11,13 @@ const kindLabels: Record<MemeKind, string> = {
   challenge: "챌린지",
   "video-meme": "영상 밈",
   "community-meme": "커뮤니티 밈",
-  "minor-meme": "코리아 마이너 밈",
+  "minor-meme": "마이너 밈",
 };
 
 const statusMeta: Record<OriginStatus, { label: string; icon: typeof Check }> = {
-  verified: { label: "출처 확인", icon: Check },
+  verified: { label: "확인", icon: Check },
   likely: { label: "유력", icon: Clock3 },
-  "needs-review": { label: "검토 중", icon: CircleHelp },
+  "needs-review": { label: "검토중", icon: CircleHelp },
 };
 
 export function MemeCard({
@@ -39,10 +39,11 @@ export function MemeCard({
 
   return (
     <Link
-      className="group overflow-hidden rounded-[var(--vo-radius-xl)] border border-[var(--vo-color-border)] bg-white shadow-[var(--vo-shadow-card)] transition duration-200 hover:-translate-y-1 hover:shadow-[var(--vo-shadow-float)]"
+      className="group overflow-hidden rounded-2xl border border-black/8 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
       href={memeHref(meme.slug)}
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-black">
+      {/* 1/4 콤팩트 비율 (aspect-[4/3]) */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-black">
         {thumbnailUrl ? (
           <Image
             alt={`${meme.title} 썸네일`}
@@ -52,7 +53,7 @@ export function MemeCard({
             )}
             fill
             priority={priority}
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
             src={thumbnailUrl}
           />
         ) : (
@@ -61,43 +62,44 @@ export function MemeCard({
             platform={meme.origin.video?.platform}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/85" />
 
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 p-4">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Badge className="bg-white/90 text-black">
-              <StatusIcon className="size-3" aria-hidden="true" /> {status.label}
+        {/* 상단 콤팩트 뱃지 */}
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-1.5 p-2">
+          <div className="flex flex-wrap items-center gap-1">
+            <Badge className="bg-white/90 px-1.5 py-0.5 text-[0.58rem] font-bold text-black backdrop-blur-sm">
+              <StatusIcon className="size-2.5" aria-hidden="true" /> {status.label}
             </Badge>
-            {meme.participation?.proposalCount ? (
-              <Badge className="bg-[#fff7df] text-[#9a6200]">제안 {meme.participation.proposalCount}</Badge>
-            ) : null}
-            {meme.origin.video && meme.origin.video.url && meme.origin.video.url.trim().length > 0 && (
-              <Badge className="bg-[#fe2c55] text-white">
-                <Play className="size-3 fill-white" aria-hidden="true" /> 원본 영상
+            {meme.origin.video?.url && (
+              <Badge className="bg-[#fe2c55] px-1.5 py-0.5 text-[0.58rem] font-bold text-white">
+                <Play className="size-2.5 fill-white" aria-hidden="true" /> 영상
               </Badge>
             )}
           </div>
-          <span className="flex size-9 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm">
-            <MediaIcon className="size-4" aria-hidden="true" />
+          <span className="flex size-6 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm">
+            <MediaIcon className="size-3" aria-hidden="true" />
           </span>
         </div>
-        <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-          <Badge className="bg-white/15 text-white backdrop-blur-sm">
+
+        {/* 하단 콤팩트 제목 & 요약문 */}
+        <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 text-white">
+          <span className="inline-block rounded-md bg-white/20 px-1.5 py-0.5 text-[0.58rem] font-bold backdrop-blur-sm mb-1">
             {meme.lifecycle?.originYear ? `${meme.lifecycle.originYear} · ` : ""}{categoryLabel ?? kindLabels[meme.kind]}
-          </Badge>
-          <h3 className="mt-3 text-2xl font-black leading-none tracking-[-0.045em]">
+          </span>
+          <h3 className="line-clamp-1 text-sm sm:text-base font-black leading-snug tracking-tight">
             {meme.title}
           </h3>
-          <p className="mt-2 line-clamp-2 text-xs leading-5 text-white/70">
+          <p className="mt-0.5 line-clamp-2 text-[0.68rem] leading-tight text-white/80 font-medium">
             {meme.summary || "아직 설명이 등록되지 않았어요."}
           </p>
         </div>
       </div>
-      <div className="flex items-center justify-between gap-3 px-4 py-3.5">
-        <p className="min-w-0 truncate text-xs font-bold text-black/35">
-          {meme.tags.slice(0, 3).map((tag) => `#${tag}`).join(" ")}
+
+      <div className="flex items-center justify-between gap-2 px-2.5 py-2">
+        <p className="min-w-0 truncate text-[0.62rem] font-bold text-black/40">
+          {meme.tags.slice(0, 2).map((tag) => `#${tag}`).join(" ") || `#${meme.slug}`}
         </p>
-        <ArrowUpRight className="size-4 shrink-0 text-black/30 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
+        <ArrowUpRight className="size-3.5 shrink-0 text-black/30 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
       </div>
     </Link>
   );

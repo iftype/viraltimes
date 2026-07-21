@@ -14,6 +14,7 @@ export function SiteHeader() {
   const router = useRouter();
   const [searchExpanded, setSearchExpanded] = useState(false);
 
+  // URL 경로에 맞게 탭 지정 (피드는 /feed, 사전은 / 또는 /memes)
   const currentTab = pathname === "/feed" ? "feed" : "dictionary";
   const [optimisticTab, setOptimisticTab] = useOptimistic(
     currentTab,

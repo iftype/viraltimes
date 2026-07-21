@@ -153,13 +153,13 @@ export function SearchExperience() {
 
       <section className="mt-4" aria-busy={isLoading} aria-live="polite">
         {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div className="h-[29rem] animate-pulse rounded-[var(--vo-radius-xl)] bg-white" key={index} />
+          <div className="grid gap-2.5 sm:gap-3.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {Array.from({ length: 10 }).map((_, index) => (
+              <div className="h-44 animate-pulse rounded-2xl bg-zinc-100" key={index} />
             ))}
           </div>
         ) : visibleMemes.length ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-2.5 sm:gap-3.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {visibleMemes.map((meme, index) => (
               <MemeCard
                 categoryLabel={
@@ -168,7 +168,7 @@ export function SearchExperience() {
                 }
                 key={meme.id}
                 meme={meme}
-                priority={index === 0}
+                priority={index < 4}
               />
             ))}
           </div>
