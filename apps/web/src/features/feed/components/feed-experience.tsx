@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   Flame,
   LoaderCircle,
-  ExternalLink,
   Sparkles,
   Share2,
   CheckCircle2,
@@ -167,12 +166,12 @@ export function FeedExperience() {
                     </span>
                   </div>
 
-                  {/* 틱톡 오버레이 우측 아이콘 액션 바 */}
-                  <div className="absolute right-3 bottom-20 z-20 flex flex-col items-center gap-3">
+                  {/* 틱톡 오버레이 우측 아이콘 액션 바 (공유 버튼) */}
+                  <div className="absolute right-3 bottom-14 z-20 flex flex-col items-center gap-3">
                     <button
                       type="button"
                       onClick={() => handleShare(meme)}
-                      className="flex size-11 flex-col items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:scale-110 active:scale-95"
+                      className="flex size-11 flex-col items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:scale-110 active:scale-95 shadow-md"
                       title="공유하기"
                     >
                       {copiedId === meme.id ? (
@@ -184,8 +183,12 @@ export function FeedExperience() {
                     </button>
                   </div>
 
-                  {/* 틱톡 오버레이 하단 정보 구역 */}
-                  <div className="absolute left-0 right-0 bottom-0 z-20 p-4 sm:p-5 bg-gradient-to-t from-black/95 via-black/70 to-transparent">
+                  {/* 틱톡 오버레이 최하단 밀착 정보 구역 (클릭 시 밈 상세 설명 페이지로 즉시 이동) */}
+                  <Link
+                    href={memeHref(meme.slug)}
+                    className="absolute left-0 right-0 bottom-0 z-20 block p-4 pb-3 pt-8 bg-gradient-to-t from-black/95 via-black/75 to-transparent text-left group transition hover:opacity-95"
+                    title={`${meme.title} 상세 사전 보기`}
+                  >
                     <div className="flex items-center gap-2">
                       <span
                         className="flex size-7 items-center justify-center rounded-xl font-black text-white text-xs shadow-sm"
@@ -193,7 +196,7 @@ export function FeedExperience() {
                       >
                         <Sparkles className="size-3.5" />
                       </span>
-                      <span className="text-sm font-black text-white tracking-tight">
+                      <span className="text-sm font-black text-white tracking-tight group-hover:underline">
                         @{video.creator || "viral_origin"}
                       </span>
                       <Badge className="bg-white/20 text-white text-[0.65rem] font-bold backdrop-blur-md">
@@ -201,10 +204,10 @@ export function FeedExperience() {
                       </Badge>
                     </div>
 
-                    <h2 className="mt-2 text-base sm:text-lg font-black leading-snug text-white">
+                    <h2 className="mt-1.5 text-base sm:text-lg font-black leading-snug text-white group-hover:text-rose-400 transition">
                       {meme.title}
                     </h2>
-                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/80 font-medium">
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/85 font-medium">
                       {meme.summary}
                     </p>
 
@@ -221,21 +224,7 @@ export function FeedExperience() {
                         ))}
                       </div>
                     )}
-
-                    {/* 사전 상세 CTA 버튼 */}
-                    <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-2.5">
-                      <span className="text-[0.68rem] font-bold text-white/50">
-                        {meme.lifecycle?.originYear ? `${meme.lifecycle.originYear}년 유행` : "바이럴 밈"}
-                      </span>
-                      <Link
-                        href={memeHref(meme.slug)}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-xs font-black text-black shadow transition hover:bg-zinc-200"
-                      >
-                        <span>원조 맥락 보기</span>
-                        <ExternalLink className="size-3" />
-                      </Link>
-                    </div>
-                  </div>
+                  </Link>
                 </div>
               </div>
             );

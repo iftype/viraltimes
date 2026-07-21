@@ -2,8 +2,8 @@
 
 import { MessageCircleMore, Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useState, useOptimistic, startTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 import { BrandMark, buttonClassName, cn } from "@origin/ui";
 
@@ -11,9 +11,23 @@ import { HeaderSearch } from "./header-search";
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const [searchExpanded, setSearchExpanded] = useState(false);
 
+  const currentTab = pathname === "/feed" ? "feed" : "dictionary";
+  const [optimisticTab, setOptimisticTab] = useOptimistic(
+    currentTab,
+    (_state, newTab: "feed" | "dictionary") => newTab
+  );
+
   if (pathname === "/quiz") return null;
+
+  const handleTabClick = (tab: "feed" | "dictionary", href: string) => {
+    startTransition(() => {
+      setOptimisticTab(tab);
+      router.push(href);
+    });
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-black/5 bg-white/92 backdrop-blur-xl">
@@ -31,31 +45,33 @@ export function SiteHeader() {
             </span>
           </Link>
 
-          {/* 화면 상단 정중앙에 위치하는 깔끔한 [ 피드 | 사전 ] 세그먼트 토글 스위치 (이모지 완전 제거) */}
+          {/* 화면 상단 정중앙 낙관적 업데이트(Optimistic Update) 토글 스위치 */}
           <div className="flex items-center justify-center min-w-0 mx-auto">
             <div className="flex items-center gap-0.5 rounded-full bg-black/5 p-1 text-xs font-black shadow-inner">
-              <Link
-                href="/feed"
+              <button
+                type="button"
+                onClick={() => handleTabClick("feed", "/feed")}
                 className={cn(
-                  "rounded-full px-3.5 py-1.5 transition-all duration-200 text-xs",
-                  pathname === "/feed"
+                  "rounded-full px-3.5 py-1.5 transition-all duration-200 text-xs cursor-pointer",
+                  optimisticTab === "feed"
                     ? "bg-black text-white shadow-md font-black"
                     : "text-black/50 hover:text-black"
                 )}
               >
                 피드
-              </Link>
-              <Link
-                href="/"
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTabClick("dictionary", "/")}
                 className={cn(
-                  "rounded-full px-3.5 py-1.5 transition-all duration-200 text-xs",
-                  pathname === "/" || pathname.startsWith("/memes/")
+                  "rounded-full px-3.5 py-1.5 transition-all duration-200 text-xs cursor-pointer",
+                  optimisticTab === "dictionary"
                     ? "bg-black text-white shadow-md font-black"
                     : "text-black/50 hover:text-black"
                 )}
               >
                 사전
-              </Link>
+              </button>
             </div>
           </div>
 
