@@ -2,18 +2,16 @@
 
 import { MessageCircleMore, Plus } from "lucide-react";
 import Link from "next/link";
-import { useState, useOptimistic, startTransition } from "react";
+import { useState, useOptimistic, startTransition, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { BrandMark, buttonClassName, cn } from "@origin/ui";
 
 import { HeaderSearch } from "./header-search";
 
-export function SiteHeader() {
-  const pathname = usePathname();
+function HeaderTabToggle() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [searchExpanded, setSearchExpanded] = useState(false);
 
   const tabParam = searchParams.get("tab");
   const currentTab = tabParam === "dictionary" ? "dictionary" : "feed";
@@ -23,14 +21,48 @@ export function SiteHeader() {
     (_state, newTab: "feed" | "dictionary") => newTab
   );
 
-  if (pathname === "/quiz") return null;
-
   const handleTabClick = (tab: "feed" | "dictionary", href: string) => {
     startTransition(() => {
       setOptimisticTab(tab);
       router.push(href);
     });
   };
+
+  return (
+    <div className="flex items-center gap-0.5 rounded-full bg-black/5 p-1 text-xs font-black shadow-inner">
+      <button
+        type="button"
+        onClick={() => handleTabClick("feed", "/")}
+        className={cn(
+          "rounded-full px-3 py-1.5 sm:px-3.5 transition-all duration-200 text-xs cursor-pointer",
+          optimisticTab === "feed"
+            ? "bg-black text-white shadow-md font-black"
+            : "text-black/50 hover:text-black"
+        )}
+      >
+        피드
+      </button>
+      <button
+        type="button"
+        onClick={() => handleTabClick("dictionary", "/?tab=dictionary")}
+        className={cn(
+          "rounded-full px-3 py-1.5 sm:px-3.5 transition-all duration-200 text-xs cursor-pointer",
+          optimisticTab === "dictionary"
+            ? "bg-black text-white shadow-md font-black"
+            : "text-black/50 hover:text-black"
+        )}
+      >
+        사전
+      </button>
+    </div>
+  );
+}
+
+export function SiteHeader() {
+  const pathname = usePathname();
+  const [searchExpanded, setSearchExpanded] = useState(false);
+
+  if (pathname === "/quiz") return null;
 
   return (
     <header className="sticky top-0 z-50 border-b border-black/5 bg-white/92 backdrop-blur-xl">
@@ -50,34 +82,11 @@ export function SiteHeader() {
             </span>
           </Link>
 
-          {/* 화면 상단 정중앙 낙관적 업데이트 토글 스위치 */}
+          {/* 화면 상단 정중앙 낙관적 업데이트 토글 스위치 (Suspense 래핑) */}
           <div className="flex items-center justify-center min-w-0 mx-auto">
-            <div className="flex items-center gap-0.5 rounded-full bg-black/5 p-1 text-xs font-black shadow-inner">
-              <button
-                type="button"
-                onClick={() => handleTabClick("feed", "/")}
-                className={cn(
-                  "rounded-full px-3 py-1.5 sm:px-3.5 transition-all duration-200 text-xs cursor-pointer",
-                  optimisticTab === "feed"
-                    ? "bg-black text-white shadow-md font-black"
-                    : "text-black/50 hover:text-black"
-                )}
-              >
-                피드
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTabClick("dictionary", "/?tab=dictionary")}
-                className={cn(
-                  "rounded-full px-3 py-1.5 sm:px-3.5 transition-all duration-200 text-xs cursor-pointer",
-                  optimisticTab === "dictionary"
-                    ? "bg-black text-white shadow-md font-black"
-                    : "text-black/50 hover:text-black"
-                )}
-              >
-                사전
-              </button>
-            </div>
+            <Suspense fallback={<div className="h-8 w-24 rounded-full bg-black/5 animate-pulse" />}>
+              <HeaderTabToggle />
+            </Suspense>
           </div>
 
           {/* 우측 검색창 */}

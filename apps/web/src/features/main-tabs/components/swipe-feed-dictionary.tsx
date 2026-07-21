@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { FeedExperience } from "@/features/feed/components/feed-experience";
 import { SearchExperience } from "@/features/search/components/search-experience";
 
-export function SwipeFeedDictionary({ initialTab = "feed" }: { initialTab?: "feed" | "dictionary" }) {
+function SwipeFeedDictionaryContent({ initialTab = "feed" }: { initialTab?: "feed" | "dictionary" }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -132,5 +132,13 @@ export function SwipeFeedDictionary({ initialTab = "feed" }: { initialTab?: "fee
         </div>
       </div>
     </div>
+  );
+}
+
+export function SwipeFeedDictionary(props: { initialTab?: "feed" | "dictionary" }) {
+  return (
+    <Suspense fallback={<div className="h-[calc(100dvh-3.5rem)] w-full bg-black animate-pulse" />}>
+      <SwipeFeedDictionaryContent {...props} />
+    </Suspense>
   );
 }
