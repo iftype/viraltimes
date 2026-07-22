@@ -19,6 +19,7 @@ type VideoEmbedProps = {
   priority?: boolean;
   autoPlayOnScroll?: boolean;
   feedMode?: boolean;
+  compact?: boolean;
   isMuted?: boolean;
   onToggleMute?: () => void;
   onEmbedUnavailable?: () => void;
@@ -29,6 +30,7 @@ export function VideoEmbed({
   priority = false,
   autoPlayOnScroll = true,
   feedMode = false,
+  compact = false,
   isMuted = true,
   onToggleMute,
   onEmbedUnavailable,
@@ -110,6 +112,8 @@ export function VideoEmbed({
   const hasMedia = canEmbed || Boolean(imageUrl);
   const isShortForm =
     ["instagram", "tiktok"].includes(video.platform) || Boolean(imageUrl);
+  const isVerticalVideo =
+    ["instagram", "tiktok"].includes(video.platform) || video.url.includes("/shorts/");
 
   // 준비된 YouTube player에는 API로 즉시 소리 상태를 적용한다.
   useEffect(() => {
@@ -236,13 +240,17 @@ export function VideoEmbed({
       className={
         feedMode
           ? "relative size-full overflow-hidden bg-black flex items-center justify-center pointer-events-auto"
-          : "group overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
+          : compact
+            ? "relative size-full overflow-hidden bg-black"
+            : "group overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
       }
     >
-      <div className={isShortForm && !feedMode ? "bg-[#171719]" : "size-full"}>
+      <div className={isShortForm && !feedMode && !compact ? "bg-[#171719]" : "size-full"}>
         <div
           className={
-            feedMode
+            compact && isVerticalVideo
+              ? "relative mx-auto h-full aspect-[9/16] max-w-full overflow-hidden bg-black"
+              : feedMode || compact
               ? "relative size-full overflow-hidden bg-black"
               : `relative overflow-hidden bg-[#171719] ${
                   isShortForm
@@ -295,7 +303,7 @@ export function VideoEmbed({
                   </span>
                 </>
               )}
-              {feedMode && ["youtube", "tiktok"].includes(video.platform) && onToggleMute && (
+              {(feedMode || compact) && ["youtube", "tiktok"].includes(video.platform) && onToggleMute && (
                 <button
                   aria-label={isMuted ? "소리 켜기" : "음소거"}
                   className="absolute right-3 top-3 z-20 flex size-10 cursor-pointer items-center justify-center rounded-full bg-black/65 text-white shadow-md backdrop-blur-md transition hover:bg-black/85"
@@ -341,7 +349,7 @@ export function VideoEmbed({
         </div>
       </div>
 
-      {!feedMode && (
+      {!feedMode && !compact && (
         <div className="flex items-start justify-between gap-3 p-4 sm:p-5">
           <div className="min-w-0">
             <div className="mb-1.5 flex items-center gap-2 text-[0.65rem] font-black uppercase tracking-[0.1em] text-black/35">

@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { Button, Card, buttonClassName } from "@origin/ui";
 import { memeHref } from "@/lib/meme-href";
+import type { Video } from "@/types/meme";
 
 import { getOrCreateSessionId } from "../utils/session";
 import { QuizCard } from "./quiz-card";
@@ -20,6 +21,7 @@ interface QuizCardData {
   thumbnailUrl?: string;
   accentColor?: string;
   field?: string;
+  video?: Video;
   originDetail: {
     creator?: string;
     originYear?: number;
@@ -52,7 +54,7 @@ interface StatsData {
   perCard?: Record<string, { know: number; dont_know: number; total: number }>;
 }
 
-type QuizResponse = "start" | "know" | "dont_know" | "view_media" | "complete" | "open_meme" | "open_service";
+type QuizResponse = "start" | "know" | "dont_know" | "view_detail" | "view_media" | "complete" | "open_meme" | "open_service";
 
 function percentage(value: number, total: number) {
   return total > 0 ? Math.round((value / total) * 100) : 0;
@@ -229,18 +231,18 @@ export function QuizPage() {
   }
 
   return (
-    <div className="flex h-[100dvh] w-full touch-none flex-col items-center overflow-hidden overscroll-none px-3 py-3 sm:page-shell sm:min-h-[80vh] sm:h-auto sm:touch-auto sm:overflow-visible sm:py-8">
+    <QuizShell>
       {!cardsCompleted ? (
-        <div className="flex min-h-0 w-full max-w-md flex-1 flex-col items-center gap-2 sm:flex-none sm:gap-6">
-          <div className="w-full shrink-0 space-y-1 text-center sm:space-y-2">
-            <h1 className="flex items-center justify-center gap-2 text-lg font-black tracking-tight text-neutral-900 sm:text-2xl">
+        <div className="flex min-h-0 w-full max-w-md flex-1 flex-col items-center gap-2">
+          <div className="w-full shrink-0 space-y-1 text-center">
+            <h1 className="flex items-center justify-center gap-2 text-lg font-black tracking-tight text-neutral-900">
               <ArrowLeftRight className="text-[var(--vo-color-brand)]" size={20} />
               밈 인지도 매치 테스트
             </h1>
-            <p className="text-xs font-medium text-neutral-500 sm:text-sm">
-              알면 오른쪽, 모르면 왼쪽으로 넘겨주세요.
+            <p className="text-xs font-medium text-neutral-500">
+              영상을 카드 안에서 확인하고, 알면 오른쪽·모르면 왼쪽으로 넘겨주세요.
             </p>
-            <div className="flex items-center justify-between px-2 pt-1 text-[0.68rem] font-bold text-neutral-400 sm:pt-2 sm:text-xs">
+            <div className="flex items-center justify-between px-2 pt-1 text-[0.68rem] font-bold text-neutral-400">
               <span>PROGRESS</span>
               <span>{currentIndex + 1} / {cards.length}</span>
             </div>
@@ -252,34 +254,35 @@ export function QuizPage() {
             </div>
           </div>
 
-          <div className="relative flex min-h-0 w-full flex-1 items-center justify-center sm:aspect-[3/4.5] sm:flex-none">
+          <div className="relative flex min-h-0 w-full flex-1 items-center justify-center">
             {cards.map((card, index) => (
               <QuizCard
-                key={card.id}
+                key={`${runId}:${card.id}`}
                 card={card}
                 active={index === currentIndex}
                 onSwipe={handleSwipe}
                 onInteraction={() => setShowSwipeHint(false)}
+                onPlayMedia={() => void sendLog(card, "view_media", { destination: card.video?.url, step: currentIndex + 1 })}
                 showSwipeHint={showSwipeHint && currentIndex === 0}
                 onViewDetail={() => {
                   setSelectedCard(card);
-                  void sendLog(card, "view_media", { destination: memeHref(card.slug), step: currentIndex + 1 });
+                  void sendLog(card, "view_detail", { destination: memeHref(card.slug), step: currentIndex + 1 });
                 }}
               />
             ))}
           </div>
 
-          <div className="flex w-full shrink-0 items-center justify-between gap-2 px-1 sm:gap-4 sm:px-4">
-            <button className="flex-1 cursor-pointer rounded-xl bg-black px-3 py-2.5 text-xs font-black text-white shadow-sm hover:bg-black/80 sm:px-4 sm:py-3 sm:text-sm" onClick={() => handleSwipe("left")}>
+          <div className="flex w-full shrink-0 items-center justify-between gap-2 px-1">
+            <button className="flex-1 cursor-pointer rounded-xl bg-black px-3 py-2.5 text-xs font-black text-white shadow-sm hover:bg-black/80" onClick={() => handleSwipe("left")}>
               몰라요 (NO)
             </button>
-            <button className="flex-1 cursor-pointer rounded-xl bg-[#fe2c55] px-3 py-2.5 text-xs font-black text-white shadow-sm hover:bg-[#e51f48] sm:px-4 sm:py-3 sm:text-sm" onClick={() => handleSwipe("right")}>
+            <button className="flex-1 cursor-pointer rounded-xl bg-[#fe2c55] px-3 py-2.5 text-xs font-black text-white shadow-sm hover:bg-[#e51f48]" onClick={() => handleSwipe("right")}>
               알아요 (KNOW)
             </button>
           </div>
         </div>
       ) : !completed ? (
-        <div className="flex min-h-0 w-full max-w-md flex-1 flex-col justify-center gap-5 sm:flex-none">
+        <div className="flex min-h-0 w-full max-w-md flex-1 flex-col justify-center gap-5">
           <div className="space-y-2 text-center">
             <p className="text-xs font-black tracking-[0.14em] text-[var(--vo-color-brand)]">BEFORE RESULT</p>
             <h1 className="text-2xl font-black tracking-tight">결과 보기 전, 마지막 질문</h1>
@@ -289,7 +292,7 @@ export function QuizPage() {
             </div>
           </div>
           {surveyQuestions[surveyIndex] && (
-            <Card className="space-y-4 border border-black/5 p-5 shadow-lg sm:p-7">
+            <Card className="space-y-4 border border-black/5 p-5 shadow-lg">
               <div>
                 <p className="text-xs font-bold text-neutral-400">{surveyIndex + 1} / {surveyQuestions.length}</p>
                 <h2 className="mt-2 text-lg font-black leading-snug">{surveyQuestions[surveyIndex].prompt}</h2>
@@ -339,29 +342,28 @@ export function QuizPage() {
           )}
         </div>
       ) : (
-        <div className="flex min-h-0 w-full max-w-2xl flex-1 flex-col justify-center gap-2 sm:flex-none sm:gap-6">
-          <div className="space-y-1 text-center sm:space-y-2">
+        <div className="flex min-h-0 w-full max-w-md flex-1 flex-col justify-center gap-2">
+          <div className="space-y-1 text-center">
             <CheckCircle className="mx-auto text-emerald-600" size={30} />
-            <h1 className="text-2xl font-black tracking-tight sm:text-3xl">테스트 완료!</h1>
-            <p className="text-xs text-neutral-500 sm:text-sm">내 결과와 다른 참여자의 인지도를 함께 확인해보세요.</p>
+            <h1 className="text-2xl font-black tracking-tight">테스트 완료!</h1>
+            <p className="text-xs text-neutral-500">내 결과와 다른 참여자의 인지도를 함께 확인해보세요.</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <PersonalResult title="코리아 마이너 밈" accent="var(--vo-color-brand)" {...personal.minor} />
             <PersonalResult title="그 외 밈·챌린지" accent="var(--vo-color-signal)" {...personal.origin} />
           </div>
 
-          <Card className="border border-black/5 p-2.5 sm:p-4">
-            <div className="flex items-center justify-between px-1"><h2 className="text-xs font-black sm:text-sm">내가 진행한 5개</h2><span className="text-[0.62rem] font-bold text-black/30">상세 페이지로 이동</span></div>
-            <div className="mt-1.5 grid gap-1 sm:grid-cols-2">{cards.map((card) => <Link className="flex min-w-0 items-center gap-2 rounded-lg bg-[#f7f7f8] px-2.5 py-1.5 text-xs font-bold" href={memeHref(card.slug)} key={card.id} onClick={() => void sendLog(card, "open_meme", { destination: memeHref(card.slug), step: cards.length })}><span className={`size-2 shrink-0 rounded-full ${responses[card.id] === "know" ? "bg-[#087b77]" : "bg-[#fe2c55]"}`} /><span className="min-w-0 flex-1 truncate">{card.title}</span><span className="shrink-0 text-[0.6rem] text-black/40">더 알아보기</span><ArrowUpRight className="size-3 shrink-0" /></Link>)}</div>
+          <Card className="border border-black/5 p-2.5">
+            <div className="flex items-center justify-between px-1"><h2 className="text-xs font-black">내가 진행한 5개</h2><span className="text-[0.62rem] font-bold text-black/30">상세 페이지로 이동</span></div>
+            <div className="mt-1.5 grid gap-1">{cards.map((card) => <Link className="flex min-w-0 items-center gap-2 rounded-lg bg-[#f7f7f8] px-2.5 py-1.5 text-xs font-bold" href={memeHref(card.slug)} key={card.id} onClick={() => void sendLog(card, "open_meme", { destination: memeHref(card.slug), step: cards.length })}><span className={`size-2 shrink-0 rounded-full ${responses[card.id] === "know" ? "bg-[#087b77]" : "bg-[#fe2c55]"}`} /><span className="min-w-0 flex-1 truncate">{card.title}</span><span className="shrink-0 text-[0.6rem] text-black/40">더 알아보기</span><ArrowUpRight className="size-3 shrink-0" /></Link>)}</div>
           </Card>
 
-          <Card className="space-y-2 border border-black/5 p-3 shadow-lg sm:space-y-5 sm:p-6">
+          <Card className="space-y-2 border border-black/5 p-3 shadow-lg">
             <div className="flex items-center gap-2">
               <BarChart3 size={21} />
               <div>
-                <h2 className="text-sm font-black sm:text-base">다른 사람들은?</h2>
-                <p className="hidden text-xs text-neutral-400 sm:block">다른 참여자가 알고 있다고 답한 비율입니다.</p>
+                <h2 className="text-sm font-black">다른 사람들은?</h2>
               </div>
             </div>
             {statsError ? (
@@ -369,7 +371,7 @@ export function QuizPage() {
                 누적 통계를 불러오지 못했습니다. 내 응답은 위에서 확인할 수 있어요.
               </div>
             ) : stats ? (
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 <Metric label="마이너 밈 인지도" value={`${percentage(stats.stats.minor.know, stats.stats.minor.total)}%`} />
                 <Metric label="그 외 인지도" value={`${percentage(stats.stats.origin.know, stats.stats.origin.total)}%`} />
                 <Metric
@@ -396,31 +398,42 @@ export function QuizPage() {
           onOpenPage={() => void sendLog(selectedCard, "open_meme", { destination: memeHref(selectedCard.slug), step: currentIndex + 1 })}
         />
       )}
+    </QuizShell>
+  );
+}
+
+function QuizShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-white md:bg-[#f4f4f5] md:p-6">
+      <main className="relative flex h-[100dvh] w-full touch-none flex-col items-center overflow-hidden overscroll-none bg-white px-3 py-3 md:h-[min(900px,calc(100dvh-3rem))] md:max-w-[430px] md:rounded-[2rem] md:border md:border-black/10 md:px-4 md:py-5 md:shadow-[0_24px_80px_rgba(0,0,0,0.14)]">
+        {children}
+      </main>
     </div>
   );
 }
 
 function StatusState({ icon, title, description, children }: { icon: ReactNode; title: string; description?: string; children?: ReactNode }) {
   return (
-    <div className="flex h-[100dvh] w-full flex-col items-center justify-center gap-3 overflow-hidden p-4 text-center text-neutral-500 sm:page-shell sm:min-h-[65vh] sm:h-auto">
-      <div className="text-[var(--vo-color-brand)]">{icon}</div>
-      <h1 className="text-xl font-black text-neutral-900">{title}</h1>
-      {description && <p className="max-w-md text-sm leading-6">{description}</p>}
-      {children}
-    </div>
+    <QuizShell>
+      <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 p-4 text-center text-neutral-500">
+        <div className="text-[var(--vo-color-brand)]">{icon}</div>
+        <h1 className="text-xl font-black text-neutral-900">{title}</h1>
+        {description && <p className="max-w-md text-sm leading-6">{description}</p>}
+        {children}
+      </div>
+    </QuizShell>
   );
 }
 
 function PersonalResult({ title, know, total, accent }: { title: string; know: number; total: number; accent: string }) {
   return (
-    <Card className="space-y-2 border border-black/5 p-3 sm:space-y-3 sm:p-5">
-      <div className="flex items-end justify-between gap-2"><h2 className="text-xs font-black sm:text-base">{title}</h2><strong className="shrink-0 text-xs sm:text-base">{total > 0 ? `${know} / ${total}` : "출제 없음"}</strong></div>
+    <Card className="space-y-2 border border-black/5 p-3">
+      <div className="flex items-end justify-between gap-2"><h2 className="text-xs font-black">{title}</h2><strong className="shrink-0 text-xs">{total > 0 ? `${know} / ${total}` : "출제 없음"}</strong></div>
       <div className="h-2.5 overflow-hidden rounded-full bg-neutral-100"><div className="h-full rounded-full" style={{ background: accent, width: `${percentage(know, total)}%` }} /></div>
-      <p className="hidden text-xs text-neutral-400 sm:block">{total > 0 ? `내가 알고 있다고 답한 비율 ${percentage(know, total)}%` : "이번 카드 묶음에는 포함되지 않았어요."}</p>
     </Card>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl bg-neutral-50 p-2 text-center sm:p-4"><p className="text-[0.62rem] font-bold text-neutral-400 sm:text-xs">{label}</p><p className="mt-1 text-lg font-black sm:text-2xl">{value}</p></div>;
+  return <div className="rounded-xl bg-neutral-50 p-2 text-center"><p className="text-[0.62rem] font-bold text-neutral-400">{label}</p><p className="mt-1 text-lg font-black">{value}</p></div>;
 }
