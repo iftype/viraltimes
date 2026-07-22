@@ -57,6 +57,8 @@ function shuffled<T>(items: readonly T[]): T[] {
   return result;
 }
 
+const feedVisibilityThresholds = Array.from({ length: 11 }, (_, index) => index / 10);
+
 export function FeedExperience() {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,25 +117,36 @@ export function FeedExperience() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const visibilityRatiosRef = useRef(new Map<number, number>());
 
-  // 네이티브 GPU 최적화 IntersectionObserver
+  // 화면 점유율이 가장 큰 카드 하나만 활성화한다. 경계에서 비율이 같으면 현재 카드를 유지한다.
   useEffect(() => {
     if (!feedItems.length) return;
+    visibilityRatiosRef.current.clear();
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const index = Number(entry.target.getAttribute("data-index"));
-            if (!isNaN(index)) {
-              setActiveIndex((prev) => (prev !== index ? index : prev));
+          const index = Number(entry.target.getAttribute("data-index"));
+          if (!Number.isNaN(index)) {
+            visibilityRatiosRef.current.set(index, entry.isIntersecting ? entry.intersectionRatio : 0);
+          }
+        });
+        setActiveIndex((current) => {
+          let next = current;
+          let largestRatio = visibilityRatiosRef.current.get(current) ?? -1;
+          for (const [index, ratio] of visibilityRatiosRef.current) {
+            if (ratio > largestRatio) {
+              next = index;
+              largestRatio = ratio;
             }
           }
+          return largestRatio > 0 && next !== current ? next : current;
         });
       },
       {
         root: containerRef.current,
-        threshold: 0.45,
+        threshold: feedVisibilityThresholds,
       }
     );
 
@@ -194,8 +207,8 @@ export function FeedExperience() {
             const platformName = platformLabels[platform] ?? platform;
             const isActive = index === activeIndex;
 
-            // 시야에서 멀어진 오프스크린 영상 언마운트 (VM 인스턴스/네트워크 소켓 메모리 누수 방지)
-            const shouldRenderVideo = Math.abs(index - activeIndex) <= 1;
+            // 플랫폼별 autoplay 차이를 없애기 위해 활성 카드 한 개만 iframe을 유지한다.
+            const shouldRenderVideo = isActive;
 
             return (
               <div
