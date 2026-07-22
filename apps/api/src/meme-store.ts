@@ -14,6 +14,10 @@ export class MemeStore {
     return document.items
       .map((item) => ({
         ...item,
+        origin: {
+          ...item.origin,
+          video: item.origin.video ? { ...item.origin.video, feedVisible: item.origin.video.feedVisible !== false } : undefined,
+        },
         categoryIds: legacyCategoryIds(item),
         relatedMemeIds: item.relatedMemeIds ?? [],
         sourceLinks: item.sourceLinks ?? [],
@@ -37,6 +41,10 @@ export class MemeStore {
     return item
       ? {
           ...item,
+          origin: {
+            ...item.origin,
+            video: item.origin.video ? { ...item.origin.video, feedVisible: item.origin.video.feedVisible !== false } : undefined,
+          },
           categoryIds: legacyCategoryIds(item),
           relatedMemeIds: item.relatedMemeIds ?? [],
           sourceLinks: item.sourceLinks ?? [],

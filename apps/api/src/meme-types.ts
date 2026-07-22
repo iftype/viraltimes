@@ -19,6 +19,8 @@ export type Video = {
   uploadedAt?: string;
   thumbnailUrl?: string;
   viewCountLabel?: string;
+  /** Missing means visible for legacy records. */
+  feedVisible?: boolean;
 };
 
 export type MemeLifecycle = {
@@ -46,6 +48,8 @@ export type Meme = {
   origin: {
     status: OriginStatus;
     video?: Video;
+    musicVideo?: Video;
+    choreographyVideo?: Video;
     summary: string;
     evidence: Array<{ title: string; detail: string; url?: string }>;
     lastReviewedAt: string;

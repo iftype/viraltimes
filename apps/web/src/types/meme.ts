@@ -26,6 +26,8 @@ export type Video = {
   uploadedAt?: string;
   thumbnailUrl?: string;
   viewCountLabel?: string;
+  /** Legacy records without this field are visible in the feed. */
+  feedVisible?: boolean;
 };
 
 export type Evidence = {
@@ -37,6 +39,8 @@ export type Evidence = {
 export type OriginClaim = {
   status: OriginStatus;
   video?: Video;
+  musicVideo?: Video;
+  choreographyVideo?: Video;
   summary: string;
   evidence: Evidence[];
   lastReviewedAt: string;

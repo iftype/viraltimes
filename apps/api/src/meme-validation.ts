@@ -61,6 +61,7 @@ function parseVideo(value: unknown, fallbackId: string): Video | null {
     uploadedAt: optionalText(raw.uploadedAt, 40),
     thumbnailUrl: safeUrl(raw.thumbnailUrl, true),
     viewCountLabel: optionalText(raw.viewCountLabel, 80),
+    feedVisible: raw.feedVisible !== false,
   };
 }
 
@@ -103,8 +104,20 @@ export function parseMemeInput(value: unknown): ParseResult {
   if ((originVideoUrl && !originVideoTitle) || (!originVideoUrl && originVideoTitle)) {
     return { ok: false, error: "원본 URL과 제목은 함께 입력하거나 모두 비워 주세요." };
   }
+  const parseOptionalOriginVideo = (key: "musicVideo" | "choreographyVideo", label: string) => {
+    const candidate = originRaw?.[key] as Record<string, unknown> | undefined;
+    const url = text(candidate?.url, 2000);
+    const title = text(candidate?.title, 160);
+    if (url && !safeUrl(url)) return { error: `${label} URL은 http 또는 https 주소여야 합니다.` };
+    if ((url && !title) || (!url && title)) return { error: `${label} URL과 제목은 함께 입력하거나 모두 비워 주세요.` };
+    return { video: url && title ? parseVideo(candidate, `${slug}-${key}`) ?? undefined : undefined };
+  };
+  const musicVideoResult = parseOptionalOriginVideo("musicVideo", "원곡");
+  if (musicVideoResult.error) return { ok: false, error: musicVideoResult.error };
+  const choreographyVideoResult = parseOptionalOriginVideo("choreographyVideo", "안무 원본");
+  if (choreographyVideoResult.error) return { ok: false, error: choreographyVideoResult.error };
   const originSummary = text(originRaw?.summary, 1500);
-  const originStatus = originStatuses.includes(originRaw?.status as OriginStatus)
+  const originStatus = originVideo && originStatuses.includes(originRaw?.status as OriginStatus)
     ? (originRaw?.status as OriginStatus)
     : "needs-review";
   const evidence = Array.isArray(originRaw?.evidence)
@@ -209,6 +222,8 @@ export function parseMemeInput(value: unknown): ParseResult {
       origin: {
         status: originStatus,
         video: originVideo,
+        musicVideo: musicVideoResult.video,
+        choreographyVideo: choreographyVideoResult.video,
         summary: originSummary,
         evidence,
         lastReviewedAt: text(originRaw?.lastReviewedAt, 40) || new Date().toISOString().slice(0, 10),

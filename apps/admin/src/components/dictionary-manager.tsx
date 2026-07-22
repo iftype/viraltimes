@@ -34,6 +34,7 @@ export type VideoMeta = {
   uploadedAt?: string;
   thumbnailUrl?: string;
   viewCountLabel?: string;
+  feedVisible?: boolean;
 };
 
 export type AdminMeme = {
@@ -47,7 +48,9 @@ export type AdminMeme = {
   summary: string;
   origin: {
     status: "verified" | "likely" | "needs-review";
-    video: VideoMeta;
+    video?: VideoMeta;
+    musicVideo?: VideoMeta;
+    choreographyVideo?: VideoMeta;
     summary: string;
     evidence: Array<{ title: string; detail: string; url?: string }>;
     lastReviewedAt: string;
@@ -123,7 +126,16 @@ export function buildAdminMemePayload(form: FormData, base: AdminMeme | null) {
     creator: String(form.get("originCreator") ?? "").trim() || undefined,
     uploadedAt: String(form.get("originDate") ?? "").trim() || undefined,
     thumbnailUrl: String(form.get("thumbnailUrl") ?? "").trim() || undefined,
+    feedVisible: form.get("originFeedVisible") === "on",
   };
+
+  let supportingVideos: Pick<AdminMeme["origin"], "musicVideo" | "choreographyVideo"> = {};
+  const supportingVideosJson = String(form.get("supportingVideosJson") ?? "").trim();
+  if (supportingVideosJson) {
+    try {
+      supportingVideos = JSON.parse(supportingVideosJson);
+    } catch {}
+  }
 
   let evidence = base?.origin?.evidence ?? [];
   const evidenceJson = String(form.get("evidenceJson") ?? "").trim();
@@ -169,8 +181,12 @@ export function buildAdminMemePayload(form: FormData, base: AdminMeme | null) {
     tags: csv(form.get("tags")),
     publicationStatus: String(form.get("publicationStatus")) as AdminMeme["publicationStatus"],
     origin: {
-      status: String(form.get("originStatus")) as AdminMeme["origin"]["status"],
+      status: originVideo.url
+        ? String(form.get("originStatus")) as AdminMeme["origin"]["status"]
+        : "needs-review",
       video: originVideo,
+      musicVideo: supportingVideos.musicVideo,
+      choreographyVideo: supportingVideos.choreographyVideo,
       summary: String(form.get("originSummary") ?? "").trim(),
       evidence,
       lastReviewedAt: new Date().toISOString().slice(0, 10),
@@ -194,6 +210,14 @@ const adminEditHref = (id: string) =>
 type VideoMetadataSuggestion = {
   creator?: string;
   title?: string;
+};
+
+type EditableVideo = {
+  platform: VideoMeta["platform"];
+  url: string;
+  title: string;
+  creator: string;
+  feedVisible: boolean;
 };
 
 function platformFromUrl(url: string, fallback: VideoMeta["platform"]) {
@@ -823,20 +847,38 @@ export function MemeEntryForm({
   const [originTitle, setOriginTitle] = useState(editing?.origin?.video?.title ?? "");
   const [originCreator, setOriginCreator] = useState(editing?.origin?.video?.creator ?? "");
   const [originPlatform, setOriginPlatform] = useState<VideoMeta["platform"]>(editing?.origin?.video?.platform ?? "youtube");
+  const [originFeedVisible, setOriginFeedVisible] = useState(editing?.origin?.video?.feedVisible !== false);
   const [fetchingMeta, setFetchingMeta] = useState(false);
   const [fetchingTrendingIndex, setFetchingTrendingIndex] = useState<number | null>(null);
+  const [fetchingSupportingKey, setFetchingSupportingKey] = useState<"musicVideo" | "choreographyVideo" | null>(null);
   const [metadataError, setMetadataError] = useState("");
 
-  const [trendingVideos, setTrendingVideos] = useState<
-    Array<{ platform: AdminMeme["origin"]["video"]["platform"]; url: string; title: string; creator: string }>
-  >(
+  const [trendingVideos, setTrendingVideos] = useState<EditableVideo[]>(
     (editing?.trendingVideos ?? []).map((v) => ({
       platform: v.platform ?? "youtube",
       url: v.url ?? "",
       title: v.title ?? "",
       creator: v.creator ?? "",
+      feedVisible: v.feedVisible !== false,
     }))
   );
+
+  const [supportingVideos, setSupportingVideos] = useState<Record<"musicVideo" | "choreographyVideo", EditableVideo>>({
+    musicVideo: {
+      platform: editing?.origin.musicVideo?.platform ?? "youtube",
+      url: editing?.origin.musicVideo?.url ?? "",
+      title: editing?.origin.musicVideo?.title ?? "",
+      creator: editing?.origin.musicVideo?.creator ?? "",
+      feedVisible: false,
+    },
+    choreographyVideo: {
+      platform: editing?.origin.choreographyVideo?.platform ?? "youtube",
+      url: editing?.origin.choreographyVideo?.url ?? "",
+      title: editing?.origin.choreographyVideo?.title ?? "",
+      creator: editing?.origin.choreographyVideo?.creator ?? "",
+      feedVisible: false,
+    },
+  });
 
   const [evidenceLinks, setEvidenceLinks] = useState<
     Array<{ title: string; detail: string; url: string }>
@@ -898,13 +940,39 @@ export function MemeEntryForm({
     }
   };
 
-  const addTrendingVideo = () => {
-    if (trendingVideos.length < 3) {
-      setTrendingVideos([...trendingVideos, { platform: "youtube", url: "", title: "", creator: "" }]);
+  const loadSupportingMetadata = async (key: "musicVideo" | "choreographyVideo") => {
+    const video = supportingVideos[key];
+    if (!video.url) return;
+    setFetchingSupportingKey(key);
+    setMetadataError("");
+    try {
+      const suggestion = await fetchVideoMetadata(video.url);
+      setSupportingVideos((current) => ({
+        ...current,
+        [key]: {
+          ...current[key],
+          platform: platformFromUrl(current[key].url, current[key].platform),
+          title: suggestion.title ?? current[key].title,
+          creator: suggestion.creator ?? current[key].creator,
+        },
+      }));
+      if (!suggestion.title && !suggestion.creator) {
+        setMetadataError("이 링크에서는 제목·작성자 정보를 찾지 못했습니다. 직접 입력해 주세요.");
+      }
+    } catch (cause) {
+      setMetadataError(cause instanceof Error ? cause.message : "영상 정보를 불러오지 못했습니다.");
+    } finally {
+      setFetchingSupportingKey(null);
     }
   };
 
-  const updateTrendingVideo = (index: number, key: string, val: string) => {
+  const addTrendingVideo = () => {
+    if (trendingVideos.length < 3) {
+      setTrendingVideos([...trendingVideos, { platform: "youtube", url: "", title: "", creator: "", feedVisible: true }]);
+    }
+  };
+
+  const updateTrendingVideo = (index: number, key: keyof EditableVideo, val: string | boolean) => {
     setTrendingVideos((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [key]: val } : item))
     );
@@ -912,6 +980,13 @@ export function MemeEntryForm({
 
   const removeTrendingVideo = (index: number) => {
     setTrendingVideos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateSupportingVideo = (key: "musicVideo" | "choreographyVideo", field: keyof EditableVideo, value: string | boolean) => {
+    setSupportingVideos((current) => ({
+      ...current,
+      [key]: { ...current[key], [field]: value },
+    }));
   };
 
   const addEvidenceLink = () => {
@@ -976,6 +1051,7 @@ export function MemeEntryForm({
       onSubmit={onSave}
     >
       <input type="hidden" name="trendingVideosJson" value={JSON.stringify(trendingVideos)} />
+      <input type="hidden" name="supportingVideosJson" value={JSON.stringify(supportingVideos)} />
       <input type="hidden" name="evidenceJson" value={JSON.stringify(evidenceLinks)} />
 
       <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
@@ -1214,7 +1290,7 @@ export function MemeEntryForm({
           <select
             className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2 font-bold outline-none focus:border-zinc-900"
             name="originStatus"
-            defaultValue={editing?.origin?.status ?? "verified"}
+            defaultValue={editing?.origin?.status ?? "needs-review"}
           >
             <option value="verified">출처 확인 (Verified)</option>
             <option value="likely">유력 (Likely)</option>
@@ -1251,7 +1327,6 @@ export function MemeEntryForm({
             <input
               className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs outline-none focus:border-zinc-900"
               name="originUrl"
-              required
               type="url"
               value={originUrl}
               onChange={(e) => handleOriginUrlChange(e.target.value)}
@@ -1269,6 +1344,24 @@ export function MemeEntryForm({
             </button>
           </div>
         </Field>
+
+        <div className="col-span-full flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-3">
+          <div>
+            <p className="text-xs font-black text-zinc-800">{originUrl ? "원본 영상 등록됨" : "원본을 찾고 있습니다"}</p>
+            <p className="mt-0.5 text-[0.68rem] text-zinc-400">원본이 없으면 URL과 제목을 모두 비워 둬도 저장됩니다.</p>
+          </div>
+          <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-bold text-zinc-700">
+            <input
+              checked={originFeedVisible}
+              className="size-4 accent-rose-600"
+              disabled={!originUrl}
+              name="originFeedVisible"
+              onChange={(event) => setOriginFeedVisible(event.target.checked)}
+              type="checkbox"
+            />
+            챌린지 원본을 피드에 노출
+          </label>
+        </div>
 
         {/* 원본 영상 실시간 콤팩트 미리보기 */}
         {originUrl && (
@@ -1308,7 +1401,6 @@ export function MemeEntryForm({
           <input
             className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs outline-none focus:border-zinc-900"
             name="originTitle"
-            required
             value={originTitle}
             onChange={(e) => setOriginTitle(e.target.value)}
             placeholder="영상 제목"
@@ -1323,26 +1415,92 @@ export function MemeEntryForm({
             placeholder="@ryo.cute"
           />
         </Field>
-        <Field label="원본 뜻과 유래 요약 설명" wide>
+        <Field label="원본 뜻과 유래 요약 설명 (선택)" wide>
           <textarea
             className="w-full rounded-xl border border-zinc-200 p-3 text-xs leading-relaxed outline-none focus:border-zinc-900"
             name="originSummary"
-            required
             rows={2}
             defaultValue={editing?.origin?.summary}
             placeholder="원본 영상 유래 및 확산 개요"
           />
         </Field>
 
-        {/* 4. 이 밈을 사용한 영상자료 TOP 3 (trendingVideos) */}
+        <div className="col-span-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5">
+          <div className="mb-3">
+            <p className="text-xs font-black text-zinc-800">챌린지 구성 원본 (선택)</p>
+            <p className="mt-0.5 text-[0.68rem] text-zinc-400">원곡과 안무 원본은 상세 페이지에서 챌린지 원본 아래에 작게 표시되며 피드에는 나오지 않습니다.</p>
+          </div>
+          <div className="grid gap-3 lg:grid-cols-2">
+            {(["musicVideo", "choreographyVideo"] as const).map((key) => {
+              const video = supportingVideos[key];
+              const label = key === "musicVideo" ? "원곡" : "안무 원본";
+              return (
+                <div className="rounded-xl border border-zinc-200 bg-white p-3" key={key}>
+                  <p className="mb-2 text-[0.68rem] font-black text-rose-600">{label}</p>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <select
+                        aria-label={`${label} 플랫폼`}
+                        className="w-28 rounded-lg border border-zinc-200 p-2 text-xs font-bold"
+                        onChange={(event) => updateSupportingVideo(key, "platform", event.target.value)}
+                        value={video.platform}
+                      >
+                        <option value="youtube">YouTube</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="x">X</option>
+                        <option value="unknown">기타</option>
+                      </select>
+                      <input
+                        aria-label={`${label} URL`}
+                        className="min-w-0 flex-1 rounded-lg border border-zinc-200 p-2 text-xs"
+                        onChange={(event) => updateSupportingVideo(key, "url", event.target.value)}
+                        placeholder="https://..."
+                        type="url"
+                        value={video.url}
+                      />
+                      <button
+                        className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-zinc-900 px-2.5 text-[0.65rem] font-black text-white disabled:opacity-40"
+                        disabled={!video.url || fetchingSupportingKey !== null}
+                        onClick={() => void loadSupportingMetadata(key)}
+                        type="button"
+                      >
+                        {fetchingSupportingKey === key ? <LoaderCircle className="size-3 animate-spin" /> : <Sparkles className="size-3 text-yellow-300" />}
+                        불러오기
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        aria-label={`${label} 영상 제목`}
+                        className="rounded-lg border border-zinc-200 p-2 text-xs"
+                        onChange={(event) => updateSupportingVideo(key, "title", event.target.value)}
+                        placeholder="영상 제목"
+                        value={video.title}
+                      />
+                      <input
+                        aria-label={`${label} 제작자`}
+                        className="rounded-lg border border-zinc-200 p-2 text-xs"
+                        onChange={(event) => updateSupportingVideo(key, "creator", event.target.value)}
+                        placeholder="업로더 / 제작자"
+                        value={video.creator}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 4. 바이럴 영상 TOP 3 (trendingVideos) */}
         <div className="col-span-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5 mt-2">
           <div className="flex items-center justify-between mb-3">
             <div>
               <span className="text-xs font-bold text-zinc-800 flex items-center gap-1.5">
                 <Video className="size-3.5 text-rose-600" />
-                이 밈을 사용한 대표 영상자료 TOP 3 (Trending Videos)
+                바이럴 영상 TOP 3 (Viral Videos)
               </span>
-              <p className="text-[0.68rem] text-zinc-400">피드 및 상세 페이지에 노출될 활용 영상 최대 3개까지 지정</p>
+              <p className="text-[0.68rem] text-zinc-400">각 영상의 피드 노출 여부를 선택합니다. 기본값은 전체 노출입니다.</p>
             </div>
             {trendingVideos.length < 3 && (
               <button
@@ -1358,17 +1516,28 @@ export function MemeEntryForm({
           <div className="space-y-3">
             {trendingVideos.map((video, idx) => (
               <div key={idx} className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm relative">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between gap-3 mb-2">
                   <span className="text-[0.65rem] font-black uppercase text-rose-600 bg-rose-50 px-2 py-0.5 rounded">
                     TOP {idx + 1}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => removeTrendingVideo(idx)}
-                    className="text-zinc-400 hover:text-rose-600 text-xs font-bold flex items-center gap-0.5"
-                  >
-                    <X className="size-3" /> 삭제
-                  </button>
+                  <div className="ml-auto flex items-center gap-3">
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 text-[0.68rem] font-bold text-zinc-600">
+                      <input
+                        checked={video.feedVisible}
+                        className="size-3.5 accent-rose-600"
+                        onChange={(event) => updateTrendingVideo(idx, "feedVisible", event.target.checked)}
+                        type="checkbox"
+                      />
+                      피드 노출
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeTrendingVideo(idx)}
+                      className="text-zinc-400 hover:text-rose-600 text-xs font-bold flex items-center gap-0.5"
+                    >
+                      <X className="size-3" /> 삭제
+                    </button>
+                  </div>
                 </div>
                 <div className="grid gap-2 text-xs sm:grid-cols-2">
                   <div>

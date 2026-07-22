@@ -211,15 +211,20 @@ export class MetadataSuggestionService {
     }
     const titleTag = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1];
     const title = metaContent(html, ["og:title", "twitter:title"]) ?? cleanText(titleTag);
+    const description = metaContent(html, ["og:description", "description", "twitter:description"]);
     const explicitCreator = metaContent(html, ["author", "article:author", "twitter:creator"]);
     const instagramCreator = url.hostname.endsWith("instagram.com")
-      ? title?.match(/^@([a-z0-9._]+)/i)?.[1]
+      ? title?.match(/\(@([a-z0-9._]+)\)/i)?.[1]
+        ?? title?.match(/^@([a-z0-9._]+)/i)?.[1]
+        ?? title?.match(/-\s*@?([a-z0-9._]+)\s+on Instagram\b/i)?.[1]
+        ?? description?.match(/-\s*@?([a-z0-9._]+)\s+on Instagram\b/i)?.[1]
+        ?? html.match(/["']username["']\s*:\s*["']([a-z0-9._]+)["']/i)?.[1]
       : undefined;
     return {
       provider: "open-graph",
       title,
       creator: explicitCreator ?? instagramCreator,
-      description: metaContent(html, ["og:description", "description", "twitter:description"]),
+      description,
       thumbnailUrl,
       siteName: metaContent(html, ["og:site_name"]) ?? url.hostname,
     };

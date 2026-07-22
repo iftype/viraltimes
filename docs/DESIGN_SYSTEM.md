@@ -50,8 +50,8 @@
 - 카테고리는 큰 탐색 영역이므로 강조 badge로, 태그는 작은 검색 키워드이므로 보조 텍스트로 구분한다.
 - 커뮤니티 밈도 가능하면 원문 캡처·공식 기사·대표 게시물 thumbnail을 사용한다.
 - 다른 사전 항목도 텍스트 박스가 아니라 실제 thumbnail, 검토 상태와 제안 수를 함께 미리 본다.
-- 여러 사용 자료는 대표 1개만 재생하고 최대 3개의 thumbnail selector를 둔다. 게시글은 screenshot thumbnail과 원문 링크를 사용한다.
-- 홈 피드 iframe은 viewport 근처에서만 생성한다. cross-origin Instagram은 기본적으로 페이지 scroll을 우선하고 사용자가 조작 모드를 켜며, 조작 중에는 피드로 빠져나오는 명시적 버튼과 scroll rail을 둔다.
+- 상세의 여러 바이럴 자료는 대표 1개만 재생하고 최대 3개의 thumbnail selector를 둔다. 챌린지 원곡·안무 원본은 주 원본 아래의 작은 2열 embed로 표시한다. 게시글은 screenshot thumbnail과 원문 링크를 사용한다.
+- 홈 피드 iframe은 viewport 근처에서만 생성한다. cross-origin Instagram/TikTok은 중앙에서 플랫폼 재생·소리 UI를 직접 조작하고 양쪽 narrow rail에서 피드 세로 swipe를 유지한다.
 
 ## Forms
 

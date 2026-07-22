@@ -12,6 +12,12 @@ export function OriginSection({ meme }: { meme: Meme }) {
   const sourceLinks = meme.sourceLinks ?? [];
   const primarySource = sourceLinks[0];
   const thumbnailUrl = meme.thumbnailUrl ? (meme.thumbnailUrl.startsWith("/") ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${meme.thumbnailUrl}` : meme.thumbnailUrl) : null;
+  const supportingOrigins = meme.kind === "challenge"
+    ? [
+        meme.origin.musicVideo ? { label: "원곡", video: meme.origin.musicVideo } : null,
+        meme.origin.choreographyVideo ? { label: "안무 원본", video: meme.origin.choreographyVideo } : null,
+      ].filter((item): item is { label: string; video: NonNullable<typeof meme.origin.video> } => Boolean(item))
+    : [];
 
   return (
     <section className="page-shell pb-14 sm:pb-20">
@@ -33,7 +39,20 @@ export function OriginSection({ meme }: { meme: Meme }) {
           </a>
         ) : (
           <div className="rounded-[var(--vo-radius-xl)] border border-dashed border-black/10 bg-[#f7f7f8]/50 p-6 text-center text-sm font-bold text-black/35">
-            단일 원본 영상이 없거나 아직 확인되지 않았습니다. 아래 링크와 사용례를 먼저 확인해 주세요.
+            원본을 찾고 있습니다. 확인된 바이럴 영상과 아래 자료를 먼저 확인해 주세요.
+          </div>
+        )}
+        {supportingOrigins.length > 0 && (
+          <div className="mt-6 border-t border-black/5 pt-5">
+            <p className="mb-3 text-xs font-black text-black/40">챌린지 구성 원본</p>
+            <div className="grid grid-cols-2 gap-3">
+              {supportingOrigins.map(({ label, video: supportingVideo }) => (
+                <div className="min-w-0" key={label}>
+                  <p className="mb-2 text-[0.68rem] font-black text-[#fe2c55]">{label}</p>
+                  <VideoEmbed video={supportingVideo} />
+                </div>
+              ))}
+            </div>
           </div>
         )}
         {sourceLinks.length > (hasVideo ? 0 : 1) && <div className="mt-6 grid gap-2 sm:grid-cols-2">

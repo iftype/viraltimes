@@ -58,14 +58,41 @@ export function VideoEmbed({
 
   // 음소거 상태가 상위에서 변경될 때 iframe에 postMessage로 무음/소리 전송
   useEffect(() => {
-    if (video.platform === "youtube" && iframeRef.current?.contentWindow) {
+    if (!iframeRef.current?.contentWindow) return;
+    if (video.platform === "youtube") {
       const command = isMuted ? "mute" : "unMute";
       iframeRef.current.contentWindow.postMessage(
         JSON.stringify({ event: "command", func: command, args: [] }),
         "*"
       );
+    } else if (video.platform === "tiktok") {
+      iframeRef.current.contentWindow.postMessage(
+        { type: isMuted ? "mute" : "unMute", "x-tiktok-player": true },
+        "*",
+      );
     }
   }, [isMuted, video.platform]);
+
+  useEffect(() => {
+    if (video.platform !== "tiktok") return;
+    const handlePlayerMessage = (event: MessageEvent) => {
+      if (event.origin !== "https://www.tiktok.com" || event.source !== iframeRef.current?.contentWindow) return;
+      const message = event.data as { type?: string; "x-tiktok-player"?: boolean } | null;
+      if (!message?.["x-tiktok-player"] || message.type !== "onPlayerReady") return;
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: isMuted ? "mute" : "unMute", "x-tiktok-player": true },
+        "https://www.tiktok.com",
+      );
+      if (autoPlayOnScroll) {
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: "play", "x-tiktok-player": true },
+          "https://www.tiktok.com",
+        );
+      }
+    };
+    window.addEventListener("message", handlePlayerMessage);
+    return () => window.removeEventListener("message", handlePlayerMessage);
+  }, [autoPlayOnScroll, isMuted, video.platform]);
 
   // active 상태 및 IntersectionObserver에 의한 자동재생 확정 트리거 (3단계 재시도로 끊김 100% 방지)
   useEffect(() => {
@@ -92,6 +119,14 @@ export function VideoEmbed({
     } else {
       triggerPlay();
     }
+  }, [autoPlayOnScroll, canEmbed, video.platform]);
+
+  useEffect(() => {
+    if (!canEmbed || video.platform !== "tiktok" || !iframeRef.current?.contentWindow) return;
+    iframeRef.current.contentWindow.postMessage(
+      { type: autoPlayOnScroll ? "play" : "pause", "x-tiktok-player": true },
+      "https://www.tiktok.com",
+    );
   }, [autoPlayOnScroll, canEmbed, video.platform]);
 
   return (
@@ -126,13 +161,22 @@ export function VideoEmbed({
                 allowFullScreen
                 loading="eager"
               />
-              {feedMode && (
+              {feedMode && video.platform === "youtube" && (
                 <div
                   aria-hidden="true"
                   className="absolute inset-0 z-10 touch-pan-y md:hidden"
                 />
               )}
-              {feedMode && video.platform === "youtube" && onToggleMute && (
+              {feedMode && ["instagram", "tiktok"].includes(video.platform) && (
+                <>
+                  <div aria-hidden="true" className="absolute inset-y-0 left-0 z-10 w-5 touch-pan-y bg-gradient-to-r from-black/20 to-transparent md:hidden" />
+                  <div aria-hidden="true" className="absolute inset-y-0 right-0 z-10 w-5 touch-pan-y bg-gradient-to-l from-black/20 to-transparent md:hidden" />
+                  <span className={`pointer-events-none absolute right-3 z-20 rounded-full bg-black/65 px-2.5 py-1 text-[0.62rem] font-bold text-white/80 backdrop-blur-md ${video.platform === "tiktok" ? "top-16" : "top-3"}`}>
+                    영상에서 소리 조작 · 양옆으로 스와이프
+                  </span>
+                </>
+              )}
+              {feedMode && ["youtube", "tiktok"].includes(video.platform) && onToggleMute && (
                 <button
                   aria-label={isMuted ? "소리 켜기" : "음소거"}
                   className="absolute right-3 top-3 z-20 flex size-10 cursor-pointer items-center justify-center rounded-full bg-black/65 text-white shadow-md backdrop-blur-md transition hover:bg-black/85"
