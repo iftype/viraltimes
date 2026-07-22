@@ -244,6 +244,7 @@ export function QuizPage() {
                 aria-label="ViralTimes 서비스로 바로가기"
                 className="flex shrink-0 items-center gap-1 rounded-full bg-black/5 px-2.5 py-1.5 text-[0.65rem] font-black text-black/55 transition hover:bg-black hover:text-white"
                 href="/"
+                title="서비스로 바로가기"
                 onClick={() => void postLog({
                   cardId: "home",
                   cardType: cards[0]?.type ?? "origin",
