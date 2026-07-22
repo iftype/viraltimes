@@ -1,8 +1,8 @@
 import { ArrowUpRight, BookOpenText, Check, CircleHelp, Clock3, Play } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
 import { Badge, cn } from "@origin/ui";
+import { ResilientImage } from "@/components/resilient-image";
 import { getMemeCardThumbnail } from "@/lib/meme-thumbnail";
 import { memeHref } from "@/lib/meme-href";
 import type { Meme, MemeKind, OriginStatus } from "@/types/meme";
@@ -45,13 +45,14 @@ export function MemeCard({
       {/* 1/4 콤팩트 비율 (aspect-[4/3]) */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-black">
         {thumbnailUrl ? (
-          <Image
+          <ResilientImage
             alt={`${meme.title} 썸네일`}
             className={cn(
               "transition-transform duration-300 group-hover:scale-[1.03]",
               meme.thumbnailFit === "contain" ? "object-contain" : "object-cover",
             )}
             fill
+            fallback={<MemeCardPlaceholder accentColor={meme.accent} platform={meme.origin.video?.platform} />}
             priority={priority}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
             src={thumbnailUrl}

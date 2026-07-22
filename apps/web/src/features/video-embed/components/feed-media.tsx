@@ -1,9 +1,9 @@
 "use client";
 
 import { ExternalLink, MousePointerClick, Play, ScrollText } from "lucide-react";
-import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { ResilientImage } from "@/components/resilient-image";
 import type { Video } from "@/types/meme";
 
 import { getInstagramEmbedUrl, getTikTokEmbedUrl, getYouTubeVideoId } from "../lib/video-url";
@@ -59,9 +59,9 @@ export function FeedMedia({ posterUrl, priority = false, video }: { posterUrl?: 
             title={video?.title ?? "밈 영상"}
           />
         ) : posterUrl ? (
-          <Image alt={video?.title ?? "밈 대표 장면"} className="object-cover" fill priority={priority} sizes="(max-width: 640px) 100vw, 640px" src={posterUrl} />
+          <ResilientImage alt={video?.title ?? "밈 대표 장면"} className="object-cover" fallback={<FeedMediaPlaceholder />} fill priority={priority} sizes="(max-width: 640px) 100vw, 640px" src={posterUrl} />
         ) : (
-          <div aria-label="영상 미리보기" className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_25%_20%,#fe2c5566,transparent_40%),radial-gradient(circle_at_75%_80%,#25f4ee44,transparent_40%)]" role="img"><Play className="size-10 fill-white text-white" /></div>
+          <FeedMediaPlaceholder />
         )}
 
         {isInstagram && embedUrl && !instagramInteractive && (
@@ -90,4 +90,8 @@ export function FeedMedia({ posterUrl, priority = false, video }: { posterUrl?: 
       </div>
     </div>
   );
+}
+
+function FeedMediaPlaceholder() {
+  return <div aria-label="영상 미리보기" className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_25%_20%,#fe2c5566,transparent_40%),radial-gradient(circle_at_75%_80%,#25f4ee44,transparent_40%)]" role="img"><Play className="size-10 fill-white text-white" /></div>;
 }

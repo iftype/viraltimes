@@ -1,8 +1,8 @@
 import { ArrowUpRight, Link2 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
 import { Badge, buttonClassName, cn } from "@origin/ui";
+import { ResilientImage } from "@/components/resilient-image";
 import { getMemeCardThumbnail } from "@/lib/meme-thumbnail";
 import { memeHref } from "@/lib/meme-href";
 import type { Meme } from "@/types/meme";
@@ -23,7 +23,7 @@ export function RelatedMemesSection({ meme, memes }: { meme: Meme; memes: Meme[]
               return (
                 <Link className="group w-[42%] min-w-[9rem] max-w-[11rem] shrink-0 snap-start overflow-hidden rounded-xl border border-black/5 bg-white shadow-[var(--vo-shadow-card)]" href={memeHref(related.slug)} key={related.id}>
                   <div className="relative aspect-square overflow-hidden bg-black">
-                    {thumbnailUrl ? <Image alt={`${related.title} 미리보기`} className={cn("transition-transform duration-300 group-hover:scale-[1.04]", related.thumbnailFit === "contain" ? "object-contain" : "object-cover")} fill sizes="176px" src={thumbnailUrl} /> : <div aria-hidden="true" className="absolute inset-0" style={{ background: `radial-gradient(circle at 30% 30%, ${related.accent}66, transparent 55%), #111` }} />}
+                    {thumbnailUrl ? <ResilientImage alt={`${related.title} 미리보기`} className={cn("transition-transform duration-300 group-hover:scale-[1.04]", related.thumbnailFit === "contain" ? "object-contain" : "object-cover")} fallback={<div aria-hidden="true" className="absolute inset-0" style={{ background: `radial-gradient(circle at 30% 30%, ${related.accent}66, transparent 55%), #111` }} />} fill sizes="176px" src={thumbnailUrl} /> : <div aria-hidden="true" className="absolute inset-0" style={{ background: `radial-gradient(circle at 30% 30%, ${related.accent}66, transparent 55%), #111` }} />}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20" />
                     <Badge className="absolute left-2 top-2 bg-white/90 px-2 py-1 text-[0.6rem] text-black">{statusLabel[related.origin.status]}</Badge>
                     <h3 className="absolute inset-x-2 bottom-2 text-sm font-black tracking-[-0.03em] text-white">{related.title}</h3>

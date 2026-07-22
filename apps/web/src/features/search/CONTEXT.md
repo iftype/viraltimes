@@ -6,3 +6,4 @@
 - 경계: 검색 입력과 결과 목록을 소유하며 상세 콘텐츠는 소유하지 않는다.
 - 검색 dropdown은 API query를 사용한다. 홈은 12개 단위로 페이지네이션하며 `categories`, `tags`, `fromYear`, `toYear`, `verification`을 API에 전달한다.
 - 모바일 feed card는 viewport 전체 폭을 쓰고 desktop은 2xl 단일 열이다. 두 번째 카드 뒤 퀴즈 CTA를 feed item처럼 배치한다.
+- 사전 카드 썸네일은 대표 이미지가 없으면 원본·바이럴 YouTube 영상에서 보완하고, 외부 이미지 로드 실패 시 플랫폼/accent placeholder로 즉시 전환한다.

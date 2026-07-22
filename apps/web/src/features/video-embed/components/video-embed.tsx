@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, Play, Volume2, VolumeX, ShieldAlert } from "lucide-react";
-import Image from "next/image";
 
+import { ResilientImage } from "@/components/resilient-image";
 import type { Video } from "@/types/meme";
 
 import {
@@ -318,10 +318,11 @@ export function VideoEmbed({
               target="_blank"
               rel="noreferrer"
             >
-              <Image
+              <ResilientImage
                 className="object-cover"
                 src={imageUrl}
                 alt={video.title}
+                fallback={<VideoLinkPlaceholder instagramUnavailable={instagramUnavailable} />}
                 fill
                 priority={priority}
                 sizes="(max-width: 768px) 100vw, 420px"
@@ -329,22 +330,12 @@ export function VideoEmbed({
             </a>
           ) : (
             <a
-              className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_30%_10%,#fe2c5555,transparent_35%),radial-gradient(circle_at_80%_90%,#25f4ee44,transparent_35%)] px-7 text-center text-white"
+              className="absolute inset-0 block"
               href={video.url}
               target="_blank"
               rel="noreferrer"
             >
-              <span className="flex size-12 items-center justify-center rounded-full bg-white text-black shadow-[-3px_0_0_#25f4ee,3px_0_0_#fe2c55] transition-transform group-hover:scale-105">
-                <Play
-                  className="ml-0.5 size-4 fill-current"
-                  aria-hidden="true"
-                />
-              </span>
-              <span className="max-w-sm text-xs leading-5 text-white/65">
-                {instagramUnavailable
-                  ? "이 Instagram 게시물은 외부 임베드를 허용하지 않습니다. Instagram에서 확인해 주세요."
-                  : "임베드가 제한될 수 있어요. 원본 링크에서 확인해 주세요."}
-              </span>
+              <VideoLinkPlaceholder instagramUnavailable={instagramUnavailable} />
             </a>
           )}
         </div>
@@ -385,5 +376,20 @@ export function VideoEmbed({
         </div>
       )}
     </article>
+  );
+}
+
+function VideoLinkPlaceholder({ instagramUnavailable }: { instagramUnavailable: boolean }) {
+  return (
+    <span className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_30%_10%,#fe2c5555,transparent_35%),radial-gradient(circle_at_80%_90%,#25f4ee44,transparent_35%)] px-7 text-center text-white">
+      <span className="flex size-12 items-center justify-center rounded-full bg-white text-black shadow-[-3px_0_0_#25f4ee,3px_0_0_#fe2c55] transition-transform group-hover:scale-105">
+        <Play className="ml-0.5 size-4 fill-current" aria-hidden="true" />
+      </span>
+      <span className="max-w-sm text-xs leading-5 text-white/65">
+        {instagramUnavailable
+          ? "이 Instagram 게시물은 외부 임베드를 허용하지 않습니다. Instagram에서 확인해 주세요."
+          : "미리보기를 불러오지 못했습니다. 원본 링크에서 확인해 주세요."}
+      </span>
+    </span>
   );
 }

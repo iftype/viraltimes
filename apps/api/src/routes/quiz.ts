@@ -46,7 +46,10 @@ export function registerQuizRoutes(
         meme.categoryIds.includes("category-korea-minor-meme")
           ? "minor"
           : "origin",
-      thumbnailUrl: meme.thumbnailUrl,
+      thumbnailUrl:
+        meme.thumbnailUrl ??
+        meme.origin.video?.thumbnailUrl ??
+        meme.trendingVideos.find((video) => video.thumbnailUrl)?.thumbnailUrl,
       accentColor: meme.accent,
       field,
       originDetail: {
