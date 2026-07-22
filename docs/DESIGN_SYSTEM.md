@@ -45,6 +45,7 @@
 ## Content cards
 
 - 썸네일은 실제 게시물 캡처나 영상 제공 thumbnail URL을 우선한다.
+- 외부 thumbnail URL은 실패할 수 있으므로 모든 노출 지점에서 깨진 이미지 대신 제목·플랫폼·accent 기반 placeholder를 제공한다.
 - 카드 overlay에는 status, kind, title, summary까지만 둔다.
 - 태그는 최대 3개만 미리 보이고 상세에서 전체를 표시한다.
 - 카테고리는 큰 탐색 영역이므로 강조 badge로, 태그는 작은 검색 키워드이므로 보조 텍스트로 구분한다.

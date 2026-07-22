@@ -3,6 +3,7 @@
 import { useState, useRef, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from "react";
 import { ArrowLeft, ArrowRight, Play, Check, X } from "lucide-react";
 import { Card } from "@origin/ui";
+import { ResilientImage } from "@/components/resilient-image";
 
 interface QuizCardData {
   id: string;
@@ -160,10 +161,17 @@ export function QuizCard({ card, active, onSwipe, onViewDetail, onInteraction, s
 
         {/* 카드 미디어/썸네일 영역 */}
         <div className="relative h-[39%] w-full shrink-0 overflow-hidden border-b border-neutral-100 bg-neutral-100 sm:h-auto sm:aspect-[4/3]">
-          {card.thumbnailUrl ? <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={card.thumbnailUrl} alt={`${card.title} 대표 장면`} className="w-full h-full object-cover pointer-events-none" />
-          </> : <div aria-label={`${card.title} 썸네일 없음`} className="absolute inset-0" role="img" style={{ background: `radial-gradient(circle at 30% 25%, ${card.accentColor ?? "#fe2c55"}88, transparent 48%), #111` }} />}
+          {card.thumbnailUrl ? (
+            <ResilientImage
+              alt={`${card.title} 대표 장면`}
+              className="pointer-events-none object-cover"
+              fallback={<QuizCardPlaceholder card={card} />}
+              fill
+              priority={active}
+              sizes="(max-width: 640px) 340px, 340px"
+              src={card.thumbnailUrl}
+            />
+          ) : <QuizCardPlaceholder card={card} />}
 
           {/* 카드 타입 뱃지 */}
           <div className="absolute top-4 left-4 flex gap-2">
@@ -230,6 +238,19 @@ export function QuizCard({ card, active, onSwipe, onViewDetail, onInteraction, s
           </div>
         </div>
       </Card>
+    </div>
+  );
+}
+
+function QuizCardPlaceholder({ card }: { card: QuizCardData }) {
+  return (
+    <div
+      aria-label={`${card.title} 썸네일 없음`}
+      className="absolute inset-0 flex items-center justify-center"
+      role="img"
+      style={{ background: `radial-gradient(circle at 30% 25%, ${card.accentColor ?? "#fe2c55"}88, transparent 48%), #111` }}
+    >
+      <span className="max-w-[75%] text-center text-2xl font-black tracking-[-0.04em] text-white/90">{card.title}</span>
     </div>
   );
 }

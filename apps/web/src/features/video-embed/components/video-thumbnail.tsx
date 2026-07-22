@@ -1,6 +1,6 @@
 import { Play } from "lucide-react";
-import Image from "next/image";
 
+import { ResilientImage } from "@/components/resilient-image";
 import type { Video } from "@/types/meme";
 
 import { getYouTubeVideoId, platformLabels } from "../lib/video-url";
@@ -18,8 +18,14 @@ export function getVideoThumbnailUrl(video: Video) {
 export function VideoThumbnail({ video, sizes }: { video: Video; sizes: string }) {
   const thumbnailUrl = getVideoThumbnailUrl(video);
   return thumbnailUrl ? (
-    <Image alt="" className="object-cover" fill loading="lazy" sizes={sizes} src={thumbnailUrl} />
+    <ResilientImage alt="" className="object-cover" fallback={<VideoThumbnailPlaceholder video={video} />} fill loading="lazy" sizes={sizes} src={thumbnailUrl} />
   ) : (
+    <VideoThumbnailPlaceholder video={video} />
+  );
+}
+
+function VideoThumbnailPlaceholder({ video }: { video: Video }) {
+  return (
     <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_20%_10%,#fe2c5570,transparent_38%),radial-gradient(circle_at_80%_90%,#25f4ee55,transparent_38%),#171719] text-white">
       <span className="flex size-9 items-center justify-center rounded-full bg-white text-black shadow-[-2px_0_0_#25f4ee,2px_0_0_#fe2c55]">
         <Play className="ml-0.5 size-3.5 fill-current" aria-hidden="true" />

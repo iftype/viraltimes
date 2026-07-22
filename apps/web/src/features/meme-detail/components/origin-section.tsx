@@ -1,7 +1,7 @@
 import { ExternalLink } from "lucide-react";
-import Image from "next/image";
 
 import { Card } from "@origin/ui";
+import { ResilientImage } from "@/components/resilient-image";
 import { VideoEmbed } from "@/features/video-embed/components/video-embed";
 import type { Meme } from "@/types/meme";
 
@@ -35,7 +35,7 @@ export function OriginSection({ meme }: { meme: Meme }) {
           </>
         ) : primarySource ? (
           <a className="group block overflow-hidden rounded-2xl bg-black" href={primarySource.url} rel="noreferrer" target="_blank">
-            <div className="relative aspect-[4/3] sm:aspect-video">{thumbnailUrl ? <Image alt={`${primarySource.title} 게시글 미리보기`} className="object-cover opacity-90 transition group-hover:scale-[1.02]" fill priority sizes="(max-width: 768px) 100vw, 768px" src={thumbnailUrl} /> : <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,#fe2c5566,transparent_45%),#171719]" />}<div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/10" /><div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3 text-white"><div><p className="text-[0.65rem] font-black text-white/50">{primarySource.siteName ?? "원문 게시글"}</p><h3 className="mt-1 text-lg font-black">{primarySource.title}</h3></div><ExternalLink className="size-5 shrink-0" /></div></div>
+            <div className="relative aspect-[4/3] sm:aspect-video">{thumbnailUrl ? <ResilientImage alt={`${primarySource.title} 게시글 미리보기`} className="object-cover opacity-90 transition group-hover:scale-[1.02]" fallback={<div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,#fe2c5566,transparent_45%),#171719]" />} fill priority sizes="(max-width: 768px) 100vw, 768px" src={thumbnailUrl} /> : <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,#fe2c5566,transparent_45%),#171719]" />}<div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/10" /><div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3 text-white"><div><p className="text-[0.65rem] font-black text-white/50">{primarySource.siteName ?? "원문 게시글"}</p><h3 className="mt-1 text-lg font-black">{primarySource.title}</h3></div><ExternalLink className="size-5 shrink-0" /></div></div>
           </a>
         ) : (
           <div className="rounded-[var(--vo-radius-xl)] border border-dashed border-black/10 bg-[#f7f7f8]/50 p-6 text-center text-sm font-bold text-black/35">
