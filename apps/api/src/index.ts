@@ -50,6 +50,7 @@ const trendStore = new TrendStore(
   process.env.TREND_DATA_FILE ?? "/opt/origin/shared/trend-snapshots.json",
 );
 const quizStore = new QuizStore(
+  process.env.QUIZ_DB_FILE ?? "/opt/origin/shared/quiz.sqlite",
   process.env.QUIZ_LOG_FILE ?? "/opt/origin/shared/quiz-logs.json",
 );
 const metadataSuggestionService = new MetadataSuggestionService(
@@ -91,6 +92,7 @@ registerAdminRoutes(app, {
 const stop = async (signal: string) => {
   app.log.info({ signal }, "shutting down");
   await app.close();
+  quizStore.close();
   process.exit(0);
 };
 

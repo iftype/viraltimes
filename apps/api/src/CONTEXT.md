@@ -16,5 +16,5 @@
 - 밈의 `lifecycle.originYear/firstSeenAt/lastObservedAt`은 연도 탐색과 수명 표시의 기준이다. 기존 데이터는 origin timeline과 업로드 날짜에서 originYear를 보완한다.
 - 트렌드 시계열은 `TREND_DATA_FILE`에 밈·날짜·source·metric 조합으로 upsert한다. 공개 GET은 읽기 전용이고 internal batch POST만 `TREND_INGEST_TOKEN`을 요구한다.
 - 밈은 `relatedMemeIds`로 파생·연결 관계를 저장한다. 공개 상세의 다른 항목은 이 관계를 먼저 사용한다.
-- 퀴즈 구성과 원시 로그는 `QUIZ_LOG_FILE` 하나에 함께 보존한다. 새 로그는 익명 `sessionId`, 실행별 `runId`, 0~5 step과 선택형 destination을 저장하며 공개 stats는 실행별 퍼널을 반환한다. 관리자 API는 최대 5개 deck 교체와 세션별·전체 로그 삭제를 제공한다.
+- 퀴즈 구성과 원시 로그는 WAL 모드의 `QUIZ_DB_FILE` SQLite에 보존한다. 기존 `QUIZ_LOG_FILE` JSON이 있으면 `schema_migrations`로 최초 1회만 가져온다. 새 로그는 익명 `sessionId`, 실행별 `runId`, 0~5 step과 선택형 destination을 저장하며 공개 stats는 실행별 퍼널을 반환한다. 관리자 API는 최대 5개 deck 교체와 세션별·전체 로그 삭제를 제공한다.
 - 최근 사용 신호는 `MEME_PULSE_FILE`에 날짜별로 upsert하며 같은 브라우저·밈·날짜 응답은 마지막 선택으로 교체한다.

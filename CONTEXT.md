@@ -12,7 +12,7 @@
 - `apps/api`: Fastify, TypeScript, Node.js 22
 - `packages/ui`: web/admin 공용 디자인 토큰과 도메인 비의존 UI primitive
 - `infra`: Nginx reverse proxy와 systemd API 서비스 예시
-- 공개 사전·카테고리·비회원 댓글·수정 제안·퀴즈 응답과 운영자 큐는 Oracle API의 파일 저장소를 사용한다.
+- 공개 사전·카테고리·비회원 댓글·수정 제안·운영자 큐는 Oracle API의 JSON 파일 저장소를 사용하고, 퀴즈 카드 구성·응답 로그는 SQLite를 사용한다.
 
 ## Network boundary
 

@@ -41,7 +41,7 @@ Admin   ── /viral/api ──────────────────
 
 - 브라우저 코드에는 서버 IP, SSH 키, 관리자 비밀번호를 넣지 않습니다.
 - 운영 비밀은 Oracle의 `/opt/origin/shared/api.env`와 GitHub Actions Secret에만 둡니다.
-- 현재 사전과 관리자 inbox는 작은 JSON 파일을 원자적으로 교체해 저장합니다.
+- 현재 사전과 관리자 inbox는 작은 JSON 파일을 원자적으로 교체해 저장하고, 퀴즈 카드 구성과 익명 응답 로그는 WAL 모드 SQLite에 저장합니다.
 - 데이터베이스·댓글·회원 전환 설계는 [PLAN.md](PLAN.md)를 따릅니다.
 
 ## Local development
