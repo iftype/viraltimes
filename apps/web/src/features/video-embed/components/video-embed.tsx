@@ -143,15 +143,15 @@ export function VideoEmbed({
   // active 상태 및 IntersectionObserver에 의한 자동재생 확정 트리거 (3단계 재시도로 끊김 100% 방지)
   useEffect(() => {
     if (!canEmbed || video.platform !== "youtube") return;
+    const playerWindow = iframeRef.current?.contentWindow;
+    if (!playerWindow) return;
 
     const triggerPlay = () => {
-      if (iframeRef.current?.contentWindow) {
-        const command = autoPlayOnScroll ? "playVideo" : "pauseVideo";
-        iframeRef.current.contentWindow.postMessage(
-          JSON.stringify({ event: "command", func: command, args: [] }),
-          "*"
-        );
-      }
+      const command = autoPlayOnScroll ? "playVideo" : "pauseVideo";
+      playerWindow.postMessage(
+        JSON.stringify({ event: "command", func: command, args: [] }),
+        "*"
+      );
     };
 
     if (autoPlayOnScroll) {
@@ -161,6 +161,10 @@ export function VideoEmbed({
       return () => {
         clearTimeout(t1);
         clearTimeout(t2);
+        playerWindow.postMessage(
+          JSON.stringify({ event: "command", func: "pauseVideo", args: [] }),
+          "*",
+        );
       };
     } else {
       triggerPlay();
@@ -168,11 +172,18 @@ export function VideoEmbed({
   }, [autoPlayOnScroll, canEmbed, video.platform]);
 
   useEffect(() => {
-    if (!canEmbed || video.platform !== "tiktok" || !iframeRef.current?.contentWindow) return;
-    iframeRef.current.contentWindow.postMessage(
+    const playerWindow = iframeRef.current?.contentWindow;
+    if (!canEmbed || video.platform !== "tiktok" || !playerWindow) return;
+    playerWindow.postMessage(
       { type: autoPlayOnScroll ? "play" : "pause", "x-tiktok-player": true },
       "https://www.tiktok.com",
     );
+    return () => {
+      playerWindow.postMessage(
+        { type: "pause", "x-tiktok-player": true },
+        "https://www.tiktok.com",
+      );
+    };
   }, [autoPlayOnScroll, canEmbed, video.platform]);
 
   return (
