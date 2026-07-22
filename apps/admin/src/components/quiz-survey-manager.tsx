@@ -7,6 +7,7 @@ export type QuizSurveyQuestion = {
   id: string;
   prompt: string;
   required: boolean;
+  multiple?: boolean;
   sortOrder: number;
   updatedAt: string;
   options: { id: string; label: string }[];

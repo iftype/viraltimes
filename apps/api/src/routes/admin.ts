@@ -11,7 +11,7 @@ import type { MetadataSuggestionService } from "../metadata-suggestion.js";
 import { parseMemeInput } from "../meme-validation.js";
 import { publicationStatuses, type PublicationStatus } from "../meme-types.js";
 import type { QuizStore } from "../quiz-store.js";
-import type { QuizSurveyQuestion } from "../quiz-types.js";
+import { QUIZ_EXPERIENCE_CHECKLIST, type QuizSurveyQuestion } from "../quiz-types.js";
 
 export function registerAdminRoutes(
   app: FastifyInstance,
@@ -291,12 +291,18 @@ export function registerAdminRoutes(
     { preHandler: requireAdmin },
     async (request, reply) => {
       reply.header("Cache-Control", "no-store");
-      const [items, surveyAnswers, surveyQuestions] = await Promise.all([
+      const [items, surveyAnswers, surveySubmissions, surveyQuestions] = await Promise.all([
         quizStore.getLogs(),
         quizStore.getSurveyAnswers(),
+        quizStore.getSurveySubmissions(),
         quizStore.getSurveyQuestions(),
       ]);
-      return { items, surveyAnswers, surveyQuestions };
+      return {
+        items,
+        surveyAnswers,
+        surveySubmissions,
+        surveyQuestions: [QUIZ_EXPERIENCE_CHECKLIST, ...surveyQuestions],
+      };
     },
   );
 
@@ -334,7 +340,7 @@ export function registerAdminRoutes(
     async (request, reply) => {
       if (!hasTrustedOrigin(request.headers.origin)) return reply.code(403).send({ error: "허용되지 않은 요청입니다." });
       const rawCards = (request.body as { items?: unknown } | null)?.items;
-      if (!Array.isArray(rawCards) || rawCards.length > 5) return reply.code(400).send({ error: "퀴즈 카드는 최대 5개까지 설정할 수 있습니다." });
+      if (!Array.isArray(rawCards) || rawCards.length > 5) return reply.code(400).send({ error: "퀴즈 분야 라벨은 최대 5개까지 설정할 수 있습니다." });
       const memeIds = new Set((await memeStore.list()).map((meme) => meme.id));
       const selected = new Set<string>();
       const now = new Date().toISOString();
@@ -383,7 +389,11 @@ export function registerAdminRoutes(
           return reply.code(400).send({ error: "문항은 3~160자, 선택지는 2~6개로 입력해 주세요." });
         }
         let questionId = typeof entry.id === "string" ? entry.id.trim().slice(0, 120) : "";
-        if (!questionId || usedQuestionIds.has(questionId)) questionId = randomUUID();
+        if (
+          !questionId ||
+          questionId === QUIZ_EXPERIENCE_CHECKLIST.id ||
+          usedQuestionIds.has(questionId)
+        ) questionId = randomUUID();
         usedQuestionIds.add(questionId);
         const options = [];
         for (const rawOption of rawOptions) {

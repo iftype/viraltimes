@@ -4,7 +4,7 @@ import type { FastifyInstance } from "fastify";
 
 import type { MemeStore } from "../meme-store.js";
 import type { QuizStore } from "../quiz-store.js";
-import type { QuizCard, QuizLog } from "../quiz-types.js";
+import { QUIZ_EXPERIENCE_CHECKLIST, type QuizCard, type QuizLog } from "../quiz-types.js";
 
 const allowedResponses: QuizLog["response"][] = [
   "start",
@@ -31,7 +31,11 @@ export function registerQuizRoutes(
       quizStore.getCards(),
       quizStore.getSurveyQuestions(),
     ]);
-    const memeById = new Map(memes.map((meme) => [meme.id, meme]));
+    const fieldByMemeId = new Map(
+      configuredCards
+        .filter((card) => card.enabled)
+        .map((card) => [card.memeId, card.field]),
+    );
     const toCard = (meme: (typeof memes)[number], field?: string): QuizCard => ({
       id: meme.id,
       slug: meme.slug,
@@ -55,23 +59,17 @@ export function registerQuizRoutes(
           "이 밈의 출처와 사용 맥락을 함께 수집하고 있습니다.",
       },
     });
-    const managedCards = configuredCards
-      .filter((card) => card.enabled)
-      .flatMap((card) => {
-        const meme = memeById.get(card.memeId);
-        return meme ? [toCard(meme, card.field)] : [];
-      })
-      .slice(0, 5);
-    const cards = managedCards.length ? managedCards : memes.map((meme) => toCard(meme));
+    const cards = memes.map((meme) => toCard(meme, fieldByMemeId.get(meme.id)));
 
-    // 같은 순서로 생기는 응답 편향을 줄이기 위해 Fisher-Yates로 섞는다.
-    if (!managedCards.length) {
-      for (let index = cards.length - 1; index > 0; index -= 1) {
-        const target = Math.floor(Math.random() * (index + 1));
-        [cards[index], cards[target]] = [cards[target], cards[index]];
-      }
+    // 매 실행마다 공개 사전 전체에서 서로 다른 다섯 항목을 무작위로 뽑는다.
+    for (let index = cards.length - 1; index > 0; index -= 1) {
+      const target = Math.floor(Math.random() * (index + 1));
+      [cards[index], cards[target]] = [cards[target], cards[index]];
     }
-    return { cards: cards.slice(0, 5), surveyQuestions };
+    return {
+      cards: cards.slice(0, 5),
+      surveyQuestions: [QUIZ_EXPERIENCE_CHECKLIST, ...surveyQuestions],
+    };
   });
 
   app.post("/api/v1/quiz/survey-answer", async (request, reply) => {
@@ -80,28 +78,54 @@ export function registerQuizRoutes(
       runId?: unknown;
       questionId?: unknown;
       optionId?: unknown;
+      optionIds?: unknown;
     } | null;
+    const rawOptionIds = Array.isArray(body?.optionIds)
+      ? body.optionIds
+      : body?.optionId === undefined
+        ? []
+        : [body.optionId];
     if (
       typeof body?.sessionId !== "string" || body.sessionId.length < 8 || body.sessionId.length > 120 ||
       typeof body.runId !== "string" || body.runId.length < 8 || body.runId.length > 120 ||
       typeof body.questionId !== "string" || body.questionId.length < 1 || body.questionId.length > 120 ||
-      typeof body.optionId !== "string" || body.optionId.length < 1 || body.optionId.length > 120
+      rawOptionIds.length > 6 ||
+      rawOptionIds.some((optionId) => typeof optionId !== "string" || optionId.length < 1 || optionId.length > 120)
     ) {
       return reply.code(400).send({ error: "잘못된 설문 응답 형식입니다." });
     }
-    const question = (await quizStore.getSurveyQuestions()).find((item) => item.id === body.questionId);
-    const option = question?.options.find((item) => item.id === body.optionId);
-    if (!question || !option) return reply.code(400).send({ error: "현재 설문에 없는 응답입니다." });
-    await quizStore.addSurveyAnswer({
-      id: randomUUID(),
+    const questions = [QUIZ_EXPERIENCE_CHECKLIST, ...(await quizStore.getSurveyQuestions())];
+    const question = questions.find((item) => item.id === body.questionId);
+    const optionIds = [...new Set(rawOptionIds as string[])];
+    const options = optionIds.flatMap((optionId) => {
+      const option = question?.options.find((item) => item.id === optionId);
+      return option ? [option] : [];
+    });
+    if (
+      !question ||
+      options.length !== optionIds.length ||
+      (!question.multiple && optionIds.length > 1) ||
+      (question.required && optionIds.length === 0)
+    ) {
+      return reply.code(400).send({ error: "현재 설문에 없는 응답입니다." });
+    }
+    const timestamp = new Date().toISOString();
+    await quizStore.submitSurveyAnswers({
       sessionId: body.sessionId,
       runId: body.runId,
+      questionId: question.id,
+      questionPrompt: question.prompt,
+      timestamp,
+    }, options.map((option) => ({
+      id: randomUUID(),
+      sessionId: body.sessionId as string,
+      runId: body.runId as string,
       questionId: question.id,
       optionId: option.id,
       questionPrompt: question.prompt,
       optionLabel: option.label,
-      timestamp: new Date().toISOString(),
-    });
+      timestamp,
+    })));
     return { success: true };
   });
 

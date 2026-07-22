@@ -42,6 +42,7 @@ interface QuizSurveyQuestion {
   id: string;
   prompt: string;
   required: boolean;
+  multiple?: boolean;
   options: { id: string; label: string }[];
 }
 
@@ -69,6 +70,9 @@ export function QuizPage() {
   const [runId, setRunId] = useState("");
   const [surveyQuestions, setSurveyQuestions] = useState<QuizSurveyQuestion[]>([]);
   const [surveyIndex, setSurveyIndex] = useState(0);
+  const [surveySelections, setSurveySelections] = useState<Record<string, string[]>>({});
+  const [surveySaving, setSurveySaving] = useState(false);
+  const [surveyError, setSurveyError] = useState("");
   const [showSwipeHint, setShowSwipeHint] = useState(true);
   const completedRuns = useRef(new Set<string>());
 
@@ -99,6 +103,8 @@ export function QuizPage() {
       setCards(fetchedCards);
       setSurveyQuestions(Array.isArray(data.surveyQuestions) ? data.surveyQuestions : []);
       setSurveyIndex(0);
+      setSurveySelections({});
+      setSurveyError("");
       setRunId(nextRunId);
       setCurrentIndex(0);
       setResponses({});
@@ -140,26 +146,42 @@ export function QuizPage() {
     }
   }, []);
 
-  const answerSurvey = useCallback(async (question: QuizSurveyQuestion, optionId?: string) => {
-    if (optionId) {
-      try {
-        await fetch("/api/v1/quiz/survey-answer", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: getOrCreateSessionId(),
-            runId,
-            questionId: question.id,
-            optionId,
-          }),
-          keepalive: true,
-        });
-      } catch {
-        // 추가 설문 저장 실패가 결과 화면 진입을 막지 않게 한다.
-      }
+  const answerSurvey = useCallback(async (question: QuizSurveyQuestion, optionIds: string[]) => {
+    setSurveySaving(true);
+    setSurveyError("");
+    try {
+      const response = await fetch("/api/v1/quiz/survey-answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: getOrCreateSessionId(),
+          runId,
+          questionId: question.id,
+          optionIds,
+        }),
+        keepalive: true,
+      });
+      if (!response.ok) throw new Error("설문 응답을 저장하지 못했습니다.");
+      setSurveyIndex((current) => current + 1);
+    } catch {
+      setSurveyError("응답을 저장하지 못했습니다. 다시 눌러주세요.");
+    } finally {
+      setSurveySaving(false);
     }
-    setSurveyIndex((current) => current + 1);
   }, [runId]);
+
+  const toggleSurveyOption = (questionId: string, optionId: string) => {
+    setSurveySelections((current) => {
+      const selected = current[questionId] ?? [];
+      return {
+        ...current,
+        [questionId]: selected.includes(optionId)
+          ? selected.filter((id) => id !== optionId)
+          : [...selected, optionId],
+      };
+    });
+    setSurveyError("");
+  };
 
   const cardsCompleted = cards.length > 0 && currentIndex >= cards.length;
   const completed = cardsCompleted && surveyIndex >= surveyQuestions.length;
@@ -208,7 +230,7 @@ export function QuizPage() {
 
   return (
     <div className="flex h-[100dvh] w-full touch-none flex-col items-center overflow-hidden overscroll-none px-3 py-3 sm:page-shell sm:min-h-[80vh] sm:h-auto sm:touch-auto sm:overflow-visible sm:py-8">
-      {!completed ? (
+      {!cardsCompleted ? (
         <div className="flex min-h-0 w-full max-w-md flex-1 flex-col items-center gap-2 sm:flex-none sm:gap-6">
           <div className="w-full shrink-0 space-y-1 text-center sm:space-y-2">
             <h1 className="flex items-center justify-center gap-2 text-lg font-black tracking-tight text-neutral-900 sm:text-2xl">
@@ -259,9 +281,9 @@ export function QuizPage() {
       ) : !completed ? (
         <div className="flex min-h-0 w-full max-w-md flex-1 flex-col justify-center gap-5 sm:flex-none">
           <div className="space-y-2 text-center">
-            <p className="text-xs font-black tracking-[0.14em] text-[var(--vo-color-brand)]">EXTRA SURVEY</p>
-            <h1 className="text-2xl font-black tracking-tight">한 가지만 더 알려주세요</h1>
-            <p className="text-xs text-neutral-500">운영자가 추가한 간단한 설문입니다.</p>
+            <p className="text-xs font-black tracking-[0.14em] text-[var(--vo-color-brand)]">BEFORE RESULT</p>
+            <h1 className="text-2xl font-black tracking-tight">결과 보기 전, 마지막 질문</h1>
+            <p className="text-xs text-neutral-500">해당되는 경험을 모두 선택해 주세요. 아무것도 없으면 선택 없이 넘어갈 수 있어요.</p>
             <div className="mx-auto mt-3 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
               <div className="h-full bg-[var(--vo-color-brand)] transition-all" style={{ width: `${percentage(surveyIndex + 1, surveyQuestions.length)}%` }} />
             </div>
@@ -273,22 +295,46 @@ export function QuizPage() {
                 <h2 className="mt-2 text-lg font-black leading-snug">{surveyQuestions[surveyIndex].prompt}</h2>
               </div>
               <div className="grid gap-2">
-                {surveyQuestions[surveyIndex].options.map((option) => (
-                  <button
-                    className="cursor-pointer rounded-xl border border-black/5 bg-neutral-50 px-4 py-3 text-left text-sm font-bold transition hover:border-[var(--vo-color-brand)] hover:bg-white"
+                {surveyQuestions[surveyIndex].options.map((option) => surveyQuestions[surveyIndex].multiple ? (
+                  <label
+                    className="flex cursor-pointer items-start gap-3 rounded-xl border border-black/5 bg-neutral-50 px-4 py-3 text-sm font-bold leading-5 transition hover:border-[var(--vo-color-brand)] hover:bg-white"
                     key={option.id}
-                    onClick={() => void answerSurvey(surveyQuestions[surveyIndex], option.id)}
+                  >
+                    <input
+                      checked={(surveySelections[surveyQuestions[surveyIndex].id] ?? []).includes(option.id)}
+                      className="mt-0.5 size-4 shrink-0 accent-[var(--vo-color-brand)]"
+                      onChange={() => toggleSurveyOption(surveyQuestions[surveyIndex].id, option.id)}
+                      type="checkbox"
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ) : (
+                  <button
+                    className="cursor-pointer rounded-xl border border-black/5 bg-neutral-50 px-4 py-3 text-left text-sm font-bold transition hover:border-[var(--vo-color-brand)] hover:bg-white disabled:cursor-wait disabled:opacity-50"
+                    disabled={surveySaving}
+                    key={option.id}
+                    onClick={() => void answerSurvey(surveyQuestions[surveyIndex], [option.id])}
                     type="button"
                   >
                     {option.label}
                   </button>
                 ))}
               </div>
-              {!surveyQuestions[surveyIndex].required && (
-                <button className="w-full cursor-pointer py-1 text-xs font-bold text-neutral-400 hover:text-neutral-700" onClick={() => void answerSurvey(surveyQuestions[surveyIndex])} type="button">
+              {surveyQuestions[surveyIndex].multiple ? (
+                <Button
+                  className="w-full"
+                  disabled={surveySaving || (surveyQuestions[surveyIndex].required && !(surveySelections[surveyQuestions[surveyIndex].id]?.length))}
+                  onClick={() => void answerSurvey(surveyQuestions[surveyIndex], surveySelections[surveyQuestions[surveyIndex].id] ?? [])}
+                  type="button"
+                >
+                  {surveySaving ? "저장 중..." : surveyIndex === surveyQuestions.length - 1 ? "결과 보기" : "다음"}
+                </Button>
+              ) : !surveyQuestions[surveyIndex].required && (
+                <button className="w-full cursor-pointer py-1 text-xs font-bold text-neutral-400 hover:text-neutral-700 disabled:cursor-wait disabled:opacity-50" disabled={surveySaving} onClick={() => void answerSurvey(surveyQuestions[surveyIndex], [])} type="button">
                   건너뛰기
                 </button>
               )}
+              {surveyError && <p className="text-center text-xs font-bold text-rose-600" role="alert">{surveyError}</p>}
             </Card>
           )}
         </div>

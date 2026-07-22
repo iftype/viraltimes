@@ -8,9 +8,11 @@ import type {
   QuizLogDocument,
   QuizSurveyAnswer,
   QuizSurveyQuestion,
+  QuizSurveySubmission,
 } from "./quiz-types.js";
 
 const legacyMigrationName = "quiz-json-v1";
+const multipleSurveyMigrationName = "quiz-survey-multiple-v1";
 
 type QuizLogRow = {
   id: string;
@@ -54,6 +56,14 @@ type QuizSurveyAnswerRow = {
   timestamp: string;
 };
 
+type QuizSurveySubmissionRow = {
+  session_id: string;
+  run_id: string;
+  question_id: string;
+  question_prompt: string;
+  timestamp: string;
+};
+
 export class QuizStore {
   private readonly database: DatabaseSync;
 
@@ -68,6 +78,7 @@ export class QuizStore {
     this.database.exec("PRAGMA foreign_keys = ON");
     this.database.exec("PRAGMA busy_timeout = 5000");
     this.createSchema();
+    this.migrateSurveyAnswersToMultiple();
     if (legacyJsonPath) this.importLegacyJsonOnce(legacyJsonPath);
   }
 
@@ -99,6 +110,7 @@ export class QuizStore {
     this.inTransaction(() => {
       deleted += Number(this.database.prepare("DELETE FROM quiz_logs WHERE session_id = ?").run(sessionId).changes);
       deleted += Number(this.database.prepare("DELETE FROM quiz_survey_answers WHERE session_id = ?").run(sessionId).changes);
+      deleted += Number(this.database.prepare("DELETE FROM quiz_survey_submissions WHERE session_id = ?").run(sessionId).changes);
     });
     return deleted;
   }
@@ -108,6 +120,7 @@ export class QuizStore {
     this.inTransaction(() => {
       deleted += Number(this.database.prepare("DELETE FROM quiz_logs").run().changes);
       deleted += Number(this.database.prepare("DELETE FROM quiz_survey_answers").run().changes);
+      deleted += Number(this.database.prepare("DELETE FROM quiz_survey_submissions").run().changes);
     });
     return deleted;
   }
@@ -183,8 +196,7 @@ export class QuizStore {
       INSERT INTO quiz_survey_answers (
         id, session_id, run_id, question_id, option_id, question_prompt, option_label, timestamp
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(run_id, question_id) DO UPDATE SET
-        option_id = excluded.option_id,
+      ON CONFLICT(run_id, question_id, option_id) DO UPDATE SET
         question_prompt = excluded.question_prompt,
         option_label = excluded.option_label,
         timestamp = excluded.timestamp
@@ -198,6 +210,48 @@ export class QuizStore {
       answer.optionLabel,
       answer.timestamp,
     );
+  }
+
+  async submitSurveyAnswers(
+    submission: QuizSurveySubmission,
+    answers: QuizSurveyAnswer[],
+  ): Promise<void> {
+    this.inTransaction(() => {
+      this.database.prepare(`
+        INSERT INTO quiz_survey_submissions (
+          session_id, run_id, question_id, question_prompt, timestamp
+        ) VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(run_id, question_id) DO UPDATE SET
+          session_id = excluded.session_id,
+          question_prompt = excluded.question_prompt,
+          timestamp = excluded.timestamp
+      `).run(
+        submission.sessionId,
+        submission.runId,
+        submission.questionId,
+        submission.questionPrompt,
+        submission.timestamp,
+      );
+      this.database.prepare(
+        "DELETE FROM quiz_survey_answers WHERE run_id = ? AND question_id = ?",
+      ).run(submission.runId, submission.questionId);
+      for (const answer of answers) {
+        this.database.prepare(`
+          INSERT INTO quiz_survey_answers (
+            id, session_id, run_id, question_id, option_id, question_prompt, option_label, timestamp
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          answer.id,
+          answer.sessionId,
+          answer.runId,
+          answer.questionId,
+          answer.optionId,
+          answer.questionPrompt,
+          answer.optionLabel,
+          answer.timestamp,
+        );
+      }
+    });
   }
 
   async getSurveyAnswers(): Promise<QuizSurveyAnswer[]> {
@@ -214,6 +268,21 @@ export class QuizStore {
       optionId: row.option_id,
       questionPrompt: row.question_prompt,
       optionLabel: row.option_label,
+      timestamp: row.timestamp,
+    }));
+  }
+
+  async getSurveySubmissions(): Promise<QuizSurveySubmission[]> {
+    const rows = this.database.prepare(`
+      SELECT session_id, run_id, question_id, question_prompt, timestamp
+      FROM quiz_survey_submissions
+      ORDER BY timestamp ASC, run_id ASC
+    `).all() as unknown as QuizSurveySubmissionRow[];
+    return rows.map((row) => ({
+      sessionId: row.session_id,
+      runId: row.run_id,
+      questionId: row.question_id,
+      questionPrompt: row.question_prompt,
       timestamp: row.timestamp,
     }));
   }
@@ -287,14 +356,74 @@ export class QuizStore {
         question_prompt TEXT NOT NULL,
         option_label TEXT NOT NULL,
         timestamp TEXT NOT NULL,
-        UNIQUE (run_id, question_id)
+        UNIQUE (run_id, question_id, option_id)
       );
 
       CREATE INDEX IF NOT EXISTS quiz_survey_answers_session_idx
         ON quiz_survey_answers (session_id, timestamp);
       CREATE INDEX IF NOT EXISTS quiz_survey_answers_question_idx
         ON quiz_survey_answers (question_id, option_id);
+
+      CREATE TABLE IF NOT EXISTS quiz_survey_submissions (
+        session_id TEXT NOT NULL,
+        run_id TEXT NOT NULL,
+        question_id TEXT NOT NULL,
+        question_prompt TEXT NOT NULL,
+        timestamp TEXT NOT NULL,
+        UNIQUE (run_id, question_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS quiz_survey_submissions_session_idx
+        ON quiz_survey_submissions (session_id, timestamp);
+      CREATE INDEX IF NOT EXISTS quiz_survey_submissions_question_idx
+        ON quiz_survey_submissions (question_id, timestamp);
     `);
+  }
+
+  private migrateSurveyAnswersToMultiple() {
+    const migrated = this.database
+      .prepare("SELECT 1 AS found FROM schema_migrations WHERE name = ?")
+      .get(multipleSurveyMigrationName);
+    if (migrated) return;
+
+    const table = this.database
+      .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'quiz_survey_answers'")
+      .get() as { sql?: string } | undefined;
+    const supportsMultiple = table?.sql
+      ?.replaceAll(/\s+/g, " ")
+      .includes("UNIQUE (run_id, question_id, option_id)");
+
+    this.inTransaction(() => {
+      if (!supportsMultiple) {
+        this.database.exec(`
+          CREATE TABLE quiz_survey_answers_multiple (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            run_id TEXT NOT NULL,
+            question_id TEXT NOT NULL,
+            option_id TEXT NOT NULL,
+            question_prompt TEXT NOT NULL,
+            option_label TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            UNIQUE (run_id, question_id, option_id)
+          );
+          INSERT OR IGNORE INTO quiz_survey_answers_multiple (
+            id, session_id, run_id, question_id, option_id, question_prompt, option_label, timestamp
+          ) SELECT
+            id, session_id, run_id, question_id, option_id, question_prompt, option_label, timestamp
+          FROM quiz_survey_answers;
+          DROP TABLE quiz_survey_answers;
+          ALTER TABLE quiz_survey_answers_multiple RENAME TO quiz_survey_answers;
+          CREATE INDEX quiz_survey_answers_session_idx
+            ON quiz_survey_answers (session_id, timestamp);
+          CREATE INDEX quiz_survey_answers_question_idx
+            ON quiz_survey_answers (question_id, option_id);
+        `);
+      }
+      this.database
+        .prepare("INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)")
+        .run(multipleSurveyMigrationName, new Date().toISOString());
+    });
   }
 
   private importLegacyJsonOnce(filePath: string) {

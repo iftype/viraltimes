@@ -33,6 +33,6 @@
 
 ## Next milestone
 
-`PLAN.md`의 P0 순서대로 JSON을 SQLite로 이전하고 외부 object storage thumbnail 경계를 구현한다. 관리자 CRUD·일괄관리, 코리아 마이너 밈, 링크 metadata/Gemma 설명 초안, 고정 퀴즈 deck·효과 측정, 최근 사용 신호는 JSON 저장소 기준으로 먼저 적용했다.
+`PLAN.md`의 P0 순서대로 JSON을 SQLite로 이전하고 외부 object storage thumbnail 경계를 구현한다. 관리자 CRUD·일괄관리, 코리아 마이너 밈, 링크 metadata/Gemma 설명 초안, 무작위 5개 퀴즈·효과 측정, 최근 사용 신호는 JSON 저장소 기준으로 먼저 적용했다.
 
 홈 피드는 관리자에서 노출한 챌린지 원본과 바이럴 영상을 영상 단위로 무작위 구성한다. 챌린지는 상세에서 선택형 원곡·안무 원본을 별도 보조 embed로 제공한다.

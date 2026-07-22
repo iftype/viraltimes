@@ -29,6 +29,14 @@ export type QuizSurveyAnswer = {
   timestamp: string;
 };
 
+export type QuizSurveySubmission = {
+  sessionId: string;
+  runId: string;
+  questionId: string;
+  questionPrompt: string;
+  timestamp: string;
+};
+
 const responseLabel: Record<QuizLog["response"], string> = {
   start: "테스트 시작",
   know: "알아요",
@@ -45,7 +53,7 @@ const responseLabel: Record<QuizLog["response"], string> = {
 const shortSession = (sessionId: string) => `참여자 ${sessionId.slice(-6).toUpperCase()}`;
 const pairKey = (log: QuizLog) => `${log.sessionId}:${log.cardId}`;
 
-export function QuizLogManager({ logs, surveyAnswers, surveyQuestions, memes, onChange, onSurveyAnswersChange }: { logs: QuizLog[]; surveyAnswers: QuizSurveyAnswer[]; surveyQuestions: QuizSurveyQuestion[]; memes: Pick<AdminMeme, "id" | "title">[]; onChange: (logs: QuizLog[]) => void; onSurveyAnswersChange: (answers: QuizSurveyAnswer[]) => void }) {
+export function QuizLogManager({ logs, surveyAnswers, surveySubmissions, surveyQuestions, memes, onChange, onSurveyAnswersChange, onSurveySubmissionsChange }: { logs: QuizLog[]; surveyAnswers: QuizSurveyAnswer[]; surveySubmissions: QuizSurveySubmission[]; surveyQuestions: QuizSurveyQuestion[]; memes: Pick<AdminMeme, "id" | "title">[]; onChange: (logs: QuizLog[]) => void; onSurveyAnswersChange: (answers: QuizSurveyAnswer[]) => void; onSurveySubmissionsChange: (submissions: QuizSurveySubmission[]) => void }) {
   const [query, setQuery] = useState("");
   const [deleting, setDeleting] = useState("");
   const [deleteError, setDeleteError] = useState("");
@@ -93,15 +101,17 @@ export function QuizLogManager({ logs, surveyAnswers, surveyQuestions, memes, on
     .filter(([sessionId, entries]) => {
       const needle = query.trim().toLocaleLowerCase("ko");
       const participantSurvey = surveyAnswers.filter((answer) => answer.sessionId === sessionId);
-      return !needle || [sessionId, shortSession(sessionId), ...entries.map((entry) => `${entry.cardId} ${titleById.get(entry.cardId) ?? ""}`), ...participantSurvey.map((answer) => `${answer.questionPrompt} ${answer.optionLabel}`)]
+      const participantSubmissions = surveySubmissions.filter((submission) => submission.sessionId === sessionId);
+      return !needle || [sessionId, shortSession(sessionId), ...entries.map((entry) => `${entry.cardId} ${titleById.get(entry.cardId) ?? ""}`), ...participantSurvey.map((answer) => `${answer.questionPrompt} ${answer.optionLabel}`), ...participantSubmissions.map((submission) => submission.questionPrompt)]
         .join(" ").toLocaleLowerCase("ko").includes(needle);
     })
-    .sort(([, a], [, b]) => new Date(b.at(-1)?.timestamp ?? 0).getTime() - new Date(a.at(-1)?.timestamp ?? 0).getTime()), [analysis.sessions, query, surveyAnswers, titleById]);
+    .sort(([, a], [, b]) => new Date(b.at(-1)?.timestamp ?? 0).getTime() - new Date(a.at(-1)?.timestamp ?? 0).getTime()), [analysis.sessions, query, surveyAnswers, surveySubmissions, titleById]);
 
   function downloadCsv() {
-    if (!logs.length && !surveyAnswers.length) return;
+    if (!logs.length && !surveyAnswers.length && !surveySubmissions.length) return;
     const rows = [["record_type", "session_id", "run_id", "step", "card_id", "card_title", "card_type", "response", "destination", "question_id", "question", "option_id", "answer", "timestamp"],
       ...logs.map((log) => ["quiz_log", log.sessionId, log.runId ?? "", log.step ?? "", log.cardId, titleById.get(log.cardId) ?? log.cardId, log.cardType, log.response, log.destination ?? "", "", "", "", "", log.timestamp]),
+      ...surveySubmissions.map((submission) => ["survey_submission", submission.sessionId, submission.runId, "", "", "", "", "", "", submission.questionId, submission.questionPrompt, "", "", submission.timestamp]),
       ...surveyAnswers.map((answer) => ["survey_answer", answer.sessionId, answer.runId, "", "", "", "", "", "", answer.questionId, answer.questionPrompt, answer.optionId, answer.optionLabel, answer.timestamp]),
     ];
     const content = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
@@ -121,6 +131,7 @@ export function QuizLogManager({ logs, surveyAnswers, surveyQuestions, memes, on
       if (!response.ok) throw new Error("delete failed");
       onChange(logs.filter((log) => log.sessionId !== sessionId));
       onSurveyAnswersChange(surveyAnswers.filter((answer) => answer.sessionId !== sessionId));
+      onSurveySubmissionsChange(surveySubmissions.filter((submission) => submission.sessionId !== sessionId));
     } catch {
       setDeleteError("기록을 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.");
     } finally {
@@ -137,6 +148,7 @@ export function QuizLogManager({ logs, surveyAnswers, surveyQuestions, memes, on
       if (!response.ok) throw new Error("delete failed");
       onChange([]);
       onSurveyAnswersChange([]);
+      onSurveySubmissionsChange([]);
     } catch {
       setDeleteError("전체 기록을 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.");
     } finally {
@@ -174,11 +186,14 @@ export function QuizLogManager({ logs, surveyAnswers, surveyQuestions, memes, on
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {surveyQuestions.map((question) => {
             const answers = surveyAnswers.filter((answer) => answer.questionId === question.id);
+            const submittedRuns = new Set(surveySubmissions.filter((submission) => submission.questionId === question.id).map((submission) => submission.runId));
+            if (submittedRuns.size === 0) answers.forEach((answer) => submittedRuns.add(answer.runId));
+            const responseTotal = submittedRuns.size;
             return <article className="rounded-2xl bg-[#f7f7f8] p-4" key={question.id}>
-              <div className="flex items-start justify-between gap-2"><p className="font-black">{question.prompt}</p><span className="shrink-0 rounded-full bg-white px-2 py-1 text-[0.65rem] font-black">{answers.length}건</span></div>
+              <div className="flex items-start justify-between gap-2"><p className="font-black">{question.prompt}</p><span className="shrink-0 rounded-full bg-white px-2 py-1 text-[0.65rem] font-black">{responseTotal}명</span></div>
               <div className="mt-3 space-y-2">{question.options.map((option) => {
                 const count = answers.filter((answer) => answer.optionId === option.id).length;
-                return <div key={option.id}><div className="flex justify-between text-xs font-bold"><span>{option.label}</span><span className="text-black/40">{count} · {answers.length ? Math.round((count / answers.length) * 100) : 0}%</span></div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white"><div className="h-full bg-[#fe2c55]" style={{ width: `${answers.length ? (count / answers.length) * 100 : 0}%` }} /></div></div>;
+                return <div key={option.id}><div className="flex justify-between gap-3 text-xs font-bold"><span>{option.label}</span><span className="shrink-0 text-black/40">{count} · {responseTotal ? Math.round((count / responseTotal) * 100) : 0}%</span></div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white"><div className="h-full bg-[#fe2c55]" style={{ width: `${responseTotal ? (count / responseTotal) * 100 : 0}%` }} /></div></div>;
               })}</div>
             </article>;
           })}
@@ -202,13 +217,22 @@ export function QuizLogManager({ logs, surveyAnswers, surveyQuestions, memes, on
       <section className="rounded-3xl border border-black/5 bg-white p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="flex-1"><h2 className="font-black">사람별 이용 기록</h2><p className="mt-1 text-xs text-black/40">로그인 없이 브라우저에 발급한 익명 ID로 묶었습니다.</p></div>
-          <div className="flex gap-2"><button className="flex cursor-pointer items-center justify-center gap-1.5 rounded-full bg-black px-4 py-2.5 text-xs font-black text-white disabled:opacity-35" disabled={!logs.length && !surveyAnswers.length} onClick={downloadCsv} type="button"><Download className="size-3.5" />CSV 저장</button><button className="flex cursor-pointer items-center justify-center gap-1.5 rounded-full bg-[#fff0f3] px-4 py-2.5 text-xs font-black text-[#d91d46] disabled:opacity-35" disabled={(!logs.length && !surveyAnswers.length) || Boolean(deleting)} onClick={() => void clearLogs()} type="button"><Trash2 className="size-3.5" />전체 삭제</button></div>
+          <div className="flex gap-2"><button className="flex cursor-pointer items-center justify-center gap-1.5 rounded-full bg-black px-4 py-2.5 text-xs font-black text-white disabled:opacity-35" disabled={!logs.length && !surveyAnswers.length && !surveySubmissions.length} onClick={downloadCsv} type="button"><Download className="size-3.5" />CSV 저장</button><button className="flex cursor-pointer items-center justify-center gap-1.5 rounded-full bg-[#fff0f3] px-4 py-2.5 text-xs font-black text-[#d91d46] disabled:opacity-35" disabled={(!logs.length && !surveyAnswers.length && !surveySubmissions.length) || Boolean(deleting)} onClick={() => void clearLogs()} type="button"><Trash2 className="size-3.5" />전체 삭제</button></div>
         </div>
         <label className="relative mt-4 block"><span className="sr-only">참여자 또는 카드 검색</span><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-black/30" /><input className="w-full rounded-xl bg-[#f7f7f8] py-3 pl-9 pr-3 text-base outline-none" onChange={(event) => setQuery(event.target.value)} placeholder="참여자·밈 이름 검색" value={query} /></label>
         <div className="mt-3 space-y-2">
           {deleteError && <p role="alert" className="rounded-xl bg-[#fff0f3] px-4 py-3 text-xs font-bold text-[#d91d46]">{deleteError}</p>}
           {sessionRows.map(([sessionId, entries]) => {
             const participantSurvey = surveyAnswers.filter((answer) => answer.sessionId === sessionId);
+            const participantSubmissions = surveySubmissions.filter((submission) => submission.sessionId === sessionId);
+            const participantSubmissionKeys = new Set(participantSubmissions.map((submission) => `${submission.runId}:${submission.questionId}`));
+            const legacySubmissions = participantSurvey.flatMap((answer) => {
+              const key = `${answer.runId}:${answer.questionId}`;
+              if (participantSubmissionKeys.has(key)) return [];
+              participantSubmissionKeys.add(key);
+              return [{ sessionId, runId: answer.runId, questionId: answer.questionId, questionPrompt: answer.questionPrompt, timestamp: answer.timestamp }];
+            });
+            const visibleSubmissions = [...participantSubmissions, ...legacySubmissions];
             const latestByCard = new Map<string, QuizLog>();
             entries.filter((entry) => entry.response === "know" || entry.response === "dont_know").forEach((entry) => latestByCard.set(entry.cardId, entry));
             const known = [...latestByCard.values()].filter((entry) => entry.response === "know").length;
@@ -218,7 +242,7 @@ export function QuizLogManager({ logs, surveyAnswers, surveyQuestions, memes, on
             const durationSeconds = Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000));
             return <details className="group rounded-2xl bg-[#f7f7f8] p-4" key={sessionId}>
               <summary className="flex cursor-pointer list-none items-center gap-3"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-black">{shortSession(sessionId)}</p><span className={`rounded-full px-2 py-0.5 text-[0.62rem] font-black ${latestByCard.size >= 5 ? "bg-[#e8fffe] text-[#087b77]" : "bg-black/5 text-black/40"}`}>{latestByCard.size >= 5 ? "완료" : `${latestByCard.size}/5 진행`}</span></div><p className="mt-1 text-[0.68rem] font-bold leading-5 text-black/35">{startedAt.toLocaleString("ko-KR")} 시작 · {durationSeconds < 60 ? `${durationSeconds}초` : `${Math.floor(durationSeconds / 60)}분 ${durationSeconds % 60}초`} · 알아요 {known} · 몰라요 {latestByCard.size - known} · 상세 {detailCount}</p></div><ChevronDown className="size-4 shrink-0 text-black/30 transition group-open:rotate-180" /></summary>
-              <div className="mt-3 border-t border-black/5 pt-3"><div className="mb-2 flex items-center justify-between gap-2"><p className="text-[0.68rem] font-bold text-black/35">종료 {endedAt.toLocaleString("ko-KR")}</p><button className="flex cursor-pointer items-center gap-1 rounded-full bg-[#fff0f3] px-3 py-1.5 text-[0.68rem] font-black text-[#d91d46] disabled:opacity-35" disabled={Boolean(deleting)} onClick={(event) => { event.preventDefault(); void deleteSession(sessionId); }} type="button"><Trash2 className="size-3" />이 기록 삭제</button></div>{participantSurvey.length > 0 && <div className="mb-3 space-y-1.5"><p className="text-[0.68rem] font-black text-black/35">추가 설문</p>{participantSurvey.map((answer) => <div className="rounded-xl bg-[#fff0f3] px-3 py-2 text-xs" key={answer.id}><span className="font-bold">{answer.questionPrompt}</span><span className="ml-2 font-black text-[#d91d46]">{answer.optionLabel}</span></div>)}</div>}<div className="space-y-1.5">{[...entries].reverse().map((entry) => <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs" key={entry.id}><span className="min-w-0 flex-1 truncate font-bold">{titleById.get(entry.cardId) ?? entry.destination ?? entry.cardId}</span>{entry.step !== undefined && <span className="shrink-0 text-[0.62rem] font-bold text-black/25">{entry.step}단계</span>}<span className="shrink-0 font-black text-black/55">{responseLabel[entry.response]}</span><time className="hidden shrink-0 text-black/30 sm:inline">{new Date(entry.timestamp).toLocaleString("ko-KR")}</time></div>)}</div></div>
+              <div className="mt-3 border-t border-black/5 pt-3"><div className="mb-2 flex items-center justify-between gap-2"><p className="text-[0.68rem] font-bold text-black/35">종료 {endedAt.toLocaleString("ko-KR")}</p><button className="flex cursor-pointer items-center gap-1 rounded-full bg-[#fff0f3] px-3 py-1.5 text-[0.68rem] font-black text-[#d91d46] disabled:opacity-35" disabled={Boolean(deleting)} onClick={(event) => { event.preventDefault(); void deleteSession(sessionId); }} type="button"><Trash2 className="size-3" />이 기록 삭제</button></div>{visibleSubmissions.length > 0 && <div className="mb-3 space-y-1.5"><p className="text-[0.68rem] font-black text-black/35">추가 설문</p>{visibleSubmissions.map((submission) => { const selected = participantSurvey.filter((answer) => answer.runId === submission.runId && answer.questionId === submission.questionId); return <div className="rounded-xl bg-[#fff0f3] px-3 py-2 text-xs" key={`${submission.runId}:${submission.questionId}`}><span className="font-bold">{submission.questionPrompt}</span><span className="ml-2 font-black text-[#d91d46]">{selected.length ? selected.map((answer) => answer.optionLabel).join(" · ") : "선택 없음"}</span></div>; })}</div>}<div className="space-y-1.5">{[...entries].reverse().map((entry) => <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs" key={entry.id}><span className="min-w-0 flex-1 truncate font-bold">{titleById.get(entry.cardId) ?? entry.destination ?? entry.cardId}</span>{entry.step !== undefined && <span className="shrink-0 text-[0.62rem] font-bold text-black/25">{entry.step}단계</span>}<span className="shrink-0 font-black text-black/55">{responseLabel[entry.response]}</span><time className="hidden shrink-0 text-black/30 sm:inline">{new Date(entry.timestamp).toLocaleString("ko-KR")}</time></div>)}</div></div>
             </details>;
           })}
           {!sessionRows.length && <p className="py-8 text-center text-sm font-bold text-black/30">조건에 맞는 기록이 없습니다.</p>}

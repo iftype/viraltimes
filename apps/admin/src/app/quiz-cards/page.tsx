@@ -70,8 +70,8 @@ export default function QuizCardsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black tracking-[-0.04em]">퀴즈 카드 관리</h1>
-          <p className="text-sm text-black/45 mt-1">공개 밈 퀴즈 카드의 내용, 분야 및 출제 순서를 결정하고 저장합니다.</p>
+          <h1 className="text-2xl font-black tracking-[-0.04em]">퀴즈 설정</h1>
+          <p className="text-sm text-black/45 mt-1">무작위 출제 항목의 분야 라벨과 결과 전 추가 설문을 관리합니다.</p>
         </div>
       </div>
 

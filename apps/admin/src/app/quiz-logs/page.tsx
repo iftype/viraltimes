@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { LoaderCircle, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
-import { QuizLogManager, type QuizLog, type QuizSurveyAnswer } from "@/components/quiz-log-manager";
+import { QuizLogManager, type QuizLog, type QuizSurveyAnswer, type QuizSurveySubmission } from "@/components/quiz-log-manager";
 import type { QuizSurveyQuestion } from "@/components/quiz-survey-manager";
 import type { AdminMeme } from "@/components/dictionary-manager";
 
@@ -14,6 +14,7 @@ export default function QuizLogsPage() {
   const [quizLogs, setQuizLogs] = useState<QuizLog[]>([]);
   const [memes, setMemes] = useState<AdminMeme[]>([]);
   const [surveyAnswers, setSurveyAnswers] = useState<QuizSurveyAnswer[]>([]);
+  const [surveySubmissions, setSurveySubmissions] = useState<QuizSurveySubmission[]>([]);
   const [surveyQuestions, setSurveyQuestions] = useState<QuizSurveyQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -35,11 +36,12 @@ export default function QuizLogsPage() {
       if (!logsResponse.ok) throw new Error("퀴즈 로그 데이터를 불러오지 못했습니다.");
       if (!memeResponse.ok) throw new Error("사전 데이터를 불러오지 못했습니다.");
 
-      const logsData = (await logsResponse.json()) as { items: QuizLog[]; surveyAnswers?: QuizSurveyAnswer[]; surveyQuestions?: QuizSurveyQuestion[] };
+      const logsData = (await logsResponse.json()) as { items: QuizLog[]; surveyAnswers?: QuizSurveyAnswer[]; surveySubmissions?: QuizSurveySubmission[]; surveyQuestions?: QuizSurveyQuestion[] };
       const memeData = (await memeResponse.json()) as { items: AdminMeme[] };
 
       setQuizLogs(logsData.items || []);
       setSurveyAnswers(logsData.surveyAnswers || []);
+      setSurveySubmissions(logsData.surveySubmissions || []);
       setSurveyQuestions(logsData.surveyQuestions || []);
       setMemes(memeData.items || []);
     } catch (cause) {
@@ -78,7 +80,7 @@ export default function QuizLogsPage() {
         </div>
       )}
 
-      <QuizLogManager logs={quizLogs} surveyAnswers={surveyAnswers} surveyQuestions={surveyQuestions} memes={memes} onChange={setQuizLogs} onSurveyAnswersChange={setSurveyAnswers} />
+      <QuizLogManager logs={quizLogs} surveyAnswers={surveyAnswers} surveySubmissions={surveySubmissions} surveyQuestions={surveyQuestions} memes={memes} onChange={setQuizLogs} onSurveyAnswersChange={setSurveyAnswers} onSurveySubmissionsChange={setSurveySubmissions} />
     </div>
   );
 }
