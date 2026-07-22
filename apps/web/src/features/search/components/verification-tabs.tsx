@@ -25,7 +25,7 @@ export function VerificationTabs({
           <button
             aria-selected={selected}
             className={cn(
-              "flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg py-2 px-3 sm:px-4 text-[0.68rem] transition-all duration-200 cursor-pointer font-bold",
+              "flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 text-[0.6rem] transition-all duration-200 cursor-pointer font-bold sm:gap-1.5 sm:px-4 sm:py-2 sm:text-[0.68rem]",
               selected
                 ? "bg-black text-white shadow-sm font-black"
                 : "text-zinc-500 hover:text-zinc-900 hover:bg-black/5",
@@ -36,7 +36,7 @@ export function VerificationTabs({
             type="button"
           >
             <span>{tab.label}</span>
-            <Badge className={cn("px-1.5 py-0.5 text-[0.65rem] font-bold rounded-md", selected ? "bg-white/20 text-white" : "bg-black/8 text-zinc-600")}>
+            <Badge className={cn("hidden px-1.5 py-0.5 text-[0.65rem] font-bold rounded-md sm:inline-flex", selected ? "bg-white/20 text-white" : "bg-black/8 text-zinc-600")}>
               {counts[tab.id]}
             </Badge>
           </button>

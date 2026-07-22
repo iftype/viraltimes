@@ -120,7 +120,7 @@ function FilterGroup({ children, description, label }: { children: ReactNode; de
 }
 
 function ChoiceButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
-  return <button aria-pressed={active} className={`rounded-full border px-3 py-2 text-xs font-black transition ${active ? "border-black bg-black text-white" : "border-black/8 bg-white text-black/55 hover:border-black/25"}`} onClick={onClick} type="button">{label}</button>;
+  return <button aria-pressed={active} className={`rounded-full border px-2.5 py-1.5 text-[0.68rem] font-black transition sm:px-3 sm:py-2 sm:text-xs ${active ? "border-black bg-black text-white" : "border-black/8 bg-white text-black/55 hover:border-black/25"}`} onClick={onClick} type="button">{label}</button>;
 }
 
 function YearSelect({ label, onChange, value, years }: { label: string; onChange: (value?: number) => void; value?: number; years: number[] }) {

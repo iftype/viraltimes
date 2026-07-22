@@ -19,12 +19,13 @@ import {
   Tag as TagIcon,
   Video,
   BookOpenText,
+  Sparkles,
 } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Field } from "@origin/ui";
 import type { AdminCategory } from "@/components/category-manager";
 
-type VideoMeta = {
+export type VideoMeta = {
   id: string;
   platform: "youtube" | "tiktok" | "instagram" | "x" | "unknown";
   url: string;
@@ -39,7 +40,7 @@ export type AdminMeme = {
   id: string;
   slug: string;
   title: string;
-  kind: "challenge" | "video-meme" | "community-meme";
+  kind: "challenge" | "video-meme" | "community-meme" | "minor-meme";
   thumbnailUrl?: string;
   thumbnailFit?: "cover" | "contain";
   aliases: string[];
@@ -75,7 +76,7 @@ export type AdminMeme = {
   updatedAt?: string;
 };
 
-const apiBase = "/viral/api/v1";
+export const adminApiBase = "/viral/api/v1";
 
 const statusMeta = {
   draft: { label: "작성 중", className: "bg-amber-50 text-amber-700 border border-amber-200/60" },
@@ -83,13 +84,20 @@ const statusMeta = {
   archived: { label: "보관", className: "bg-zinc-100 text-zinc-500 border border-zinc-200/60" },
 };
 
+const originStatusMeta = {
+  verified: { label: "원본 확정", className: "bg-sky-50 text-sky-700 border border-sky-200/70" },
+  likely: { label: "원본 유력", className: "bg-violet-50 text-violet-700 border border-violet-200/70" },
+  "needs-review": { label: "원본 미확정", className: "bg-rose-50 text-rose-700 border border-rose-200/70" },
+};
+
 const kindLabels = {
   "community-meme": "커뮤니티 밈",
   "video-meme": "영상 밈",
+  "minor-meme": "마이너 밈",
   challenge: "챌린지",
 };
 
-async function readError(response: Response) {
+export async function readAdminError(response: Response) {
   try {
     return ((await response.json()) as { error?: string }).error ?? "저장하지 못했습니다.";
   } catch {
@@ -103,7 +111,114 @@ const csv = (value: FormDataEntryValue | null) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+export function buildAdminMemePayload(form: FormData, base: AdminMeme | null) {
+  const slug = String(form.get("slug") ?? "").trim().toLowerCase();
+  const sourceUrl = String(form.get("sourceUrl") ?? "").trim();
+  const originVideo: VideoMeta = {
+    ...(base?.origin?.video ?? { id: `${slug}-origin` }),
+    id: base?.origin?.video?.id ?? `${slug}-origin`,
+    platform: String(form.get("originPlatform")) as VideoMeta["platform"],
+    url: String(form.get("originUrl") ?? "").trim(),
+    title: String(form.get("originTitle") ?? "").trim(),
+    creator: String(form.get("originCreator") ?? "").trim() || undefined,
+    uploadedAt: String(form.get("originDate") ?? "").trim() || undefined,
+    thumbnailUrl: String(form.get("thumbnailUrl") ?? "").trim() || undefined,
+  };
+
+  let evidence = base?.origin?.evidence ?? [];
+  const evidenceJson = String(form.get("evidenceJson") ?? "").trim();
+  if (evidenceJson) {
+    try {
+      evidence = JSON.parse(evidenceJson);
+    } catch {}
+  }
+
+  let trendingVideos = base?.trendingVideos ?? [];
+  const trendingJson = String(form.get("trendingVideosJson") ?? "").trim();
+  if (trendingJson) {
+    try {
+      trendingVideos = JSON.parse(trendingJson);
+    } catch {}
+  }
+
+  const timeline = [
+    {
+      id: base?.timeline?.[0]?.id ?? `${slug}-timeline-1`,
+      dateLabel: String(form.get("timelineDate") ?? "").trim(),
+      title: String(form.get("timelineTitle") ?? "").trim(),
+      description: String(form.get("timelineDescription") ?? "").trim(),
+      sourceUrl: sourceUrl || undefined,
+      sourceLabel: "관련 근거",
+      kind: "origin" as const,
+    },
+    ...(base?.timeline?.slice(1) ?? []),
+  ].filter((item) => item.dateLabel && item.title && item.description);
+
+  return {
+    ...(base ?? ({} as AdminMeme)),
+    id: base?.id ?? slug,
+    slug,
+    title: String(form.get("title") ?? "").trim(),
+    kind: String(form.get("kind")) as AdminMeme["kind"],
+    thumbnailUrl: String(form.get("thumbnailUrl") ?? "").trim() || undefined,
+    thumbnailFit: "cover" as const,
+    aliases: csv(form.get("aliases")),
+    summary: String(form.get("summary") ?? "").trim(),
+    accent: String(form.get("accent") ?? "#fe2c55"),
+    categoryIds: form.getAll("categoryIds").map(String),
+    tags: csv(form.get("tags")),
+    publicationStatus: String(form.get("publicationStatus")) as AdminMeme["publicationStatus"],
+    origin: {
+      status: String(form.get("originStatus")) as AdminMeme["origin"]["status"],
+      video: originVideo,
+      summary: String(form.get("originSummary") ?? "").trim(),
+      evidence,
+      lastReviewedAt: new Date().toISOString().slice(0, 10),
+    },
+    timeline,
+    trendingVideos,
+    relatedVideos: base?.relatedVideos ?? [],
+    lifecycle: {
+      originYear: Number(form.get("originYear")) || undefined,
+      firstSeenAt: String(form.get("firstSeenAt") ?? "").trim() || undefined,
+      lastObservedAt: String(form.get("lastObservedAt") ?? "").trim() || undefined,
+    },
+  } satisfies AdminMeme;
+}
+
 type BulkAction = "publish" | "draft" | "archive" | "add-category" | "remove-category";
+
+const adminEditHref = (id: string) =>
+  `/viral/dictionary/edit/?id=${encodeURIComponent(id)}`;
+
+type VideoMetadataSuggestion = {
+  creator?: string;
+  title?: string;
+};
+
+function platformFromUrl(url: string, fallback: VideoMeta["platform"]) {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    if (hostname.includes("youtu.be") || hostname.includes("youtube.com")) return "youtube";
+    if (hostname.includes("tiktok.com")) return "tiktok";
+    if (hostname.includes("instagram.com")) return "instagram";
+    if (hostname === "x.com" || hostname.endsWith(".x.com") || hostname.includes("twitter.com")) return "x";
+  } catch {
+    return fallback;
+  }
+  return fallback;
+}
+
+async function fetchVideoMetadata(url: string) {
+  const response = await fetch(`${adminApiBase}/admin/metadata/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  if (!response.ok) throw new Error(await readAdminError(response));
+  const data = (await response.json()) as { suggestion: VideoMetadataSuggestion };
+  return data.suggestion;
+}
 
 export function DictionaryManager({
   items,
@@ -114,19 +229,19 @@ export function DictionaryManager({
   categories: AdminCategory[];
   onChange: (items: AdminMeme[]) => void;
 }) {
-  const [editing, setEditing] = useState<AdminMeme | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | AdminMeme["publicationStatus"]>("all");
+  const [originFilter, setOriginFilter] = useState<"all" | "verified" | "open">("all");
   const [kindFilter, setKindFilter] = useState<"all" | AdminMeme["kind"]>("all");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkAction>("publish");
   const [bulkCategoryId, setBulkCategoryId] = useState(categories[0]?.id ?? "");
 
-  const formOpen = creating || Boolean(editing);
+  const formOpen = creating;
 
   const visibleItems = items.filter((item) => {
     const title = item.title ?? "";
@@ -137,8 +252,12 @@ export function DictionaryManager({
       slug.toLowerCase().includes(query.toLowerCase()) ||
       (item.tags ?? []).some((tag) => tag.toLowerCase().includes(query.toLowerCase()));
     const matchesStatus = statusFilter === "all" || item.publicationStatus === statusFilter;
+    const matchesOrigin =
+      originFilter === "all" ||
+      (originFilter === "verified" && item.origin.status === "verified") ||
+      (originFilter === "open" && item.origin.status !== "verified");
     const matchesKind = kindFilter === "all" || item.kind === kindFilter;
-    return matchesQuery && matchesStatus && matchesKind;
+    return matchesQuery && matchesStatus && matchesOrigin && matchesKind;
   });
 
   const allVisibleSelected =
@@ -149,98 +268,21 @@ export function DictionaryManager({
     setSaving(true);
     setError("");
     const form = new FormData(event.currentTarget);
-    const slug = String(form.get("slug") ?? "").trim().toLowerCase();
-    const sourceUrl = String(form.get("sourceUrl") ?? "").trim();
-    const base = editing;
-
-    const originVideo: VideoMeta = {
-      ...(base?.origin?.video ?? { id: `${slug}-origin` }),
-      id: base?.origin?.video?.id ?? `${slug}-origin`,
-      platform: String(form.get("originPlatform")) as VideoMeta["platform"],
-      url: String(form.get("originUrl") ?? "").trim(),
-      title: String(form.get("originTitle") ?? "").trim(),
-      creator: String(form.get("originCreator") ?? "").trim() || undefined,
-      uploadedAt: String(form.get("originDate") ?? "").trim() || undefined,
-      thumbnailUrl: String(form.get("thumbnailUrl") ?? "").trim() || undefined,
-    };
-
-    let evidence = base?.origin?.evidence ?? [];
-    const evidenceJson = String(form.get("evidenceJson") ?? "").trim();
-    if (evidenceJson) {
-      try {
-        evidence = JSON.parse(evidenceJson);
-      } catch {}
-    }
-
-    let trendingVideos = base?.trendingVideos ?? [];
-    const trendingJson = String(form.get("trendingVideosJson") ?? "").trim();
-    if (trendingJson) {
-      try {
-        trendingVideos = JSON.parse(trendingJson);
-      } catch {}
-    }
-
-    const timeline = [
-      {
-        id: base?.timeline?.[0]?.id ?? `${slug}-timeline-1`,
-        dateLabel: String(form.get("timelineDate") ?? "").trim(),
-        title: String(form.get("timelineTitle") ?? "").trim(),
-        description: String(form.get("timelineDescription") ?? "").trim(),
-        sourceUrl: sourceUrl || undefined,
-        sourceLabel: "관련 근거",
-        kind: "origin" as const,
-      },
-      ...(base?.timeline?.slice(1) ?? []),
-    ].filter((item) => item.dateLabel && item.title && item.description);
-
-    const payload: AdminMeme = {
-      ...(base ?? ({} as AdminMeme)),
-      id: base?.id ?? slug,
-      slug,
-      title: String(form.get("title") ?? "").trim(),
-      kind: String(form.get("kind")) as AdminMeme["kind"],
-      thumbnailUrl: String(form.get("thumbnailUrl") ?? "").trim() || undefined,
-      thumbnailFit: "cover",
-      aliases: csv(form.get("aliases")),
-      summary: String(form.get("summary") ?? "").trim(),
-      accent: String(form.get("accent") ?? "#fe2c55"),
-      categoryIds: form.getAll("categoryIds").map(String),
-      tags: csv(form.get("tags")),
-      publicationStatus: String(form.get("publicationStatus")) as AdminMeme["publicationStatus"],
-      origin: {
-        status: String(form.get("originStatus")) as AdminMeme["origin"]["status"],
-        video: originVideo,
-        summary: String(form.get("originSummary") ?? "").trim(),
-        evidence,
-        lastReviewedAt: new Date().toISOString().slice(0, 10),
-      },
-      timeline,
-      trendingVideos,
-      relatedVideos: base?.relatedVideos ?? [],
-      lifecycle: {
-        originYear: Number(form.get("originYear")) || undefined,
-        firstSeenAt: String(form.get("firstSeenAt") ?? "").trim() || undefined,
-        lastObservedAt: String(form.get("lastObservedAt") ?? "").trim() || undefined,
-      },
-    };
+    const base = null;
+    const payload = buildAdminMemePayload(form, base);
 
     try {
       const response = await fetch(
-        editing ? `${apiBase}/admin/memes/${encodeURIComponent(editing.id)}` : `${apiBase}/admin/memes`,
+        `${adminApiBase}/admin/memes`,
         {
-          method: editing ? "PUT" : "POST",
+          method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         },
       );
-      if (!response.ok) throw new Error(await readError(response));
+      if (!response.ok) throw new Error(await readAdminError(response));
       const data = (await response.json()) as { item: AdminMeme };
-      onChange(
-        editing
-          ? items.map((item) => (item.id === editing.id ? data.item : item))
-          : [data.item, ...items],
-      );
-      setEditing(null);
+      onChange([data.item, ...items]);
       setCreating(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "저장하지 못했습니다.");
@@ -253,12 +295,12 @@ export function DictionaryManager({
     setSaving(true);
     setError("");
     try {
-      const response = await fetch(`${apiBase}/admin/memes/${encodeURIComponent(item.id)}`, {
+      const response = await fetch(`${adminApiBase}/admin/memes/${encodeURIComponent(item.id)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...item, publicationStatus }),
       });
-      if (!response.ok) throw new Error(await readError(response));
+      if (!response.ok) throw new Error(await readAdminError(response));
       const data = (await response.json()) as { item: AdminMeme };
       onChange(items.map((candidate) => (candidate.id === item.id ? data.item : candidate)));
     } catch (cause) {
@@ -273,10 +315,10 @@ export function DictionaryManager({
     setSaving(true);
     setError("");
     try {
-      const response = await fetch(`${apiBase}/admin/memes/${encodeURIComponent(item.id)}`, {
+      const response = await fetch(`${adminApiBase}/admin/memes/${encodeURIComponent(item.id)}`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error(await readError(response));
+      if (!response.ok) throw new Error(await readAdminError(response));
       onChange(items.filter((candidate) => candidate.id !== item.id));
       setSelectedIds((current) => {
         const next = new Set(current);
@@ -297,7 +339,7 @@ export function DictionaryManager({
     setError("");
     try {
       for (const id of selectedIds) {
-        await fetch(`${apiBase}/admin/memes/${encodeURIComponent(id)}`, { method: "DELETE" });
+        await fetch(`${adminApiBase}/admin/memes/${encodeURIComponent(id)}`, { method: "DELETE" });
       }
       onChange(items.filter((item) => !selectedIds.has(item.id)));
       setSelectedIds(new Set());
@@ -327,13 +369,13 @@ export function DictionaryManager({
           updated.categoryIds = updated.categoryIds.filter((id) => id !== bulkCategoryId);
         }
 
-        await fetch(`${apiBase}/admin/memes/${encodeURIComponent(meme.id)}`, {
+        await fetch(`${adminApiBase}/admin/memes/${encodeURIComponent(meme.id)}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updated),
         });
       }
-      const response = await fetch(`${apiBase}/admin/memes`, { cache: "no-store" });
+      const response = await fetch(`${adminApiBase}/admin/memes`, { cache: "no-store" });
       if (response.ok) {
         const data = (await response.json()) as { items: AdminMeme[] };
         onChange(data.items);
@@ -364,7 +406,6 @@ export function DictionaryManager({
           className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-white px-3 py-2 text-xs font-black text-zinc-900 shadow transition hover:bg-zinc-100 active:scale-95 sm:px-4 sm:py-2.5"
           onClick={() => {
             setCreating(true);
-            setEditing(null);
             setError("");
           }}
           type="button"
@@ -383,10 +424,9 @@ export function DictionaryManager({
       {formOpen && (
         <MemeEntryForm
           categories={categories}
-          editing={editing}
+          editing={null}
           onCancel={() => {
             setCreating(false);
-            setEditing(null);
           }}
           onSave={save}
           saving={saving}
@@ -416,6 +456,16 @@ export function DictionaryManager({
               <option value="published">공개만</option>
               <option value="draft">작성 중만</option>
               <option value="archived">보관만</option>
+            </select>
+            <select
+              aria-label="원본 확정 상태 필터"
+              className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 outline-none hover:border-zinc-400"
+              onChange={(event) => setOriginFilter(event.target.value as typeof originFilter)}
+              value={originFilter}
+            >
+              <option value="all">모든 원본 상태</option>
+              <option value="verified">원본 확정만</option>
+              <option value="open">확정 전만</option>
             </select>
             <select
               aria-label="종류 필터"
@@ -532,6 +582,7 @@ export function DictionaryManager({
         <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visibleItems.map((item) => {
             const meta = statusMeta[item.publicationStatus] ?? statusMeta.draft;
+            const originMeta = originStatusMeta[item.origin.status] ?? originStatusMeta["needs-review"];
             const kindLabel = kindLabels[item.kind] ?? item.kind ?? "미지정";
             const isSelected = selectedIds.has(item.id);
             return (
@@ -561,6 +612,9 @@ export function DictionaryManager({
                       <span className={`rounded-md px-2 py-0.5 text-[0.62rem] font-black ${meta.className}`}>
                         {meta.label}
                       </span>
+                      <span className={`rounded-md px-2 py-0.5 text-[0.62rem] font-black ${originMeta.className}`}>
+                        {originMeta.label}
+                      </span>
                       <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[0.62rem] font-bold text-zinc-600 truncate">
                         {kindLabel}
                       </span>
@@ -579,7 +633,7 @@ export function DictionaryManager({
                   </div>
 
                   <h3 className="mt-3 truncate text-base font-black text-zinc-900 group-hover:text-rose-600">
-                    {item.title}
+                    <a className="hover:underline" href={adminEditHref(item.id)}>{item.title}</a>
                   </h3>
                   <p className="mt-0.5 font-mono text-[0.68rem] font-bold text-zinc-400 truncate">
                     /{item.slug} {item.lifecycle?.originYear ? `· ${item.lifecycle.originYear}년` : ""}
@@ -613,18 +667,12 @@ export function DictionaryManager({
                       >
                         <ExternalLink className="size-3" /> 웹에서 보기
                       </a>
-                      <button
+                      <a
                         className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 font-bold text-zinc-700 hover:border-zinc-400"
-                        onClick={() => {
-                          setEditing(item);
-                          setCreating(false);
-                          setError("");
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                        type="button"
+                        href={adminEditHref(item.id)}
                       >
                         <FilePenLine className="size-3" /> 수정
-                      </button>
+                      </a>
                       {item.publicationStatus !== "published" && (
                         <button
                           className="inline-flex cursor-pointer items-center rounded-lg bg-emerald-50 px-2 py-1.5 font-bold text-emerald-700 hover:bg-emerald-100"
@@ -669,6 +717,7 @@ export function DictionaryManager({
               <tbody className="divide-y divide-zinc-100 font-medium text-zinc-800">
                 {visibleItems.map((item) => {
                   const meta = statusMeta[item.publicationStatus] ?? statusMeta.draft;
+                  const originMeta = originStatusMeta[item.origin.status] ?? originStatusMeta["needs-review"];
                   const kindLabel = kindLabels[item.kind] ?? item.kind ?? "미지정";
                   const isSelected = selectedIds.has(item.id);
                   return (
@@ -690,13 +739,14 @@ export function DictionaryManager({
                         />
                       </td>
                       <td className="p-3.5 whitespace-nowrap">
-                        <span className={`rounded-md px-2 py-0.5 text-[0.62rem] font-black ${meta.className}`}>
-                          {meta.label}
-                        </span>
+                        <div className="flex flex-col items-start gap-1">
+                          <span className={`rounded-md px-2 py-0.5 text-[0.62rem] font-black ${meta.className}`}>{meta.label}</span>
+                          <span className={`rounded-md px-2 py-0.5 text-[0.62rem] font-black ${originMeta.className}`}>{originMeta.label}</span>
+                        </div>
                       </td>
                       <td className="p-3.5 font-bold whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
-                          <span>{item.title}</span>
+                          <a className="hover:text-rose-600 hover:underline" href={adminEditHref(item.id)}>{item.title}</a>
                           <span className="font-mono text-[0.68rem] text-zinc-400">/{item.slug}</span>
                         </div>
                       </td>
@@ -720,18 +770,12 @@ export function DictionaryManager({
                           >
                             <ExternalLink className="size-3" /> 웹 보기
                           </a>
-                          <button
+                          <a
                             className="cursor-pointer rounded-lg bg-zinc-900 px-2.5 py-1 text-xs font-bold text-white hover:bg-zinc-800"
-                            onClick={() => {
-                              setEditing(item);
-                              setCreating(false);
-                              setError("");
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                            }}
-                            type="button"
+                            href={adminEditHref(item.id)}
                           >
                             수정
-                          </button>
+                          </a>
                           <button
                             className="cursor-pointer rounded-lg border border-zinc-200 bg-white p-1 text-zinc-400 hover:border-rose-300 hover:text-rose-600"
                             disabled={saving}
@@ -756,7 +800,7 @@ export function DictionaryManager({
 }
 
 /** 폼 영역 컴포넌트: 카테고리 검색 선택, 인터랙티브 태그 칩, 실시간 영상 임베드 미리보기 */
-function MemeEntryForm({
+export function MemeEntryForm({
   editing,
   categories,
   saving,
@@ -778,7 +822,10 @@ function MemeEntryForm({
   const [originUrl, setOriginUrl] = useState(editing?.origin?.video?.url ?? "");
   const [originTitle, setOriginTitle] = useState(editing?.origin?.video?.title ?? "");
   const [originCreator, setOriginCreator] = useState(editing?.origin?.video?.creator ?? "");
+  const [originPlatform, setOriginPlatform] = useState<VideoMeta["platform"]>(editing?.origin?.video?.platform ?? "youtube");
   const [fetchingMeta, setFetchingMeta] = useState(false);
+  const [fetchingTrendingIndex, setFetchingTrendingIndex] = useState<number | null>(null);
+  const [metadataError, setMetadataError] = useState("");
 
   const [trendingVideos, setTrendingVideos] = useState<
     Array<{ platform: AdminMeme["origin"]["video"]["platform"]; url: string; title: string; creator: string }>
@@ -801,22 +848,53 @@ function MemeEntryForm({
     }))
   );
 
-  const handleOriginUrlChange = async (url: string) => {
+  const handleOriginUrlChange = (url: string) => {
     setOriginUrl(url);
-    const id = getYouTubeId(url);
-    if (id) {
-      setFetchingMeta(true);
-      try {
-        const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`);
-        if (res.ok) {
-          const data = (await res.json()) as { title?: string; author_name?: string };
-          if (data.title) setOriginTitle(data.title);
-          if (data.author_name) setOriginCreator(data.author_name);
-        }
-      } catch {}
-      finally {
-        setFetchingMeta(false);
+    setOriginPlatform((current) => platformFromUrl(url, current));
+  };
+
+  const loadOriginMetadata = async () => {
+    if (!originUrl) return;
+    setFetchingMeta(true);
+    setMetadataError("");
+    try {
+      const suggestion = await fetchVideoMetadata(originUrl);
+      if (suggestion.title) setOriginTitle(suggestion.title);
+      if (suggestion.creator) setOriginCreator(suggestion.creator);
+      if (!suggestion.title && !suggestion.creator) {
+        setMetadataError("이 링크에서는 제목·작성자 정보를 찾지 못했습니다. 직접 입력해 주세요.");
       }
+    } catch (cause) {
+      setMetadataError(cause instanceof Error ? cause.message : "영상 정보를 불러오지 못했습니다.");
+    } finally {
+      setFetchingMeta(false);
+    }
+  };
+
+  const loadTrendingMetadata = async (index: number) => {
+    const video = trendingVideos[index];
+    if (!video?.url) return;
+    setFetchingTrendingIndex(index);
+    setMetadataError("");
+    try {
+      const suggestion = await fetchVideoMetadata(video.url);
+      setTrendingVideos((current) => current.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              platform: platformFromUrl(item.url, item.platform),
+              title: suggestion.title ?? item.title,
+              creator: suggestion.creator ?? item.creator,
+            }
+          : item,
+      ));
+      if (!suggestion.title && !suggestion.creator) {
+        setMetadataError("이 링크에서는 제목·작성자 정보를 찾지 못했습니다. 직접 입력해 주세요.");
+      }
+    } catch (cause) {
+      setMetadataError(cause instanceof Error ? cause.message : "영상 정보를 불러오지 못했습니다.");
+    } finally {
+      setFetchingTrendingIndex(null);
     }
   };
 
@@ -958,6 +1036,7 @@ function MemeEntryForm({
             defaultValue={editing?.kind ?? "community-meme"}
           >
             <option value="community-meme">커뮤니티 밈</option>
+            <option value="minor-meme">마이너 밈</option>
             <option value="video-meme">영상 밈</option>
             <option value="challenge">챌린지</option>
           </select>
@@ -1120,10 +1199,16 @@ function MemeEntryForm({
           <p className="text-xs font-black text-zinc-400 uppercase tracking-wider">Origin & Video Meta</p>
           {fetchingMeta && (
             <span className="inline-flex items-center gap-1 text-[0.68rem] font-bold text-rose-600 animate-pulse">
-              <LoaderCircle className="size-3 animate-spin" /> 유튜브 정보 자동으로 가져오는 중...
+              <LoaderCircle className="size-3 animate-spin" /> 영상 정보를 가져오는 중...
             </span>
           )}
         </div>
+
+        {metadataError && (
+          <p className="col-span-full rounded-lg bg-amber-50 px-3 py-2 text-[0.68rem] font-bold text-amber-700">
+            {metadataError}
+          </p>
+        )}
 
         <Field label="원본 검증 상태">
           <select
@@ -1151,7 +1236,8 @@ function MemeEntryForm({
           <select
             className="w-full cursor-pointer rounded-xl border border-zinc-200 px-3 py-2 font-bold outline-none focus:border-zinc-900"
             name="originPlatform"
-            defaultValue={editing?.origin?.video?.platform ?? "youtube"}
+            value={originPlatform}
+            onChange={(event) => setOriginPlatform(event.target.value as VideoMeta["platform"])}
           >
             <option value="youtube">YouTube</option>
             <option value="tiktok">TikTok</option>
@@ -1160,16 +1246,28 @@ function MemeEntryForm({
             <option value="unknown">기타</option>
           </select>
         </Field>
-        <Field label="원본 영상 URL (유튜브 링크 입력 시 제목·업로더 자동 완성)">
-          <input
-            className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs outline-none focus:border-zinc-900"
-            name="originUrl"
-            required
-            type="url"
-            value={originUrl}
-            onChange={(e) => handleOriginUrlChange(e.target.value)}
-            placeholder="https://www.youtube.com/watch?v=..."
-          />
+        <Field label="원본 영상 URL (링크 입력 후 정보 불러오기)">
+          <div className="flex items-center gap-2">
+            <input
+              className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs outline-none focus:border-zinc-900"
+              name="originUrl"
+              required
+              type="url"
+              value={originUrl}
+              onChange={(e) => handleOriginUrlChange(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+            <button
+              type="button"
+              onClick={() => void loadOriginMetadata()}
+              disabled={fetchingMeta || !originUrl}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-zinc-900 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-zinc-800 disabled:opacity-40 shrink-0"
+              title="영상 제목과 작성자 불러오기"
+            >
+              {fetchingMeta ? <LoaderCircle className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-yellow-400" />}
+              불러오기
+            </button>
+          </div>
         </Field>
 
         {/* 원본 영상 실시간 콤팩트 미리보기 */}
@@ -1206,7 +1304,7 @@ function MemeEntryForm({
           </div>
         )}
 
-        <Field label="영상 제목 (유튜브 URL 자동 채우기)">
+        <Field label="영상 제목">
           <input
             className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs outline-none focus:border-zinc-900"
             name="originTitle"
@@ -1216,7 +1314,7 @@ function MemeEntryForm({
             placeholder="영상 제목"
           />
         </Field>
-        <Field label="업로더 / 크리에이터 (유튜브 채널명 자동 채우기)">
+        <Field label="업로더 / 크리에이터">
           <input
             className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs outline-none focus:border-zinc-900"
             name="originCreator"
@@ -1288,12 +1386,24 @@ function MemeEntryForm({
                   </div>
                   <div>
                     <label className="block font-bold text-zinc-500 text-[0.65rem] mb-1">영상 URL</label>
-                    <input
-                      className="w-full rounded-lg border border-zinc-200 p-1.5 outline-none"
-                      placeholder="https://..."
-                      value={video.url}
-                      onChange={(e) => updateTrendingVideo(idx, "url", e.target.value)}
-                    />
+                    <div className="flex gap-1.5">
+                      <input
+                        className="min-w-0 flex-1 rounded-lg border border-zinc-200 p-1.5 outline-none"
+                        placeholder="https://..."
+                        value={video.url}
+                        onChange={(e) => updateTrendingVideo(idx, "url", e.target.value)}
+                      />
+                      <button
+                        className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-zinc-900 px-2.5 py-1.5 text-[0.65rem] font-black text-white hover:bg-zinc-800 disabled:opacity-40"
+                        disabled={!video.url || fetchingTrendingIndex !== null}
+                        onClick={() => void loadTrendingMetadata(idx)}
+                        title="영상 제목과 작성자 불러오기"
+                        type="button"
+                      >
+                        {fetchingTrendingIndex === idx ? <LoaderCircle className="size-3 animate-spin" /> : <Sparkles className="size-3 text-yellow-300" />}
+                        불러오기
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="block font-bold text-zinc-500 text-[0.65rem] mb-1">영상 제목</label>

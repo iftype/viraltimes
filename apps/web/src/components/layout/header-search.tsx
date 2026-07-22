@@ -74,7 +74,7 @@ export function HeaderSearch({
       )}
 
       <form
-        action={`${basePath}/`}
+        action={`${basePath}/memes`}
         className={cn("relative min-w-0 w-auto md:w-full z-[70]", className)}
         onSubmit={submit}
         role="search"
@@ -219,7 +219,7 @@ export function HeaderSearch({
               <div className="mt-3 border-t border-black/5 pt-3">
                 <Link
                   className="flex items-center justify-between rounded-2xl bg-black px-4 py-3 text-xs font-black text-white shadow hover:bg-zinc-800 transition"
-                  href={`/?q=${encodeURIComponent(query.trim())}`}
+                  href={`/memes?q=${encodeURIComponent(query.trim())}`}
                   onClick={() => {
                     setOpen(false);
                     setIsFocused(false);

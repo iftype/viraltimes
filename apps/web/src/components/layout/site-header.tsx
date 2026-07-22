@@ -2,45 +2,22 @@
 
 import { MessageCircleMore, Plus } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect, Suspense } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { BrandMark, buttonClassName, cn } from "@origin/ui";
+import { resolveMainTab } from "@/features/main-tabs/lib/tab-location";
 
 import { HeaderSearch } from "./header-search";
 
-function HeaderTabToggle() {
-  const [currentTab, setCurrentTab] = useState<"feed" | "dictionary">("feed");
-
-  useEffect(() => {
-    const syncTabFromUrl = () => {
-      if (typeof window === "undefined") return;
-      const params = new URLSearchParams(window.location.search);
-      const tab = params.get("tab");
-      setCurrentTab(tab === "dictionary" ? "dictionary" : "feed");
-    };
-
-    syncTabFromUrl();
-    window.addEventListener("popstate", syncTabFromUrl);
-    window.addEventListener("tabchange", syncTabFromUrl);
-    return () => {
-      window.removeEventListener("popstate", syncTabFromUrl);
-      window.removeEventListener("tabchange", syncTabFromUrl);
-    };
-  }, []);
-
-  const handleTabClick = (tab: "feed" | "dictionary") => {
-    if (typeof window === "undefined") return;
-    const href = tab === "dictionary" ? "/?tab=dictionary" : "/";
-    window.history.pushState(null, "", href);
-    window.dispatchEvent(new Event("tabchange"));
-  };
+function HeaderTabToggle({ pathname }: { pathname: string }) {
+  const currentTab = resolveMainTab(pathname, "");
 
   return (
     <div className="flex items-center gap-0.5 rounded-full bg-black/5 p-1 text-xs font-black shadow-inner">
-      <button
-        type="button"
-        onClick={() => handleTabClick("feed")}
+      <Link
+        aria-current={currentTab === "feed" ? "page" : undefined}
+        href="/"
         className={cn(
           "rounded-full px-3 py-1.5 sm:px-3.5 transition-all duration-200 text-xs cursor-pointer",
           currentTab === "feed"
@@ -49,10 +26,10 @@ function HeaderTabToggle() {
         )}
       >
         피드
-      </button>
-      <button
-        type="button"
-        onClick={() => handleTabClick("dictionary")}
+      </Link>
+      <Link
+        aria-current={currentTab === "dictionary" ? "page" : undefined}
+        href="/memes"
         className={cn(
           "rounded-full px-3 py-1.5 sm:px-3.5 transition-all duration-200 text-xs cursor-pointer",
           currentTab === "dictionary"
@@ -61,7 +38,7 @@ function HeaderTabToggle() {
         )}
       >
         사전
-      </button>
+      </Link>
     </div>
   );
 }
@@ -90,11 +67,9 @@ export function SiteHeader() {
             </span>
           </Link>
 
-          {/* 화면 상단 정중앙 낙관적 업데이트 토글 스위치 (Suspense 래핑) */}
+          {/* 화면 상단 정중앙 낙관적 업데이트 토글 스위치 */}
           <div className="flex shrink-0 items-center justify-center min-w-0 mx-auto z-10">
-            <Suspense fallback={<div className="h-8 w-24 rounded-full bg-black/5 animate-pulse" />}>
-              <HeaderTabToggle />
-            </Suspense>
+            <HeaderTabToggle pathname={pathname} />
           </div>
 
           {/* 우측 검색창 */}

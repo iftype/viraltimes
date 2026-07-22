@@ -1,44 +1,41 @@
 "use client";
 
+import { ArrowLeftRight, X } from "lucide-react";
 import { useEffect, useRef, useState, Suspense } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FeedExperience } from "@/features/feed/components/feed-experience";
 import { SearchExperience } from "@/features/search/components/search-experience";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { resolveMainTab } from "../lib/tab-location";
 
 function SwipeFeedDictionaryContent({ initialTab = "feed" }: { initialTab?: "feed" | "dictionary" }) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const tabParam = searchParams.get("tab");
-
-  const [activeTab, setActiveTab] = useState<"feed" | "dictionary">(
-    tabParam === "dictionary" ? "dictionary" : initialTab
-  );
+  const search = searchParams.toString();
+  const activeTab = resolveMainTab(pathname, search, initialTab);
 
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [showSwipeTutorial, setShowSwipeTutorial] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const isHorizontalSwipe = useRef<boolean | null>(null);
 
-  // URL query 및 popstate/tabchange 이벤트 발생 시 활성 탭 즉시 동기화
   useEffect(() => {
-    const syncTabFromUrl = () => {
-      if (typeof window === "undefined") return;
-      const params = new URLSearchParams(window.location.search);
-      const tab = params.get("tab");
-      setActiveTab(tab === "dictionary" ? "dictionary" : "feed");
-    };
-
-    syncTabFromUrl();
-    window.addEventListener("popstate", syncTabFromUrl);
-    window.addEventListener("tabchange", syncTabFromUrl);
-    return () => {
-      window.removeEventListener("popstate", syncTabFromUrl);
-      window.removeEventListener("tabchange", syncTabFromUrl);
-    };
+    const timer = window.setTimeout(() => {
+      try {
+        setShowSwipeTutorial(
+          window.innerWidth < 768 &&
+            window.localStorage.getItem("viralorigin-swipe-tutorial") !== "done",
+        );
+      } catch {
+        setShowSwipeTutorial(window.innerWidth < 768);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   // 피드 탭일 때 바디 브라우저 스크롤 전면 차단 (헤더 포함 100dvh 고정 뷰포트 락)
@@ -97,13 +94,9 @@ function SwipeFeedDictionaryContent({ initialTab = "feed" }: { initialTab?: "fee
       const threshold = containerWidth * 0.2; // 20% 이상 드래그했으면 전환
 
       if (activeTab === "feed" && dragOffset < -threshold) {
-        setActiveTab("dictionary");
-        window.history.replaceState(null, "", "/?tab=dictionary");
-        window.dispatchEvent(new Event("tabchange"));
+        router.replace("/memes", { scroll: false });
       } else if (activeTab === "dictionary" && dragOffset > threshold) {
-        setActiveTab("feed");
-        window.history.replaceState(null, "", "/");
-        window.dispatchEvent(new Event("tabchange"));
+        router.replace("/", { scroll: false });
       }
     }
 
@@ -115,6 +108,15 @@ function SwipeFeedDictionaryContent({ initialTab = "feed" }: { initialTab?: "fee
   };
 
   const baseTranslate = activeTab === "feed" ? 0 : -50;
+
+  const dismissSwipeTutorial = () => {
+    setShowSwipeTutorial(false);
+    try {
+      window.localStorage.setItem("viralorigin-swipe-tutorial", "done");
+    } catch {
+      // 저장소를 사용할 수 없는 브라우저에서도 닫기는 유지한다.
+    }
+  };
 
   return (
     <div
@@ -139,13 +141,28 @@ function SwipeFeedDictionaryContent({ initialTab = "feed" }: { initialTab?: "fee
         </div>
 
         {/* 2. 오른쪽 뷰: 바이럴 사전 (Dictionary) */}
-        <div className="h-full w-1/2 shrink-0 overflow-y-auto bg-white flex flex-col justify-between">
-          <div className="py-3 px-2 sm:px-4 flex-1">
+        <div className="h-full w-1/2 shrink-0 overflow-y-auto overscroll-y-contain bg-white">
+          <div className="py-3 px-2 sm:px-4">
             <SearchExperience />
           </div>
-          <SiteFooter forceShow />
+          {activeTab === "dictionary" && <SiteFooter embedded forceShow />}
         </div>
       </div>
+
+      {activeTab === "feed" && showSwipeTutorial && (
+        <aside className="absolute left-1/2 top-4 z-40 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 items-center gap-3 rounded-2xl border border-white/15 bg-black/82 px-4 py-3 text-white shadow-2xl backdrop-blur-xl md:hidden">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-black">
+            <ArrowLeftRight className="size-4" aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-black">좌우로 밀어 화면 전환</p>
+            <p className="mt-0.5 text-[0.68rem] leading-4 text-white/65">영상 위에서도 왼쪽으로 밀면 사전으로 이동해요.</p>
+          </div>
+          <button aria-label="스와이프 안내 닫기" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10" onClick={dismissSwipeTutorial} type="button">
+            <X className="size-4" aria-hidden="true" />
+          </button>
+        </aside>
+      )}
     </div>
   );
 }

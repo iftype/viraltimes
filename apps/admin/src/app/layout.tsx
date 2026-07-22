@@ -80,6 +80,8 @@ function Header() {
         return "대시보드";
       case "/dictionary":
         return "사전 관리";
+      case "/dictionary/edit":
+        return "사전 항목 수정";
       case "/categories":
         return "카테고리 관리";
       case "/quiz-logs":

@@ -24,7 +24,7 @@ export function CategoryTabs({
           <button
             aria-selected={selected}
             className={cn(
-              "flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-xs font-black transition",
+              "flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[0.65rem] font-black transition sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs",
               selected
                 ? "bg-black text-white"
                 : "border border-black/5 bg-white text-black/50 hover:border-black/20 hover:text-black",
@@ -37,7 +37,7 @@ export function CategoryTabs({
             {category.label}
             <Badge
               className={cn(
-                "min-w-5 justify-center px-1.5 py-0.5 text-[0.62rem]",
+                "hidden min-w-5 justify-center px-1.5 py-0.5 text-[0.62rem] sm:inline-flex",
                 selected ? "bg-white/20 text-white" : "bg-black/5",
               )}
             >

@@ -30,7 +30,7 @@ export function YearTabs({
           <button
             aria-selected={selected}
             className={cn(
-              "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[0.68rem] transition-all duration-200 cursor-pointer font-bold",
+              "inline-flex shrink-0 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[0.6rem] transition-all duration-200 cursor-pointer font-bold sm:gap-1.5 sm:px-3.5 sm:text-[0.68rem]",
               selected
                 ? "bg-zinc-900 text-white font-black shadow-sm"
                 : "text-zinc-500 hover:text-zinc-900 hover:bg-black/5",
@@ -42,7 +42,7 @@ export function YearTabs({
           >
             {tab.id === "recent" && <CalendarClock className="size-3" aria-hidden="true" />}
             <span>{tab.label}</span>
-            <Badge className={cn("px-1.5 py-0.5 text-[0.65rem] font-bold rounded-md", selected ? "bg-white/20 text-white" : "bg-black/8 text-zinc-600")}>
+            <Badge className={cn("hidden px-1.5 py-0.5 text-[0.65rem] font-bold rounded-md sm:inline-flex", selected ? "bg-white/20 text-white" : "bg-black/8 text-zinc-600")}>
               {counts[key] ?? 0}
             </Badge>
           </button>

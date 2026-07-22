@@ -15,12 +15,13 @@ const builtInHosts = [
   "arca.live",
 ];
 
-type MetadataProvider = "youtube-oembed" | "open-graph" | "url-only";
+type MetadataProvider = "youtube-oembed" | "tiktok-oembed" | "open-graph" | "url-only";
 
 export type MetadataSuggestion = {
   sourceUrl: string;
   provider: MetadataProvider;
   title?: string;
+  creator?: string;
   description?: string;
   thumbnailUrl?: string;
   siteName?: string;
@@ -29,6 +30,18 @@ export type MetadataSuggestion = {
 
 function decodeEntities(value: string) {
   return value
+    .replace(/&#x([0-9a-f]+);/gi, (_match, code: string) => {
+      const codePoint = Number.parseInt(code, 16);
+      return Number.isFinite(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint)
+        : _match;
+    })
+    .replace(/&#(\d+);/g, (_match, code: string) => {
+      const codePoint = Number.parseInt(code, 10);
+      return Number.isFinite(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint)
+        : _match;
+    })
     .replaceAll("&amp;", "&")
     .replaceAll("&quot;", '"')
     .replaceAll("&#39;", "'")
@@ -50,6 +63,10 @@ function youtubeVideoId(url: URL) {
     if (["shorts", "embed", "live"].includes(parts[0] ?? "")) return parts[1];
   }
   return undefined;
+}
+
+function isTikTokUrl(url: URL) {
+  return url.hostname === "tiktok.com" || url.hostname.endsWith(".tiktok.com");
 }
 
 function metaContent(html: string, keys: string[]) {
@@ -104,7 +121,9 @@ export class MetadataSuggestionService {
     const videoId = youtubeVideoId(sourceUrl);
     const metadata = videoId
       ? await this.fromYouTube(sourceUrl).catch(() => this.fromOpenGraph(sourceUrl))
-      : await this.fromOpenGraph(sourceUrl);
+      : isTikTokUrl(sourceUrl)
+        ? await this.fromTikTok(sourceUrl).catch(() => this.fromOpenGraph(sourceUrl))
+        : await this.fromOpenGraph(sourceUrl);
     const base: MetadataSuggestion = {
       sourceUrl: sourceUrl.toString(),
       ...metadata,
@@ -147,9 +166,30 @@ export class MetadataSuggestionService {
     return {
       provider: "youtube-oembed",
       title: cleanText(data.title),
+      creator: cleanText(data.author_name),
       description: cleanText(data.author_name ? `${data.author_name} 채널의 영상입니다.` : undefined),
       thumbnailUrl: data.thumbnail_url,
       siteName: data.provider_name ?? "YouTube",
+    };
+  }
+
+  private async fromTikTok(url: URL): Promise<Omit<MetadataSuggestion, "sourceUrl" | "ai">> {
+    const endpoint = new URL("https://www.tiktok.com/oembed");
+    endpoint.searchParams.set("url", url.toString());
+    const response = await fetch(endpoint, { signal: AbortSignal.timeout(5_000) });
+    if (!response.ok) throw new Error("TikTok 정보를 불러오지 못했습니다.");
+    const data = await response.json() as {
+      title?: string;
+      author_name?: string;
+      thumbnail_url?: string;
+      provider_name?: string;
+    };
+    return {
+      provider: "tiktok-oembed",
+      title: cleanText(data.title),
+      creator: cleanText(data.author_name),
+      thumbnailUrl: data.thumbnail_url,
+      siteName: data.provider_name ?? "TikTok",
     };
   }
 
@@ -170,9 +210,15 @@ export class MetadataSuggestionService {
       }
     }
     const titleTag = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1];
+    const title = metaContent(html, ["og:title", "twitter:title"]) ?? cleanText(titleTag);
+    const explicitCreator = metaContent(html, ["author", "article:author", "twitter:creator"]);
+    const instagramCreator = url.hostname.endsWith("instagram.com")
+      ? title?.match(/^@([a-z0-9._]+)/i)?.[1]
+      : undefined;
     return {
       provider: "open-graph",
-      title: metaContent(html, ["og:title", "twitter:title"]) ?? cleanText(titleTag),
+      title,
+      creator: explicitCreator ?? instagramCreator,
       description: metaContent(html, ["og:description", "description", "twitter:description"]),
       thumbnailUrl,
       siteName: metaContent(html, ["og:site_name"]) ?? url.hostname,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { ExternalLink, Play, Volume2, VolumeX, ShieldAlert } from "lucide-react";
 import Image from "next/image";
 
@@ -126,8 +126,27 @@ export function VideoEmbed({
                 allowFullScreen
                 loading="eager"
               />
-
-
+              {feedMode && (
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 z-10 touch-pan-y md:hidden"
+                />
+              )}
+              {feedMode && video.platform === "youtube" && onToggleMute && (
+                <button
+                  aria-label={isMuted ? "소리 켜기" : "음소거"}
+                  className="absolute right-3 top-3 z-20 flex size-10 cursor-pointer items-center justify-center rounded-full bg-black/65 text-white shadow-md backdrop-blur-md transition hover:bg-black/85"
+                  onClick={onToggleMute}
+                  title={isMuted ? "소리 켜기" : "음소거"}
+                  type="button"
+                >
+                  {isMuted ? (
+                    <VolumeX className="size-5" aria-hidden="true" />
+                  ) : (
+                    <Volume2 className="size-5" aria-hidden="true" />
+                  )}
+                </button>
+              )}
             </>
           ) : imageUrl ? (
             <a
