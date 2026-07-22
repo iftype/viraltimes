@@ -36,32 +36,36 @@ export function registerQuizRoutes(
         .filter((card) => card.enabled)
         .map((card) => [card.memeId, card.field]),
     );
-    const toCard = (meme: (typeof memes)[number], field?: string): QuizCard => ({
-      id: meme.id,
-      slug: meme.slug,
-      title: meme.title,
-      summary: meme.summary || "아직 설명이 등록되지 않은 밈입니다.",
-      type:
-        meme.kind === "minor-meme" ||
-        meme.categoryIds.includes("category-korea-minor-meme")
-          ? "minor"
-          : "origin",
-      thumbnailUrl:
-        meme.thumbnailUrl ??
-        meme.origin.video?.thumbnailUrl ??
-        meme.trendingVideos.find((video) => video.thumbnailUrl)?.thumbnailUrl,
-      accentColor: meme.accent,
-      field,
-      originDetail: {
-        creator: meme.origin.video?.creator || "미상",
-        originYear: meme.lifecycle?.originYear,
-        platform: meme.origin.video?.platform || "unknown",
-        description:
-          meme.origin.summary ||
-          meme.summary ||
-          "이 밈의 출처와 사용 맥락을 함께 수집하고 있습니다.",
-      },
-    });
+    const toCard = (meme: (typeof memes)[number], field?: string): QuizCard => {
+      const video = meme.origin.video ?? meme.trendingVideos.find((item) => item.feedVisible !== false);
+      return {
+        id: meme.id,
+        slug: meme.slug,
+        title: meme.title,
+        summary: meme.summary || "아직 설명이 등록되지 않은 밈입니다.",
+        type:
+          meme.kind === "minor-meme" ||
+          meme.categoryIds.includes("category-korea-minor-meme")
+            ? "minor"
+            : "origin",
+        thumbnailUrl:
+          meme.thumbnailUrl ??
+          video?.thumbnailUrl ??
+          meme.trendingVideos.find((item) => item.thumbnailUrl)?.thumbnailUrl,
+        accentColor: meme.accent,
+        field,
+        video,
+        originDetail: {
+          creator: video?.creator || "미상",
+          originYear: meme.lifecycle?.originYear,
+          platform: video?.platform || "unknown",
+          description:
+            meme.origin.summary ||
+            meme.summary ||
+            "이 밈의 출처와 사용 맥락을 함께 수집하고 있습니다.",
+        },
+      };
+    };
     const cards = memes.map((meme) => toCard(meme, fieldByMemeId.get(meme.id)));
 
     // 매 실행마다 공개 사전 전체에서 서로 다른 다섯 항목을 무작위로 뽑는다.

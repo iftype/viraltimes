@@ -4,6 +4,8 @@ import { useState, useRef, MouseEvent as ReactMouseEvent, TouchEvent as ReactTou
 import { ArrowLeft, ArrowRight, Play, Check, X } from "lucide-react";
 import { Card } from "@origin/ui";
 import { ResilientImage } from "@/components/resilient-image";
+import { VideoEmbed } from "@/features/video-embed/components/video-embed";
+import type { Video } from "@/types/meme";
 
 interface QuizCardData {
   id: string;
@@ -14,6 +16,7 @@ interface QuizCardData {
   thumbnailUrl?: string;
   accentColor?: string;
   field?: string;
+  video?: Video;
   originDetail: {
     creator?: string;
     originYear?: number;
@@ -26,18 +29,21 @@ interface QuizCardProps {
   card: QuizCardData;
   active: boolean;
   onSwipe: (direction: "left" | "right") => void;
+  onPlayMedia: () => void;
   onViewDetail: () => void;
   onInteraction?: () => void;
   showSwipeHint?: boolean;
 }
 
-export function QuizCard({ card, active, onSwipe, onViewDetail, onInteraction, showSwipeHint = false }: QuizCardProps) {
+export function QuizCard({ card, active, onSwipe, onPlayMedia, onViewDetail, onInteraction, showSwipeHint = false }: QuizCardProps) {
   const [dragState, setDragState] = useState({
     isDragging: false,
     startX: 0,
     offsetX: 0,
   });
   const [fledDirection, setFledDirection] = useState<"left" | "right" | null>(null);
+  const [showEmbed, setShowEmbed] = useState(false);
+  const [mediaMuted, setMediaMuted] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
 
   if (!active && !fledDirection) return null;
@@ -83,6 +89,7 @@ export function QuizCard({ card, active, onSwipe, onViewDetail, onInteraction, s
     setDragState((prev) => ({ ...prev, isDragging: false }));
     setTimeout(() => {
       onSwipe(direction);
+      setFledDirection(null);
     }, 300); // 날아가는 애니메이션 재생 후 이벤트 발생
   };
 
@@ -153,15 +160,24 @@ export function QuizCard({ card, active, onSwipe, onViewDetail, onInteraction, s
         touchAction: "none",
         zIndex: active ? 10 : 1,
       }}
-      className={`absolute h-full w-full max-w-[340px] select-none cursor-grab active:cursor-grabbing sm:aspect-[3/4.5] sm:h-auto ${
+      className={`absolute h-full w-full max-w-[340px] select-none cursor-grab active:cursor-grabbing ${
         !active ? "pointer-events-none opacity-40 scale-95" : ""
       }`}
     >
       <Card className="flex h-full w-full flex-col overflow-hidden rounded-[var(--vo-radius-lg)] border border-neutral-200/60 bg-white p-0 shadow-xl">
 
         {/* 카드 미디어/썸네일 영역 */}
-        <div className="relative h-[39%] w-full shrink-0 overflow-hidden border-b border-neutral-100 bg-neutral-100 sm:h-auto sm:aspect-[4/3]">
-          {card.thumbnailUrl ? (
+        <div className="relative h-[48%] w-full shrink-0 overflow-hidden border-b border-neutral-100 bg-neutral-100">
+          {card.video && showEmbed ? (
+            <VideoEmbed
+              autoPlayOnScroll
+              compact
+              isMuted={mediaMuted}
+              onToggleMute={() => setMediaMuted((current) => !current)}
+              priority={active}
+              video={card.video}
+            />
+          ) : card.thumbnailUrl ? (
             <ResilientImage
               alt={`${card.title} 대표 장면`}
               className="pointer-events-none object-cover"
@@ -173,8 +189,25 @@ export function QuizCard({ card, active, onSwipe, onViewDetail, onInteraction, s
             />
           ) : <QuizCardPlaceholder card={card} />}
 
+          {card.video && !showEmbed && (
+            <button
+              className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center bg-black/15 transition hover:bg-black/25"
+              onClick={(event) => {
+                event.stopPropagation();
+                setShowEmbed(true);
+                onInteraction?.();
+                onPlayMedia();
+              }}
+              type="button"
+            >
+              <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-xs font-black text-black shadow-xl">
+                <Play className="size-4 fill-current" aria-hidden="true" /> 카드 안에서 영상 재생
+              </span>
+            </button>
+          )}
+
           {/* 카드 타입 뱃지 */}
-          <div className="absolute top-4 left-4 flex gap-2">
+          <div className="pointer-events-none absolute left-4 top-4 z-20 flex gap-2">
             <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full text-white shadow-sm ${
               card.type === "minor"
                 ? "bg-[var(--vo-color-brand)]"
@@ -204,7 +237,7 @@ export function QuizCard({ card, active, onSwipe, onViewDetail, onInteraction, s
           )}
 
           {showSwipeHint && !isDragging && (
-            <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between rounded-2xl bg-black/78 px-3 py-2.5 text-white shadow-lg backdrop-blur-sm">
+            <div className="pointer-events-none absolute inset-x-3 bottom-3 z-30 flex items-center justify-between rounded-2xl bg-black/78 px-3 py-2.5 text-white shadow-lg backdrop-blur-sm">
               <span className="flex items-center gap-1 text-[0.68rem] font-black text-white/75"><ArrowLeft className="size-3.5 animate-pulse" />몰라요</span>
               <span className="text-xs font-black">카드를 좌우로 밀어보세요</span>
               <span className="flex items-center gap-1 text-[0.68rem] font-black text-white/75">알아요<ArrowRight className="size-3.5 animate-pulse" /></span>
@@ -213,27 +246,27 @@ export function QuizCard({ card, active, onSwipe, onViewDetail, onInteraction, s
         </div>
 
         {/* 설명 및 콘텐츠 영역 */}
-        <div className="flex min-h-0 flex-1 flex-col justify-between p-4 sm:p-5">
+        <div className="flex min-h-0 flex-1 flex-col justify-between p-4">
           <div className="space-y-2.5">
-            <h2 className="text-lg font-extrabold leading-snug tracking-tight text-neutral-900 sm:text-xl">
+            <h2 className="text-lg font-extrabold leading-snug tracking-tight text-neutral-900">
               {card.title}
             </h2>
-            <p className="line-clamp-2 text-sm font-medium leading-relaxed text-neutral-500 sm:line-clamp-3">
+            <p className="line-clamp-2 text-sm font-medium leading-relaxed text-neutral-500">
               {card.summary}
             </p>
           </div>
 
           {/* 아래 버튼 (상세 정보 보기) */}
-          <div className="mt-auto pt-2 sm:pt-4">
+          <div className="mt-auto pt-2">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onViewDetail();
               }}
-              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--vo-radius-md)] bg-black px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all duration-200 hover:scale-[1.01] hover:bg-black/85 active:scale-[0.99] sm:py-3.5"
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--vo-radius-md)] bg-black px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all duration-200 hover:scale-[1.01] hover:bg-black/85 active:scale-[0.99]"
             >
               <Play className="fill-current" size={16} />
-              영상 보러 가기
+              유래·뜻 자세히 보기
             </button>
           </div>
         </div>

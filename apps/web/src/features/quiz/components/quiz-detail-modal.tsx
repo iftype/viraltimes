@@ -29,7 +29,7 @@ export function QuizDetailModal({ card, onClose, onOpenPage }: QuizDetailModalPr
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 sm:items-center sm:p-4">
       <button aria-label="영상 닫기" className="absolute inset-0 cursor-default" onClick={onClose} type="button" />
-      <section aria-labelledby="quiz-media-title" aria-modal="true" className="relative flex h-[84dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:h-[82vh] sm:rounded-2xl" role="dialog">
+      <section aria-labelledby="quiz-media-title" aria-modal="true" className="relative flex h-[84dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl md:h-[min(820px,calc(100dvh-3rem))] md:max-w-[430px] md:rounded-[2rem]" role="dialog">
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-black/5 px-4 py-3">
           <div className="min-w-0"><p className="text-[0.62rem] font-black text-[#fe2c55]">VIRALTIMES</p><h2 className="truncate text-sm font-black" id="quiz-media-title">{card.title} 영상 보기</h2></div>
           <button aria-label="닫기" className="cursor-pointer rounded-full bg-black/5 p-2" onClick={onClose} type="button"><X className="size-4" /></button>

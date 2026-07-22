@@ -1,3 +1,5 @@
+import type { Video } from "./meme-types.js";
+
 export type QuizCard = {
   id: string;
   slug: string;
@@ -7,6 +9,7 @@ export type QuizCard = {
   thumbnailUrl?: string;
   accentColor?: string;
   field?: string;
+  video?: Video;
   originDetail: {
     creator?: string;
     originYear?: number;
